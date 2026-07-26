@@ -13,10 +13,10 @@
 ## Docker deployment
 
 ```bash
-cp .env.example .env
-# Edit .env and replace every placeholder with an independent secret.
 ./deploy-docker.sh up
 ```
+
+On the first run, the deployment script creates `.env` automatically with independent random database passwords, JWT secret and administrator password. It detects the server IP, prints the administrator credentials once and stores the configuration with mode `600`. An existing real `.env` is never overwritten.
 
 The first start of a new MySQL volume automatically runs:
 

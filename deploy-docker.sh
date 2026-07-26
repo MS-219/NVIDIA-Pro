@@ -8,6 +8,84 @@ compose() {
   docker compose "$@"
 }
 
+random_hex() {
+  local bytes="$1"
+  openssl rand -hex "$bytes"
+}
+
+detect_public_host() {
+  local host=""
+  if command -v curl >/dev/null 2>&1; then
+    host="$(curl -4 -fsS --max-time 5 https://api.ipify.org 2>/dev/null || true)"
+  fi
+  if [[ -z "$host" ]]; then
+    host="$(hostname -I 2>/dev/null | awk '{print $1}' || true)"
+  fi
+  printf '%s' "${host:-127.0.0.1}"
+}
+
+initialize_env() {
+  command -v openssl >/dev/null 2>&1 || {
+    echo "OpenSSL is required to generate deployment secrets." >&2
+    exit 1
+  }
+
+  local backend_port="18090"
+  local admin_port="18174"
+  local public_host
+  local admin_password
+  public_host="$(detect_public_host)"
+  admin_password="$(random_hex 12)"
+
+  umask 077
+  {
+    printf 'ORIN_BACKEND_PORT=%s\n' "$backend_port"
+    printf 'ORIN_ADMIN_PORT=%s\n' "$admin_port"
+    printf 'ORIN_DB_URL=jdbc:mysql://mysql:3306/juxin_orin?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false\n'
+    printf 'ORIN_DB_USERNAME=juxin_orin\n'
+    printf 'ORIN_DB_PASSWORD=%s\n' "$(random_hex 24)"
+    printf 'ORIN_MYSQL_ROOT_PASSWORD=%s\n' "$(random_hex 24)"
+    printf 'ORIN_CORS_ALLOWED_ORIGINS=http://%s:%s\n' "$public_host" "$admin_port"
+    printf 'ORIN_PUBLIC_BASE_URL=http://%s:%s\n' "$public_host" "$backend_port"
+    printf 'ORIN_JWT_SECRET=%s\n' "$(random_hex 32)"
+    printf 'ORIN_ADMIN_USERNAME=admin\n'
+    printf 'ORIN_ADMIN_PASSWORD=%s\n' "$admin_password"
+    printf 'ORIN_WECHAT_APP_ID=\n'
+    printf 'ORIN_WECHAT_APP_SECRET=\n'
+    printf 'ORIN_BOSSKG_ENABLED=false\n'
+    printf 'ORIN_BOSSKG_API_URL=https://api.example.invalid\n'
+    printf 'ORIN_BOSSKG_MER_ID=\n'
+    printf 'ORIN_BOSSKG_PROVIDER_ID=\n'
+    printf 'ORIN_BOSSKG_TASK_ID=\n'
+    printf 'ORIN_BOSSKG_DES_KEY=\n'
+    printf 'ORIN_BOSSKG_PRIVATE_KEY=\n'
+    printf 'ORIN_BOSSKG_PUBLIC_KEY=\n'
+    printf 'ORIN_BOSSKG_CONTRACT_NOTIFY_URL=http://%s:%s/api/bosskg/notify/contract\n' "$public_host" "$backend_port"
+    printf 'ORIN_BOSSKG_PAYMENT_NOTIFY_URL=http://%s:%s/api/bosskg/notify/payment\n' "$public_host" "$backend_port"
+  } > .env
+  chmod 600 .env
+
+  echo "Generated independent deployment configuration: $ROOT_DIR/.env"
+  echo "Detected server address: $public_host"
+  echo "Admin URL: http://$public_host:$admin_port"
+  echo "Admin username: admin"
+  echo "Admin initial password: $admin_password"
+  echo "Keep this password secure; it is also stored in .env with mode 600."
+}
+
+prepare_env() {
+  if [[ ! -f .env ]]; then
+    initialize_env
+    return
+  fi
+  if [[ -f .env.example ]] && cmp -s .env .env.example; then
+    local backup=".env.placeholder.$(date +%Y%m%d%H%M%S)"
+    mv .env "$backup"
+    echo "Backed up placeholder configuration to $backup"
+    initialize_env
+  fi
+}
+
 require_runtime() {
   command -v docker >/dev/null 2>&1 || {
     echo "Docker is not installed." >&2
@@ -21,7 +99,7 @@ require_runtime() {
 
 validate_env() {
   if [[ ! -f .env ]]; then
-    echo "Missing .env. Create it from .env.example and set independent secrets." >&2
+    echo "Missing .env and automatic initialization failed." >&2
     exit 1
   fi
   if grep -Eq '(^|=)replace-with-' .env; then
@@ -51,16 +129,29 @@ wait_for_backend() {
 }
 
 action="${1:-up}"
+
+if [[ "$action" == "init" ]]; then
+  prepare_env
+  if grep -Eq '(^|=)replace-with-' .env; then
+    echo "The existing .env contains placeholders and differs from .env.example; it was not overwritten." >&2
+    exit 1
+  fi
+  echo "Deployment configuration is ready: $ROOT_DIR/.env"
+  exit 0
+fi
+
 require_runtime
 
 case "$action" in
   up)
+    prepare_env
     validate_env
     compose up -d --build
     wait_for_backend
     compose ps
     ;;
   restart)
+    prepare_env
     validate_env
     compose up -d --build --force-recreate backend admin
     wait_for_backend
@@ -76,7 +167,7 @@ case "$action" in
     compose down
     ;;
   *)
-    echo "Usage: $0 {up|restart|status|logs [lines]|down}" >&2
+    echo "Usage: $0 {init|up|restart|status|logs [lines]|down}" >&2
     exit 2
     ;;
 esac
