@@ -2,10 +2,10 @@ package com.juxin.orin.controller;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.juxin.orin.common.Result;
-import com.juxin.orin.entity.AiDeviceTask;
+import com.juxin.orin.entity.ComputeJob;
 import com.juxin.orin.entity.Device;
 import com.juxin.orin.entity.DeviceCommand;
-import com.juxin.orin.service.IAiDeviceTaskService;
+import com.juxin.orin.service.IComputeJobService;
 import com.juxin.orin.service.IDeviceCommandService;
 import com.juxin.orin.service.IDeviceService;
 import com.juxin.orin.service.IDeviceUpgradeService;
@@ -29,7 +29,7 @@ public class EdgeDeviceController {
     private IDeviceService deviceService;
 
     @Autowired
-    private IAiDeviceTaskService aiDeviceTaskService;
+    private IComputeJobService computeJobService;
 
     @Autowired
     private IDeviceCommandService deviceCommandService;
@@ -257,22 +257,22 @@ public class EdgeDeviceController {
      * 2. 节点领取挂起任务 (Fetch Task)
      */
     @GetMapping("/tasks/fetch")
-    public Result<AiDeviceTask> fetchTask(@RequestParam String sn) {
+    public Result<ComputeJob> fetchTask(@RequestParam String sn) {
         // 查找属于该节点或公共池中处于 pending 状态的最早任务
-        LambdaQueryWrapper<AiDeviceTask> query = new LambdaQueryWrapper<>();
-        query.eq(AiDeviceTask::getStatus, "pending")
-                .and(i -> i.eq(AiDeviceTask::getDeviceSn, sn).or().isNull(AiDeviceTask::getDeviceSn))
-                .orderByAsc(AiDeviceTask::getCreateTime)
+        LambdaQueryWrapper<ComputeJob> query = new LambdaQueryWrapper<>();
+        query.eq(ComputeJob::getStatus, "pending")
+                .and(i -> i.eq(ComputeJob::getDeviceSn, sn).or().isNull(ComputeJob::getDeviceSn))
+                .orderByAsc(ComputeJob::getCreateTime)
                 .last("LIMIT 1");
 
-        AiDeviceTask task = aiDeviceTaskService.getOne(query);
+        ComputeJob task = computeJobService.getOne(query);
 
         if (task != null) {
             // 锁定任务为 running 状态并分配给该 SN
             task.setStatus("running");
             task.setDeviceSn(sn);
             task.setUpdateTime(LocalDateTime.now());
-            aiDeviceTaskService.updateById(task);
+            computeJobService.updateById(task);
             return Result.success(task);
         }
 
@@ -283,8 +283,8 @@ public class EdgeDeviceController {
      * 3. 节点回传任务执行结果 (Submit Result)
      */
     @PostMapping("/tasks/submit")
-    public Result<String> submitResult(@RequestBody AiDeviceTask result) {
-        AiDeviceTask task = aiDeviceTaskService.getById(result.getId());
+    public Result<String> submitResult(@RequestBody ComputeJob result) {
+        ComputeJob task = computeJobService.getById(result.getId());
         if (task == null) {
             return Result.error("任务不存在");
         }
@@ -303,7 +303,7 @@ public class EdgeDeviceController {
             task.setRewardHashrate(Math.max(1, reward));
         }
 
-        aiDeviceTaskService.updateById(task);
+        computeJobService.updateById(task);
         return Result.success("Contribution recorded");
     }
 

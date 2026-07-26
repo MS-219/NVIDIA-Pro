@@ -10,7 +10,6 @@ import com.juxin.orin.mapper.InviteRewardMapper;
 import com.juxin.orin.mapper.UserContractMapper;
 import com.juxin.orin.service.IAppUserService;
 import com.juxin.orin.service.IDeviceService;
-import com.juxin.orin.service.IAiTaskService;
 import com.juxin.orin.service.IWechatService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Transactional;
@@ -36,9 +35,6 @@ public class AppUserController {
 
     @Autowired
     private IDeviceService deviceService;
-
-    @Autowired
-    private IAiTaskService aiTaskService;
 
     @Autowired
     private DeviceEarningsMapper earningsMapper;
@@ -738,9 +734,6 @@ public class AppUserController {
 
             user.setDeviceCount(
                     deviceService.lambdaQuery().eq(com.juxin.orin.entity.Device::getUserId, user.getId()).count().intValue());
-            user.setTaskCount(
-                    aiTaskService.lambdaQuery().eq(com.juxin.orin.entity.AiTask::getUserId, user.getId()).count().intValue());
-
             // 填充邀请人昵称和头像
             if (user.getInviterId() != null) {
                 AppUser inviter = appUserService.getById(user.getInviterId());
@@ -1005,9 +998,6 @@ public class AppUserController {
         }
         java.math.BigDecimal totalEarnings = deviceEarnings.add(rewardEarnings);
 
-        // 获取创作任务数
-        int taskCount = aiTaskService.lambdaQuery().eq(com.juxin.orin.entity.AiTask::getUserId, id).count().intValue();
-
         // 获取邀请人信息
         String inviterNickname = null;
         String inviterAvatarUrl = null;
@@ -1039,7 +1029,6 @@ public class AppUserController {
         result.put("inviterAvatarUrl", inviterAvatarUrl);
         result.put("createTime", user.getCreateTime());
         result.put("deviceCount", devices.size());
-        result.put("taskCount", taskCount);
         result.put("devices", deviceList);
         result.put("deviceEarnings", deviceEarnings);
         result.put("rewardEarnings", rewardEarnings);

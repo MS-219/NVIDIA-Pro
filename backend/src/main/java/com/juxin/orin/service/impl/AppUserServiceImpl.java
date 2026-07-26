@@ -322,7 +322,6 @@ public class AppUserServiceImpl extends ServiceImpl<AppUserMapper, AppUser> impl
         deleteByUserId("user_feedback", placeholders, args);
         deleteByUserId("user_payment_apply", placeholders, args);
         deleteByUserId("withdraw", placeholders, args);
-        deleteByUserId("ai_task", placeholders, args);
         deleteByUserId("device_earnings", placeholders, args);
         jdbcTemplate.update("DELETE FROM invite_reward WHERE inviter_id IN (" + placeholders + ")", args);
         jdbcTemplate.update("DELETE FROM invite_reward WHERE invitee_id IN (" + placeholders + ")", args);

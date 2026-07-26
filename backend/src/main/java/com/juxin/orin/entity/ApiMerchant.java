@@ -32,7 +32,7 @@ public class ApiMerchant {
     private String appSecret;
 
     /**
-     * 可见功能权限, 逗号分隔 (例如: text-to-video,image-to-video)
+     * 可用开放接口权限，逗号分隔
      */
     private String permissions;
 

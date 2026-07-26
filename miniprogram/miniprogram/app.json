@@ -3,15 +3,12 @@
     "pages/index/index",
     "pages/device/device",
     "pages/device-detail/device-detail",
-    "pages/creation/creation",
     "pages/my/my",
     "pages/complete-profile/complete-profile",
     "pages/withdraw/withdraw",
     "pages/bosskg-contract/bosskg-contract",
     "pages/withdraw-record/withdraw-record",
     "pages/earnings-detail/earnings-detail",
-    "pages/ai-create/ai-create",
-    "pages/creation-history/creation-history",
     "pages/invite/invite",
     "pages/partner-devices/partner-devices",
     "pages/member-devices/member-devices",
@@ -52,12 +49,6 @@
         "text": "设备",
         "iconPath": "images/tabbar/device.png",
         "selectedIconPath": "images/tabbar/device-active.png"
-      },
-      {
-        "pagePath": "pages/creation/creation",
-        "text": "创作",
-        "iconPath": "images/tabbar/creation.png",
-        "selectedIconPath": "images/tabbar/creation-active.png"
       },
       {
         "pagePath": "pages/my/my",

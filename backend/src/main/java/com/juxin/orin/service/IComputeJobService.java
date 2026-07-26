@@ -2,16 +2,16 @@ package com.juxin.orin.service;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
-import com.juxin.orin.entity.AiDeviceTask;
+import com.juxin.orin.entity.ComputeJob;
 
 import java.util.Map;
 
-public interface IAiDeviceTaskService extends IService<AiDeviceTask> {
+public interface IComputeJobService extends IService<ComputeJob> {
 
     /**
      * Admin: Get paginated device task list
      */
-    Page<AiDeviceTask> getAdminTaskList(Integer page, Integer size, String deviceSn, String status);
+    Page<ComputeJob> getAdminTaskList(Integer page, Integer size, String deviceSn, String status);
 
     /**
      * Admin: Get statistics about device tasks
@@ -26,6 +26,6 @@ public interface IAiDeviceTaskService extends IService<AiDeviceTask> {
     /**
      * Admin: Get N latest task logs
      */
-    java.util.List<AiDeviceTask> getLatestTasks(Integer limit);
+    java.util.List<ComputeJob> getLatestTasks(Integer limit);
 
 }

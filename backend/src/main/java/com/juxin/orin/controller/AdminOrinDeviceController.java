@@ -4,10 +4,10 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.juxin.orin.common.Result;
-import com.juxin.orin.entity.AiDeviceTask;
+import com.juxin.orin.entity.ComputeJob;
 import com.juxin.orin.entity.Device;
 import com.juxin.orin.entity.DeviceCommand;
-import com.juxin.orin.service.IAiDeviceTaskService;
+import com.juxin.orin.service.IComputeJobService;
 import com.juxin.orin.service.IDeviceCommandService;
 import com.juxin.orin.service.IDeviceService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,13 +25,13 @@ import java.util.stream.Collectors;
  */
 @RestController
 @RequestMapping("/api/admin/sl/devices")
-public class AdminAiDeviceController {
+public class AdminOrinDeviceController {
 
     @Autowired
     private IDeviceService deviceService;
 
     @Autowired
-    private IAiDeviceTaskService aiDeviceTaskService;
+    private IComputeJobService computeJobService;
 
     @Autowired
     private IDeviceCommandService deviceCommandService;
@@ -236,21 +236,21 @@ public class AdminAiDeviceController {
             return;
         }
 
-        List<AiDeviceTask> tasks = aiDeviceTaskService.lambdaQuery()
-                .in(AiDeviceTask::getDeviceSn, sns)
-                .orderByDesc(AiDeviceTask::getUpdateTime)
-                .orderByDesc(AiDeviceTask::getCreateTime)
+        List<ComputeJob> tasks = computeJobService.lambdaQuery()
+                .in(ComputeJob::getDeviceSn, sns)
+                .orderByDesc(ComputeJob::getUpdateTime)
+                .orderByDesc(ComputeJob::getCreateTime)
                 .list();
 
         Map<String, Long> tokenMap = tasks.stream()
                 .filter(task -> "completed".equals(task.getStatus()))
                 .collect(Collectors.groupingBy(
-                        AiDeviceTask::getDeviceSn,
+                        ComputeJob::getDeviceSn,
                         Collectors.summingLong(
                                 task -> task.getGenerateTokens() == null ? 0L : task.getGenerateTokens().longValue())));
 
         Map<String, String> runtimeModelMap = new HashMap<>();
-        for (AiDeviceTask task : tasks) {
+        for (ComputeJob task : tasks) {
             if (task.getDeviceSn() == null || task.getDeviceSn().isEmpty()) {
                 continue;
             }

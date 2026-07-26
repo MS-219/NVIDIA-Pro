@@ -10,12 +10,40 @@
 - `miniprogram/`: 独立微信小程序源码，发布前必须配置新的 AppID 和 API 域名。
 - `deploy/`: 独立部署配置。
 
-## Local start
+## Docker deployment
 
 ```bash
 cp .env.example .env
-docker compose up -d --build
+# Edit .env and replace every placeholder with an independent secret.
+./deploy-docker.sh up
+```
 
+The first start of a new MySQL volume automatically runs:
+
+- `deploy/mysql-init/001-schema.sql`: the complete independent schema.
+- `deploy/mysql-init/002-default-settings.sql`: Orin platform defaults.
+
+No default administrator password is stored in SQL. The backend creates the first administrator from `ORIN_ADMIN_USERNAME` and `ORIN_ADMIN_PASSWORD`; the password must contain at least 12 characters.
+
+After startup:
+
+- Admin console: `http://SERVER_IP:8174`
+- Backend health: `http://SERVER_IP:8090/api/health`
+
+Common operations:
+
+```bash
+./deploy-docker.sh status
+./deploy-docker.sh logs 200
+./deploy-docker.sh restart
+./deploy-docker.sh down
+```
+
+MySQL initialization files only run when the data volume is empty. Never delete the production volume just to rerun initialization; use a reviewed migration for an existing database.
+
+## Frontend development
+
+```bash
 cd admin
 npm install
 npm run dev
@@ -23,7 +51,7 @@ npm run dev
 
 后台前端默认请求同源 `/api`。本地开发由 Vite 将请求代理到 `http://127.0.0.1:8090`。
 
-首次部署前需要按顺序初始化独立数据库：先执行 `backend/sql/orin_base.sql`，再执行当前功能所需的增量 SQL。首个管理员不会写入 SQL，必须通过 `.env` 中的 `ORIN_ADMIN_USERNAME` 和 `ORIN_ADMIN_PASSWORD` 创建。
+新系统不包含旧小程序的 AI 创作功能。`compute_job` 仅用于后台向 Orin 节点下发推理或计算作业，并记录设备执行结果。
 
 ## Isolation rules
 

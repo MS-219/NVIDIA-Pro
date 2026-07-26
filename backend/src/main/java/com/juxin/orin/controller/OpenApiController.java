@@ -26,9 +26,6 @@ public class OpenApiController {
     private IApiMerchantService apiMerchantService;
 
     @Autowired
-    private IAiTaskService aiTaskService;
-
-    @Autowired
     private IAppUserService appUserService;
 
     @Autowired
@@ -87,78 +84,6 @@ public class OpenApiController {
             return Result.error("商户无权调用该功能: " + permission);
         }
         return null;
-    }
-
-    /**
-     * AI 任务提交接口 (商户调用)
-     */
-    @PostMapping("/ai-task/submit")
-    public Result<String> submitTask(
-            @RequestHeader("App-Id") String appId,
-            @RequestHeader("Timestamp") String timestamp,
-            @RequestHeader("Sign") String sign,
-            @RequestBody Map<String, String> params) {
-
-        String taskType = params.get("taskType");
-        String externalUserId = params.get("externalUserId");
-
-        if (taskType == null || taskType.isEmpty())
-            return Result.error("taskType 不能为空");
-        if (externalUserId == null || externalUserId.isEmpty())
-            return Result.error("externalUserId 不能为空");
-
-        Result<ApiMerchant> merchantResult = validateMerchant(appId, timestamp, taskType, sign);
-        if (merchantResult.getCode() != 200)
-            return Result.error(merchantResult.getMsg());
-
-        ApiMerchant merchant = merchantResult.getData();
-        Result<?> permCheck = validatePermission(merchant, taskType);
-        if (permCheck != null)
-            return Result.error(permCheck.getMsg());
-
-        // 通过 externalUserId 获取/创建系统用户，关联任务
-        AppUser user = appUserService.syncExternalUser(merchant.getId(), externalUserId, null, null);
-
-        AiTask createdTask = aiTaskService.createTask(user.getId(), taskType, params.get("prompt"),
-                params.get("inputImageUrl"), params.get("options"));
-
-        return Result.success(createdTask.getTaskId());
-    }
-
-    /**
-     * 任务状态查询接口
-     */
-    @GetMapping("/ai-task/status/{taskId}")
-    public Result<AiTask> getTaskStatus(
-            @RequestHeader("App-Id") String appId,
-            @RequestHeader("Timestamp") String timestamp,
-            @RequestHeader("Sign") String sign,
-            @PathVariable String taskId,
-            @RequestParam String externalUserId) {
-
-        if (externalUserId == null || externalUserId.isEmpty())
-            return Result.error("externalUserId 不能为空");
-
-        Result<ApiMerchant> merchantResult = validateMerchant(appId, timestamp, taskId, sign);
-        if (merchantResult.getCode() != 200)
-            return Result.error(merchantResult.getMsg());
-
-        ApiMerchant merchant = merchantResult.getData();
-
-        // 获取该商户下的用户
-        AppUser user = appUserService.syncExternalUser(merchant.getId(), externalUserId, null, null);
-
-        AiTask task = aiTaskService.getByTaskId(taskId);
-        if (task == null) {
-            return Result.error("任务不存在");
-        }
-
-        // 验证任务是否属于该用户
-        if (!task.getUserId().equals(user.getId())) {
-            return Result.error("无权查询该任务");
-        }
-
-        return Result.success(task);
     }
 
     /**

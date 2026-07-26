@@ -38,12 +38,6 @@ Page({
                 answer: '是的，设备离线期间不产生收益。请确保设备保持在线状态以获得持续收益。',
                 expanded: false
             },
-            {
-                id: 6,
-                question: '如何使用AI创作功能？',
-                answer: '进入"创作"页面，选择视频或图片模式，输入描述词后点击生成即可。生成需消耗聚芯 Orin值。',
-                expanded: false
-            },
         ]
     },
 

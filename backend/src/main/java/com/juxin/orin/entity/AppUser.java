@@ -35,7 +35,7 @@ public class AppUser {
     /** 用户余额 */
     private BigDecimal balance;
 
-    /** 剩余配额（用于AI创作） */
+    /** 聚芯算力值，用于收益、兑换和提现核算 */
     private Integer quota;
 
     /** 邀请人ID */
@@ -104,10 +104,6 @@ public class AppUser {
     /** 绑定的设备数量 */
     @TableField(exist = false)
     private Integer deviceCount;
-
-    /** 创作任务数量 */
-    @TableField(exist = false)
-    private Integer taskCount;
 
     /** 邀请人昵称 */
     @TableField(exist = false)

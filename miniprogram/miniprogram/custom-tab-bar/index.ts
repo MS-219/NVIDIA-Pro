@@ -17,11 +17,6 @@ Component({
             "iconPath": "/images/tabbar/device.png",
             "selectedIconPath": "/images/tabbar/device-active.png"
         }, {
-            "pagePath": "/pages/creation/creation",
-            "text": "创作",
-            "iconPath": "/images/tabbar/creation.png",
-            "selectedIconPath": "/images/tabbar/creation-active.png"
-        }, {
             "pagePath": "/pages/my/my",
             "text": "我的",
             "iconPath": "/images/tabbar/my.png",

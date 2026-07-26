@@ -6,11 +6,11 @@ import lombok.Data;
 import java.time.LocalDateTime;
 
 /**
- * AI 设备执行任务记录
+ * Orin 节点计算作业记录
  */
 @Data
-@TableName("ai_device_task")
-public class AiDeviceTask {
+@TableName("compute_job")
+public class ComputeJob {
 
     @TableId(type = IdType.AUTO)
     private Long id;

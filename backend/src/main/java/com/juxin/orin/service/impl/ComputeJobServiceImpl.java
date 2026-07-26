@@ -3,10 +3,10 @@ package com.juxin.orin.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import com.juxin.orin.entity.AiDeviceTask;
+import com.juxin.orin.entity.ComputeJob;
 import com.juxin.orin.entity.Device;
-import com.juxin.orin.mapper.AiDeviceTaskMapper;
-import com.juxin.orin.service.IAiDeviceTaskService;
+import com.juxin.orin.mapper.ComputeJobMapper;
+import com.juxin.orin.service.IComputeJobService;
 import com.juxin.orin.service.IDeviceService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -17,27 +17,27 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
-public class AiDeviceTaskServiceImpl extends ServiceImpl<AiDeviceTaskMapper, AiDeviceTask>
-        implements IAiDeviceTaskService {
+public class ComputeJobServiceImpl extends ServiceImpl<ComputeJobMapper, ComputeJob>
+        implements IComputeJobService {
 
     @Autowired
     private IDeviceService deviceService;
 
     @Override
-    public Page<AiDeviceTask> getAdminTaskList(Integer page, Integer size, String deviceSn, String status) {
-        Page<AiDeviceTask> pageParam = new Page<>(page, size);
-        LambdaQueryWrapper<AiDeviceTask> wrapper = new LambdaQueryWrapper<>();
+    public Page<ComputeJob> getAdminTaskList(Integer page, Integer size, String deviceSn, String status) {
+        Page<ComputeJob> pageParam = new Page<>(page, size);
+        LambdaQueryWrapper<ComputeJob> wrapper = new LambdaQueryWrapper<>();
 
         if (deviceSn != null && !deviceSn.isEmpty()) {
-            wrapper.like(AiDeviceTask::getDeviceSn, deviceSn);
+            wrapper.like(ComputeJob::getDeviceSn, deviceSn);
         }
         if (status != null && !status.isEmpty()) {
-            wrapper.eq(AiDeviceTask::getStatus, status);
+            wrapper.eq(ComputeJob::getStatus, status);
         }
 
-        wrapper.orderByDesc(AiDeviceTask::getCreateTime);
+        wrapper.orderByDesc(ComputeJob::getCreateTime);
 
-        Page<AiDeviceTask> result = this.page(pageParam, wrapper);
+        Page<ComputeJob> result = this.page(pageParam, wrapper);
 
         // Fill device info
         fillDeviceInfo(result.getRecords());
@@ -51,13 +51,13 @@ public class AiDeviceTaskServiceImpl extends ServiceImpl<AiDeviceTaskMapper, AiD
 
         long totalTasks = this.count();
         long completedTasks = this
-                .count(new LambdaQueryWrapper<AiDeviceTask>().eq(AiDeviceTask::getStatus, "completed"));
-        long failedTasks = this.count(new LambdaQueryWrapper<AiDeviceTask>().eq(AiDeviceTask::getStatus, "failed"));
-        long runningTasks = this.count(new LambdaQueryWrapper<AiDeviceTask>().eq(AiDeviceTask::getStatus, "running"));
+                .count(new LambdaQueryWrapper<ComputeJob>().eq(ComputeJob::getStatus, "completed"));
+        long failedTasks = this.count(new LambdaQueryWrapper<ComputeJob>().eq(ComputeJob::getStatus, "failed"));
+        long runningTasks = this.count(new LambdaQueryWrapper<ComputeJob>().eq(ComputeJob::getStatus, "running"));
 
-        List<AiDeviceTask> completedList = this.baseMapper.selectList(new LambdaQueryWrapper<AiDeviceTask>()
-                .eq(AiDeviceTask::getStatus, "completed")
-                .select(AiDeviceTask::getGenerateTokens, AiDeviceTask::getDurationMs));
+        List<ComputeJob> completedList = this.baseMapper.selectList(new LambdaQueryWrapper<ComputeJob>()
+                .eq(ComputeJob::getStatus, "completed")
+                .select(ComputeJob::getGenerateTokens, ComputeJob::getDurationMs));
 
         long totalTokens = completedList.stream()
                 .mapToLong(t -> t.getGenerateTokens() == null ? 0 : t.getGenerateTokens())
@@ -93,10 +93,10 @@ public class AiDeviceTaskServiceImpl extends ServiceImpl<AiDeviceTaskMapper, AiD
         for (int i = 11; i >= 0; i--) {
             java.time.LocalDateTime time = now.minusHours(i);
             labels.add(time.getHour() + ":00");
-            long count = this.count(new LambdaQueryWrapper<AiDeviceTask>()
-                    .eq(AiDeviceTask::getStatus, "completed")
-                    .ge(AiDeviceTask::getUpdateTime, time.withMinute(0).withSecond(0))
-                    .le(AiDeviceTask::getUpdateTime, time.withMinute(59).withSecond(59)));
+            long count = this.count(new LambdaQueryWrapper<ComputeJob>()
+                    .eq(ComputeJob::getStatus, "completed")
+                    .ge(ComputeJob::getUpdateTime, time.withMinute(0).withSecond(0))
+                    .le(ComputeJob::getUpdateTime, time.withMinute(59).withSecond(59)));
             values.add(count);
         }
 
@@ -105,10 +105,10 @@ public class AiDeviceTaskServiceImpl extends ServiceImpl<AiDeviceTaskMapper, AiD
         return trend;
     }
 
-    private void fillDeviceInfo(List<AiDeviceTask> records) {
+    private void fillDeviceInfo(List<ComputeJob> records) {
         if (records == null || records.isEmpty())
             return;
-        List<String> sns = records.stream().map(AiDeviceTask::getDeviceSn).distinct().collect(Collectors.toList());
+        List<String> sns = records.stream().map(ComputeJob::getDeviceSn).distinct().collect(Collectors.toList());
         if (sns.isEmpty())
             return;
 
@@ -117,7 +117,7 @@ public class AiDeviceTaskServiceImpl extends ServiceImpl<AiDeviceTaskMapper, AiD
         List<Device> devices = deviceService.list(dw);
         Map<String, Device> deviceMap = devices.stream().collect(Collectors.toMap(Device::getSn, d -> d));
 
-        for (AiDeviceTask task : records) {
+        for (ComputeJob task : records) {
             Device d = deviceMap.get(task.getDeviceSn());
             if (d != null) {
                 task.setDeviceName(d.getName());
@@ -127,11 +127,11 @@ public class AiDeviceTaskServiceImpl extends ServiceImpl<AiDeviceTaskMapper, AiD
     }
 
     @Override
-    public List<AiDeviceTask> getLatestTasks(Integer limit) {
-        LambdaQueryWrapper<AiDeviceTask> wrapper = new LambdaQueryWrapper<>();
-        wrapper.orderByDesc(AiDeviceTask::getCreateTime);
+    public List<ComputeJob> getLatestTasks(Integer limit) {
+        LambdaQueryWrapper<ComputeJob> wrapper = new LambdaQueryWrapper<>();
+        wrapper.orderByDesc(ComputeJob::getCreateTime);
         wrapper.last("LIMIT " + limit);
-        List<AiDeviceTask> list = this.list(wrapper);
+        List<ComputeJob> list = this.list(wrapper);
         fillDeviceInfo(list);
         return list;
     }

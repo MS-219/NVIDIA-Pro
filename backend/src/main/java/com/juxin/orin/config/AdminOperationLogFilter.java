@@ -61,7 +61,6 @@ public class AdminOperationLogFilter extends OncePerRequestFilter {
             "/api/user/refresh-levels",
             "/api/settings/all",
             "/api/settings/earnings",
-            "/api/settings/ai-pricing",
             "/api/settings/device",
             "/api/settings/system",
             "/api/settings/withdraw-days",

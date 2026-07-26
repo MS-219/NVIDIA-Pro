@@ -31,15 +31,6 @@ public class SettingsController {
     private static final String KEY_CONTACT_WECHAT = "system.contactWechat";
     private static final String KEY_CONTACT_WORK_TIME = "system.contactWorkTime";
 
-    private static final String KEY_IMAGE_GEN_COST = "ai.imageGenCost";
-    private static final String KEY_IMAGE_TO_VIDEO_COST = "ai.imageToVideoCost";
-    private static final String KEY_VIDEO_GEN_COST = "ai.videoGenCost";
-    private static final String KEY_VIDEO_EXTRA_4 = "ai.videoExtra4s";
-    private static final String KEY_VIDEO_EXTRA_10 = "ai.videoExtra10s";
-    private static final String KEY_VIDEO_EXTRA_15 = "ai.videoExtra15s";
-    private static final String KEY_VIDEO_EXTRA_25 = "ai.videoExtra25s";
-    private static final String KEY_CHAT_COST = "ai.chatCost";
-
     private static final String KEY_HEARTBEAT_TIMEOUT = "device.heartbeatTimeout";
     private static final String KEY_HEARTBEAT_INTERVAL = "device.heartbeatInterval";
     private static final String KEY_TASK_POLL_INTERVAL = "device.taskPollInterval";
@@ -122,18 +113,6 @@ public class SettingsController {
         }
         settings.put("inviteLevels", levels);
         settings.put("earnings", earnings);
-
-        // AI功能收费
-        Map<String, Object> aiPricing = new HashMap<>();
-        aiPricing.put("imageGenCost", Integer.parseInt(configService.getConfig(KEY_IMAGE_GEN_COST, "2")));
-        aiPricing.put("imageToVideoCost", Integer.parseInt(configService.getConfig(KEY_IMAGE_TO_VIDEO_COST, "10")));
-        aiPricing.put("videoGenCost", Integer.parseInt(configService.getConfig(KEY_VIDEO_GEN_COST, "10")));
-        aiPricing.put("videoExtra4s", Integer.parseInt(configService.getConfig(KEY_VIDEO_EXTRA_4, "0")));
-        aiPricing.put("videoExtra10s", Integer.parseInt(configService.getConfig(KEY_VIDEO_EXTRA_10, "5")));
-        aiPricing.put("videoExtra15s", Integer.parseInt(configService.getConfig(KEY_VIDEO_EXTRA_15, "10")));
-        aiPricing.put("videoExtra25s", Integer.parseInt(configService.getConfig(KEY_VIDEO_EXTRA_25, "20")));
-        aiPricing.put("chatCost", Integer.parseInt(configService.getConfig(KEY_CHAT_COST, "1")));
-        settings.put("aiPricing", aiPricing);
 
         // 设备设置
         Map<String, Object> device = new HashMap<>();
@@ -219,47 +198,6 @@ public class SettingsController {
             }
         }
         return Result.success("收益及等级设置保存成功");
-    }
-
-    /**
-     * 保存AI功能收费设置（管理员专用）
-     * 安全修复：需要管理员权限
-     */
-    @PostMapping("/ai-pricing")
-    public Result<Object> saveAiPricingSettings(
-            @RequestBody Map<String, Object> params,
-            @RequestHeader(value = "Authorization", required = false) String token) {
-
-        String error = validateAdminToken(token);
-        if (error != null) {
-            return Result.error(error);
-        }
-
-        if (params.get("imageGenCost") != null) {
-            configService.setConfig(KEY_IMAGE_GEN_COST, params.get("imageGenCost").toString());
-        }
-        if (params.get("imageToVideoCost") != null) {
-            configService.setConfig(KEY_IMAGE_TO_VIDEO_COST, params.get("imageToVideoCost").toString());
-        }
-        if (params.get("videoGenCost") != null) {
-            configService.setConfig(KEY_VIDEO_GEN_COST, params.get("videoGenCost").toString());
-        }
-        if (params.get("videoExtra4s") != null) {
-            configService.setConfig(KEY_VIDEO_EXTRA_4, params.get("videoExtra4s").toString());
-        }
-        if (params.get("videoExtra10s") != null) {
-            configService.setConfig(KEY_VIDEO_EXTRA_10, params.get("videoExtra10s").toString());
-        }
-        if (params.get("videoExtra15s") != null) {
-            configService.setConfig(KEY_VIDEO_EXTRA_15, params.get("videoExtra15s").toString());
-        }
-        if (params.get("videoExtra25s") != null) {
-            configService.setConfig(KEY_VIDEO_EXTRA_25, params.get("videoExtra25s").toString());
-        }
-        if (params.get("chatCost") != null) {
-            configService.setConfig(KEY_CHAT_COST, params.get("chatCost").toString());
-        }
-        return Result.success("AI功能收费设置保存成功");
     }
 
     /**
@@ -353,31 +291,6 @@ public class SettingsController {
     }
 
     /**
-     * 获取单个AI功能消耗的聚芯算力值（小程序调用）
-     */
-    @GetMapping("/ai-cost/{type}")
-    public Result<Object> getAiCost(@PathVariable String type) {
-        String cost;
-        switch (type) {
-            case "image":
-                cost = configService.getConfig(KEY_IMAGE_GEN_COST, "10");
-                break;
-            case "image2video":
-                cost = configService.getConfig(KEY_IMAGE_TO_VIDEO_COST, "100");
-                break;
-            case "video":
-                cost = configService.getConfig(KEY_VIDEO_GEN_COST, "200");
-                break;
-            case "chat":
-                cost = configService.getConfig(KEY_CHAT_COST, "1");
-                break;
-            default:
-                cost = "0";
-        }
-        return Result.success(Integer.parseInt(cost));
-    }
-
-    /**
      * 获取轮播图（小程序公开接口，无需认证）
      */
     @GetMapping("/banners")
@@ -399,32 +312,6 @@ public class SettingsController {
     public Result<Object> getHashrateRate() {
         String rate = configService.getConfig(KEY_HASHRATE_PER_YUAN, "100");
         return Result.success(Integer.parseInt(rate));
-    }
-
-    /**
-     * 获取AI功能价格和算力配置（小程序公开接口，无需认证）
-     * 用于小程序创作页面显示各功能消耗的算力值
-     */
-    @GetMapping("/ai-config")
-    public Result<Object> getAiConfig() {
-        Map<String, Object> config = new HashMap<>();
-
-        // AI 功能收费配置
-        Map<String, Object> aiPricing = new HashMap<>();
-        aiPricing.put("imageGenCost", Integer.parseInt(configService.getConfig(KEY_IMAGE_GEN_COST, "10")));
-        aiPricing.put("imageToVideoCost", Integer.parseInt(configService.getConfig(KEY_IMAGE_TO_VIDEO_COST, "100")));
-        aiPricing.put("videoGenCost", Integer.parseInt(configService.getConfig(KEY_VIDEO_GEN_COST, "200")));
-        aiPricing.put("videoExtra4s", Integer.parseInt(configService.getConfig(KEY_VIDEO_EXTRA_4, "0")));
-        aiPricing.put("videoExtra10s", Integer.parseInt(configService.getConfig(KEY_VIDEO_EXTRA_10, "50")));
-        aiPricing.put("videoExtra15s", Integer.parseInt(configService.getConfig(KEY_VIDEO_EXTRA_15, "100")));
-        aiPricing.put("videoExtra25s", Integer.parseInt(configService.getConfig(KEY_VIDEO_EXTRA_25, "800")));
-        aiPricing.put("chatCost", Integer.parseInt(configService.getConfig(KEY_CHAT_COST, "30")));
-        config.put("aiPricing", aiPricing);
-
-        // 算力兑换比例
-        config.put("hashratePerYuan", Integer.parseInt(configService.getConfig(KEY_HASHRATE_PER_YUAN, "100")));
-
-        return Result.success(config);
     }
 
     /**

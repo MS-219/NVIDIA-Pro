@@ -32,7 +32,6 @@ Page({
                 { id: 'earnings', icon: '📊', text: '收益明细', iconClass: 'icon-earnings' },
                 { id: 'devices', icon: '📱', text: '我的设备', iconClass: 'icon-device' },
                 { id: 'payment', icon: '💳', text: '收款信息设置', iconClass: 'icon-payment' },
-                { id: 'creations', icon: '🎨', text: '我的创作', iconClass: 'icon-create' },
                 { id: 'invite', icon: '🎁', text: '邀请好友', iconClass: 'icon-invite' },
                 { id: 'exchange', icon: '📦', text: '兑换设备', iconClass: 'icon-exchange' },
                 { id: 'exchange-orders', icon: '📋', text: '兑换订单', iconClass: 'icon-orders' }
@@ -58,7 +57,7 @@ Page({
     onShow() {
         if (typeof this.getTabBar === 'function' && this.getTabBar()) {
             this.getTabBar().setData({
-                selected: 3
+                selected: 2
             })
         }
 
@@ -641,9 +640,6 @@ Page({
                 break;
             case 'earnings':
                 wx.navigateTo({ url: '/pages/earnings-detail/earnings-detail' });
-                break;
-            case 'creations':
-                wx.switchTab({ url: '/pages/creation/creation' });
                 break;
             case 'payment':
                 wx.navigateTo({ url: '/pages/edit-payment/edit-payment' });

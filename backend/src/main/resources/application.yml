@@ -25,6 +25,7 @@ spring:
       max-request-size: 500MB
 
 orin:
+  version: ${ORIN_PLATFORM_VERSION:development}
   public-base-url: ${ORIN_PUBLIC_BASE_URL:https://orin-api.example.invalid}
   cors-allowed-origins: ${ORIN_CORS_ALLOWED_ORIGINS:http://localhost:5174}
 
@@ -43,28 +44,6 @@ wechat:
   miniapp:
     appid: ${ORIN_WECHAT_APP_ID:}
     secret: ${ORIN_WECHAT_APP_SECRET:}
-
-ai:
-  cost:
-    video-base: ${ORIN_AI_VIDEO_BASE_COST:10}
-    image-base: ${ORIN_AI_IMAGE_BASE_COST:2}
-    video-extra:
-      d4: 0
-      d10: 5
-      d15: 10
-      d25: 20
-  vidu:
-    api-key: ${ORIN_VIDU_API_KEY:}
-    base-url: ${ORIN_VIDU_BASE_URL:https://api.example.invalid/v1}
-    model: ${ORIN_VIDU_MODEL:viduq3-turbo}
-  gpt-image:
-    api-key: ${ORIN_IMAGE_API_KEY:}
-    base-url: ${ORIN_IMAGE_BASE_URL:https://api.example.invalid/v1}
-    model: ${ORIN_IMAGE_MODEL:gpt-image-2}
-  gemini:
-    api-key: ${ORIN_TEXT_API_KEY:}
-    base-url: ${ORIN_TEXT_BASE_URL:https://api.example.invalid/v1beta}
-    model: ${ORIN_TEXT_MODEL:gemini-3-pro-preview-thinking}
 
 bosskg:
   enabled: ${ORIN_BOSSKG_ENABLED:false}

@@ -18,14 +18,9 @@
         </view>
         <view class="scan-text">扫码</view>
     </view>
-    <!-- 创作 -->
-    <view class="tab-bar-item" data-path="/pages/creation/creation" data-index="2" bindtap="switchTab">
+    <!-- 我的 -->
+    <view class="tab-bar-item" data-path="/pages/my/my" data-index="2" bindtap="switchTab">
         <image src="{{selected === 2 ? list[2].selectedIconPath : list[2].iconPath}}" class="cover-image"></image>
         <view style="color: {{selected === 2 ? selectedColor : color}}">{{list[2].text}}</view>
-    </view>
-    <!-- 我的 -->
-    <view class="tab-bar-item" data-path="/pages/my/my" data-index="3" bindtap="switchTab">
-        <image src="{{selected === 3 ? list[3].selectedIconPath : list[3].iconPath}}" class="cover-image"></image>
-        <view style="color: {{selected === 3 ? selectedColor : color}}">{{list[3].text}}</view>
     </view>
 </view>
