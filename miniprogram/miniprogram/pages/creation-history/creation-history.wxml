@@ -1,0 +1,121 @@
+<view class="container">
+    <view class="history-list" wx:if="{{records.length > 0}}">
+        <view class="history-item" wx:for="{{records}}" wx:key="id" bindtap="showDetail" data-item="{{item}}">
+            <view class="item-header">
+                <view class="type-tag">
+                    <text class="type-icon">{{item.typeIcon}}</text>
+                    <text class="type-name">{{item.typeText}}</text>
+                </view>
+                <text class="status-tag {{item.status}}">{{item.statusText}}</text>
+            </view>
+            <view class="item-content">
+                <view class="prompt-text">{{item.prompt}}</view>
+                <view class="result-preview" wx:if="{{item.resultUrl}}">
+                    <image wx:if="{{item.typeIcon === '🎨'}}" src="{{item.resultUrl}}" mode="aspectFill" class="preview-img"></image>
+                    <view wx:else class="video-placeholder">
+                        <text class="play-icon">▶</text>
+                        <text>查看成品</text>
+                    </view>
+                </view>
+                <!-- 正在生成中的状态 -->
+                <view class="generating-status" wx:if="{{!item.resultUrl && item.status !== 'failed'}}">
+                    <view class="spinner"></view>
+                    <text>生成中...</text>
+                </view>
+            </view>
+            <view class="item-footer">
+                <text class="time">{{item.createTime}}</text>
+                <view class="cost">
+                    <text class="cost-icon">⚡</text>
+                    <text class="cost-val">{{item.costQuota}} 算力</text>
+                </view>
+            </view>
+        </view>
+    </view>
+    <!-- Empty State -->
+    <view class="empty-state" wx:else>
+        <view class="empty-icon">🎨</view>
+        <text class="empty-text">这里空空如也</text>
+        <text class="empty-tip">快去创作中心开启你的第一个作品吧</text>
+    </view>
+    <!-- Loading -->
+    <view class="loading-more" wx:if="{{loading}}">
+        <text>正在加载中...</text>
+    </view>
+    <!-- 详情弹窗 -->
+    <view class="detail-modal" wx:if="{{showDetailModal}}" catchtap="hideDetail">
+        <view class="detail-content" catchtap="stopPropagation">
+            <view class="detail-header">
+                <text class="detail-title">{{currentTask.typeIcon}} {{currentTask.typeText}}</text>
+                <text class="close-btn" bindtap="hideDetail">✕</text>
+            </view>
+            <view class="detail-body">
+                <!-- 状态 -->
+                <view class="detail-row">
+                    <text class="detail-label">状态</text>
+                    <text class="detail-value status-{{currentTask.status}}">
+                        {{currentTask.statusText}}
+                    </text>
+                </view>
+                <!-- 失败原因 -->
+                <view class="detail-row error-row" wx:if="{{currentTask.status === 'failed' && currentTask.errorMsg}}">
+                    <text class="detail-label">失败原因</text>
+                    <text class="detail-value error-msg">{{currentTask.errorMsg}}</text>
+                </view>
+                <!-- 算力已退还提示 -->
+                <view class="refund-tip" wx:if="{{currentTask.status === 'failed'}}">
+                    <text class="refund-icon">💰</text>
+                    <text class="refund-text">算力已自动退还</text>
+                </view>
+                <!-- 提示词 -->
+                <view class="detail-row">
+                    <text class="detail-label">提示词</text>
+                    <text class="detail-value prompt">{{currentTask.prompt}}</text>
+                </view>
+                <!-- 参数选项 -->
+                <view class="detail-row" wx:if="{{currentTask.duration}}">
+                    <text class="detail-label">时长</text>
+                    <text class="detail-value">{{currentTask.duration}}秒</text>
+                </view>
+                <view class="detail-row" wx:if="{{currentTask.aspectRatio}}">
+                    <text class="detail-label">画面比例</text>
+                    <text class="detail-value">{{currentTask.aspectRatio}}</text>
+                </view>
+                <view class="detail-row" wx:if="{{currentTask.resolution}}">
+                    <text class="detail-label">分辨率</text>
+                    <text class="detail-value">{{currentTask.resolution}}</text>
+                </view>
+                <view class="detail-row" wx:if="{{currentTask.size}}">
+                    <text class="detail-label">尺寸</text>
+                    <text class="detail-value">{{currentTask.size}}</text>
+                </view>
+                <!-- 素材图片 -->
+                <view class="detail-material" wx:if="{{currentTask.inputImageUrl}}">
+                    <text class="detail-label">素材图片 ({{currentTask.inputImageUrls.length}})</text>
+                    <view class="material-grid">
+                        <image wx:for="{{currentTask.inputImageUrls}}" wx:key="*this" src="{{item}}" mode="aspectFill" class="material-img" bindtap="previewMaterial" data-url="{{item}}"></image>
+                    </view>
+                </view>
+                <!-- 创建时间 -->
+                <view class="detail-row">
+                    <text class="detail-label">创建时间</text>
+                    <text class="detail-value">{{currentTask.createTime}}</text>
+                </view>
+                <!-- 结果预览 -->
+                <view class="detail-result" wx:if="{{currentTask.resultUrl}}">
+                    <text class="detail-label">生成结果</text>
+                    <video wx:if="{{currentTask.isVideo}}" src="{{currentTask.resultUrl}}" controls show-center-play-btn="{{true}}" show-play-btn="{{true}}" object-fit="contain" enable-progress-gesture="{{true}}" binderror="onVideoError" class="result-video"></video>
+                    <image wx:else src="{{currentTask.resultUrl}}" mode="widthFix" class="result-image" bindtap="previewImage"></image>
+                    <text class="ai-disclaimer">内容由 AI 生成，请仔细甄别</text>
+                </view>
+            </view>
+            <!-- 操作按钮 -->
+            <view class="detail-actions" wx:if="{{currentTask.resultUrl}}">
+                <button class="action-btn save" bindtap="saveToAlbum">保存到相册</button>
+            </view>
+            <view class="detail-actions" wx:if="{{currentTask.status === 'processing'}}">
+                <button class="action-btn refresh" bindtap="refreshTask">刷新状态</button>
+            </view>
+        </view>
+    </view>
+</view>

@@ -1,0 +1,42 @@
+<view class="container">
+    <view class="custom-nav" style="padding-top: {{navBarTop}}px;">
+        <view class="nav-back" bindtap="goBack">
+            <text class="back-icon">‹</text>
+        </view>
+        <text class="nav-title">提现记录</text>
+    </view>
+    <!-- 列表 -->
+    <view class="record-list" wx:if="{{records.length > 0}}">
+        <view class="record-item" wx:for="{{records}}" wx:key="id">
+            <view class="record-left">
+                <view class="record-type">
+                    <text class="type-icon">
+                        {{item.type === 1 ? '💳' : item.type === 2 ? '📱' : '🏦'}}
+                    </text>
+                    <text class="type-name">
+                        {{item.type === 1 ? '微信' : item.type === 2 ? '支付宝' : '银行卡'}}
+                    </text>
+                </view>
+                <text class="record-time">{{item.createTime}}</text>
+            </view>
+            <view class="record-right">
+                <text class="record-amount">-¥{{item.amount}}</text>
+                <view class="record-status {{item.status === 0 ? 'pending' : (item.status === 1 && item.bossKgState === 1) ? 'processing' : (item.status === 1 && item.bossKgState === 6) ? 'confirming' : item.status === 1 ? 'approved' : item.status === 2 ? 'rejected' : item.status === 4 ? 'failed' : 'paid'}}">
+                    {{item.status === 0 ? '审核中' : (item.status === 1 && item.bossKgState === 1) ? '打款中' : (item.status === 1 && item.bossKgState === 6) ? '需微信确认' : item.status === 1 ? '待打款' : item.status === 2 ? '已拒绝' : item.status === 4 ? '打款失败' : '已到账'}}
+                </view>
+                <view class="fail-reason" wx:if="{{item.status === 4 && item.rejectReason}}">
+                    {{item.rejectReason}}，请修正后重新申请
+                </view>
+            </view>
+        </view>
+    </view>
+    <!-- 空状态 -->
+    <view class="empty-state" wx:else>
+        <text class="empty-icon">📋</text>
+        <text class="empty-text">暂无提现记录</text>
+    </view>
+    <!-- 加载更多 -->
+    <view class="load-more" wx:if="{{hasMore}}" bindtap="loadMore">
+        <text>{{loading ? '加载中...' : '加载更多'}}</text>
+    </view>
+</view>

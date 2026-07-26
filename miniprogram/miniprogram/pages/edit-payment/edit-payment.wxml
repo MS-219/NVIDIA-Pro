@@ -1,0 +1,86 @@
+<view class="container">
+    <view class="custom-nav" style="padding-top: {{navBarTop}}px;">
+        <view class="nav-back" bindtap="goBack">
+            <text class="back-icon">‹</text>
+        </view>
+        <text class="nav-title">收款设置</text>
+    </view>
+    <!-- 顶部卡片 -->
+    <view class="hero-card">
+        <view class="hero-icon-wrap">
+            <text class="hero-icon">🏦</text>
+        </view>
+        <view class="hero-text">
+            <text class="hero-name">{{currentInfo.realName || '未设置'}}</text>
+            <text class="hero-card-no">{{currentInfo.bankCardNoMask || '暂无银行卡'}}</text>
+        </view>
+        <view class="hero-badge" wx:if="{{contractStatus === 1}}">
+            <text class="badge-dot"></text>
+            <text class="badge-text">已签约</text>
+        </view>
+        <view class="hero-badge badge-grey" wx:elif="{{contractStatus === 5}}">
+            <text class="badge-text">已解约</text>
+        </view>
+    </view>
+    
+    <!-- 待审核提示 -->
+    <view class="pending-banner" wx:if="{{hasPendingApply}}">
+        <text class="pending-icon">⏳</text>
+        <text class="pending-text">您有一条账号变更申请正在后台人工审核中，新填写的信息暂无法提交，请耐心等待。</text>
+    </view>
+
+    <!-- 修改银行卡 -->
+    <view class="section">
+        <view class="section-header">
+            <text class="section-icon">💳</text>
+            <text class="section-title">修改银行卡</text>
+        </view>
+        <view class="input-card">
+            <text class="input-label">新银行卡号</text>
+            <input class="card-input" type="number" placeholder="请输入15-19位银行卡号" value="{{form.cardNo}}" bindinput="onCardNoInput" maxlength="19" />
+        </view>
+        <button class="primary-btn {{!canSubmit ? 'btn-disabled' : ''}}" bindtap="submitChange" loading="{{submitting}}" disabled="{{!canSubmit || submitting || hasPendingApply}}">
+            {{hasPendingApply ? '审核中暂不支持再次修改' : (submitting ? '提交中...' : '确认修改')}}
+        </button>
+        <view class="tips-row">
+            <text class="tip-item">• 请确保银行卡与签约实名信息一致</text>
+            <text class="tip-item">• 修改后将用于后续所有提现打款</text>
+        </view>
+    </view>
+    <!-- 签约管理 -->
+    <view class="section" wx:if="{{contractStatus === 1 || contractStatus === 5}}">
+        <view class="section-header">
+            <text class="section-icon">🛡️</text>
+            <text class="section-title">签约管理</text>
+        </view>
+        <view class="contract-status-card" wx:if="{{contractStatus === 1}}">
+            <view class="cs-row">
+                <text class="cs-label">当前状态</text>
+                <view class="cs-tag tag-green">
+                    <text class="tag-dot green-dot"></text>
+                    <text>已签约</text>
+                </view>
+            </view>
+            <view class="cs-divider"></view>
+            <text class="cs-desc">解约后将无法正常提现，如需重新使用请再次签约</text>
+            <button class="danger-btn" bindtap="cancelContract" loading="{{cancelling}}" disabled="{{cancelling}}">
+                {{cancelling ? '解约中...' : '解除签约'}}
+            </button>
+        </view>
+        <view class="contract-status-card card-muted" wx:elif="{{contractStatus === 5}}">
+            <view class="cs-row">
+                <text class="cs-label">当前状态</text>
+                <view class="cs-tag tag-grey">
+                    <text>已解约</text>
+                </view>
+            </view>
+            <view class="cs-divider"></view>
+            <text class="cs-desc">您已解约，如需提现请前往提现页面重新签约</text>
+        </view>
+    </view>
+    <!-- 底部安全提示 -->
+    <view class="safe-footer">
+        <text class="safe-icon">🔒</text>
+        <text class="safe-text">您的信息已加密保护</text>
+    </view>
+</view>

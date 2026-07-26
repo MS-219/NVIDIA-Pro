@@ -1,0 +1,395 @@
+.container {
+    padding: 30rpx;
+    background: #f8fafc;
+    min-height: 100vh;
+}
+
+.history-list {
+    width: 100%;
+}
+
+.history-item {
+    background: #ffffff;
+    border-radius: 24rpx;
+    padding: 30rpx;
+    margin-bottom: 30rpx;
+    box-shadow: 0 4rpx 20rpx rgba(0, 0, 0, 0.03);
+}
+
+.item-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24rpx;
+}
+
+.type-tag {
+    display: flex;
+    align-items: center;
+    background: #f1f5f9;
+    padding: 8rpx 20rpx;
+    border-radius: 100rpx;
+}
+
+.type-icon {
+    font-size: 28rpx;
+    margin-right: 10rpx;
+}
+
+.type-name {
+    font-size: 24rpx;
+    color: #475569;
+    font-weight: 500;
+}
+
+.status-tag {
+    font-size: 24rpx;
+    font-weight: 600;
+}
+
+.status-tag.completed,
+.status-tag.success {
+    color: #10b981;
+}
+
+.status-tag.failed {
+    color: #ef4444;
+}
+
+.status-tag.pending,
+.status-tag.processing {
+    color: #6366f1;
+}
+
+.item-content {
+    display: flex;
+    gap: 20rpx;
+    margin-bottom: 24rpx;
+}
+
+.prompt-text {
+    flex: 1;
+    font-size: 28rpx;
+    color: #1e293b;
+    line-height: 1.6;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+    line-clamp: 3;
+    overflow: hidden;
+}
+
+.result-preview {
+    width: 140rpx;
+    height: 140rpx;
+    border-radius: 12rpx;
+    overflow: hidden;
+    background: #f1f5f9;
+    flex-shrink: 0;
+}
+
+.preview-img {
+    width: 100%;
+    height: 100%;
+}
+
+.video-placeholder {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    color: #64748b;
+    font-size: 20rpx;
+}
+
+.play-icon {
+    font-size: 40rpx;
+    margin-bottom: 4rpx;
+}
+
+.item-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 24rpx;
+    border-top: 2rpx solid #f1f5f9;
+}
+
+.time {
+    font-size: 24rpx;
+    color: #94a3b8;
+}
+
+.cost {
+    display: flex;
+    align-items: center;
+}
+
+.cost-icon {
+    font-size: 24rpx;
+    margin-right: 6rpx;
+}
+
+.cost-val {
+    font-size: 26rpx;
+    font-weight: 600;
+    color: #6366f1;
+}
+
+/* Empty State */
+.empty-state {
+    padding-top: 200rpx;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+}
+
+.empty-icon {
+    font-size: 120rpx;
+    margin-bottom: 40rpx;
+    opacity: 0.5;
+}
+
+.empty-text {
+    font-size: 32rpx;
+    font-weight: 600;
+    color: #1e293b;
+    margin-bottom: 16rpx;
+}
+
+.empty-tip {
+    font-size: 26rpx;
+    color: #64748b;
+}
+
+.loading-more {
+    text-align: center;
+    padding: 30rpx;
+    color: #94a3b8;
+    font-size: 24rpx;
+}
+
+/* 生成中状态 */
+.generating-status {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 140rpx;
+    height: 140rpx;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 12rpx;
+    color: #fff;
+    font-size: 20rpx;
+}
+
+.spinner {
+    width: 40rpx;
+    height: 40rpx;
+    border: 4rpx solid rgba(255, 255, 255, 0.3);
+    border-top-color: #fff;
+    border-radius: 50%;
+    margin-bottom: 8rpx;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* 详情弹窗 */
+.detail-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.detail-content {
+    width: 90%;
+    max-height: 80vh;
+    background: #fff;
+    border-radius: 24rpx;
+    overflow: hidden;
+}
+
+.detail-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 30rpx;
+    border-bottom: 2rpx solid #f1f5f9;
+}
+
+.detail-title {
+    font-size: 32rpx;
+    font-weight: 600;
+    color: #1e293b;
+}
+
+.close-btn {
+    font-size: 36rpx;
+    color: #94a3b8;
+    padding: 10rpx;
+}
+
+.detail-body {
+    padding: 30rpx;
+    max-height: 60vh;
+    overflow-y: auto;
+}
+
+.detail-row {
+    display: flex;
+    margin-bottom: 24rpx;
+}
+
+.detail-label {
+    width: 160rpx;
+    font-size: 26rpx;
+    color: #64748b;
+    flex-shrink: 0;
+}
+
+.detail-value {
+    flex: 1;
+    font-size: 26rpx;
+    color: #1e293b;
+}
+
+.detail-value.prompt {
+    line-height: 1.6;
+}
+
+.detail-value.status-completed {
+    color: #10b981;
+    font-weight: 600;
+}
+
+.detail-value.status-processing {
+    color: #6366f1;
+    font-weight: 600;
+}
+
+.detail-value.status-failed {
+    color: #ef4444;
+    font-weight: 600;
+}
+
+.detail-result {
+    margin-top: 24rpx;
+}
+
+.result-video {
+    width: 100%;
+    height: 400rpx;
+    min-height: 300rpx;
+    max-height: 60vh;
+    border-radius: 12rpx;
+    margin-top: 16rpx;
+    background: #000;
+}
+
+.result-image {
+    width: 100%;
+    border-radius: 12rpx;
+    margin-top: 16rpx;
+}
+
+.detail-material {
+    margin-bottom: 24rpx;
+}
+
+.material-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12rpx;
+    margin-top: 16rpx;
+}
+
+.material-img {
+    width: 100%;
+    aspect-ratio: 1/1;
+    border-radius: 8rpx;
+    background: #f8fafc;
+}
+
+.detail-actions {
+    padding: 30rpx;
+    border-top: 2rpx solid #f1f5f9;
+}
+
+.action-btn {
+    width: 100%;
+    height: 88rpx;
+    border-radius: 44rpx;
+    font-size: 28rpx;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.action-btn.save {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: #fff;
+}
+
+.action-btn.refresh {
+    background: #f1f5f9;
+    color: #6366f1;
+}
+
+.ai-disclaimer {
+    display: block;
+    text-align: center;
+    font-size: 20rpx;
+    color: #94a3b8;
+    margin-top: 20rpx;
+    opacity: 0.8;
+}
+
+/* 失败原因样式 */
+.error-row {
+    background: #fef2f2;
+    padding: 16rpx;
+    border-radius: 12rpx;
+    margin-bottom: 24rpx;
+}
+
+.error-msg {
+    color: #ef4444 !important;
+    line-height: 1.5;
+}
+
+/* 算力退还提示 */
+.refund-tip {
+    display: flex;
+    align-items: center;
+    background: #f0fdf4;
+    padding: 16rpx 20rpx;
+    border-radius: 12rpx;
+    margin-bottom: 24rpx;
+}
+
+.refund-icon {
+    font-size: 28rpx;
+    margin-right: 12rpx;
+}
+
+.refund-text {
+    font-size: 26rpx;
+    color: #16a34a;
+    font-weight: 500;
+}

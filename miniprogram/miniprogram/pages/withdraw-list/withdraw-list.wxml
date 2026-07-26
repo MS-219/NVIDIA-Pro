@@ -1,0 +1,46 @@
+<view class="container">
+    <view class="custom-nav" style="padding-top: {{navBarTop}}px;">
+        <view class="nav-back" bindtap="goBack">
+            <text class="back-icon">‹</text>
+        </view>
+        <text class="nav-title">提现记录</text>
+    </view>
+    <view class="list-container" style="padding-top: {{navBarTop + 44}}px;">
+        <block wx:if="{{list.length > 0}}">
+            <view class="record-item" wx:for="{{list}}" wx:key="id">
+                <view class="record-header">
+                    <text class="record-type">
+                        {{item.type === 1 ? '微信提现' : (item.type === 2 ? '支付宝提现' : '银行卡提现')}}
+                    </text>
+                    <text class="record-amount">-{{item.amount}}</text>
+                </view>
+                <view class="record-info">
+                    <text class="record-time">{{item.createTime}}</text>
+                    <view class="record-status status-{{item.status}}">
+                        {{item.status === 0 ? '审核中' : (item.status === 1 ? '待打款' : (item.status === 2 ? '已驳回' : (item.status === 3 ? '已打款' : '处理中')))}}
+                    </view>
+                </view>
+                <!-- 打款失败标注 -->
+                <view class="record-fail-info" wx:if="{{item.bossKgFailed}}">
+                    <text class="fail-badge">⚠️ 曾打款失败{{item.paymentFailCount || 1}}次，已待重新处理</text>
+                </view>
+                <view class="record-reason" wx:if="{{item.status === 2 && item.remark}}">
+                    驳回原因：{{item.remark}}
+                </view>
+                <!-- 失败原因 -->
+                <view class="record-reason fail-reason" wx:if="{{item.bossKgFailed && item.rejectReason}}">
+                    失败原因：{{item.rejectReason}}
+                </view>
+            </view>
+            <view class="loading-more" wx:if="{{hasMore}}">
+                <text wx:if="{{loading}}">加载中...</text>
+                <text wx:else>上拉加载更多</text>
+            </view>
+            <view class="no-more" wx:else>没有更多记录了</view>
+        </block>
+        <view class="empty-state" wx:else>
+            <image src="/images/empty.png" mode="aspectFit" class="empty-icon"></image>
+            <text>暂无提现记录</text>
+        </view>
+    </view>
+</view>

@@ -1,0 +1,2 @@
+ALTER TABLE device
+ADD COLUMN cpu_model VARCHAR(255) NULL COMMENT '设备真实 CPU 型号';

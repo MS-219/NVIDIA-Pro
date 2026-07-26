@@ -1,0 +1,174 @@
+page {
+    background: #f7f7f9;
+    min-height: 100vh;
+}
+
+.container {
+    padding: 0 20px 20px 20px;
+}
+
+.custom-nav {
+    display: flex;
+    align-items: center;
+    padding-bottom: 10px;
+    background: #fff;
+    margin: 0 -20px;
+    padding-left: 20px;
+    padding-right: 20px;
+}
+
+.nav-back {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.back-icon {
+    font-size: 24px;
+    color: #1a1a1a;
+    font-weight: 300;
+}
+
+.nav-title {
+    flex: 1;
+    font-size: 18px;
+    font-weight: 600;
+    color: #1a1a1a;
+    text-align: center;
+    margin-right: 32px;
+}
+
+/* Record List */
+.record-list {
+    margin-top: 16px;
+}
+
+.record-item {
+    background: #fff;
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.record-left {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.record-type {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.type-icon {
+    font-size: 20px;
+}
+
+.type-name {
+    font-size: 15px;
+    font-weight: 500;
+    color: #1a1a1a;
+}
+
+.record-time {
+    font-size: 12px;
+    color: #9ca3af;
+}
+
+.record-right {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 6px;
+}
+
+.record-amount {
+    font-size: 18px;
+    font-weight: 600;
+    color: #1a1a1a;
+}
+
+.record-status {
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 10px;
+}
+
+.record-status.pending {
+    background: #fef3c7;
+    color: #d97706;
+}
+
+.record-status.approved {
+    background: #dbeafe;
+    color: #2563eb;
+}
+
+.record-status.rejected {
+    background: #fee2e2;
+    color: #dc2626;
+}
+
+/* Loaded by ReplaceFileContent tool */
+.record-status.paid {
+    background: #d1fae5;
+    color: #059669;
+}
+
+.record-status.processing {
+    background: #f3e8ff;
+    color: #7c3aed;
+}
+
+.record-status.confirming {
+    background: #ffedd5;
+    color: #c2410c;
+}
+
+.record-status.failed {
+    background: #fef2f2;
+    color: #991b1b;
+}
+
+.fail-reason {
+    font-size: 11px;
+    color: #dc2626;
+    margin-top: 4px;
+    max-width: 180px;
+    text-align: right;
+    line-height: 1.3;
+}
+
+/* Empty State */
+.empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 60px 0;
+}
+
+.empty-icon {
+    font-size: 48px;
+    margin-bottom: 16px;
+}
+
+.empty-text {
+    font-size: 14px;
+    color: #9ca3af;
+}
+
+/* Load More */
+.load-more {
+    text-align: center;
+    padding: 20px;
+    font-size: 14px;
+    color: #6b7280;
+}

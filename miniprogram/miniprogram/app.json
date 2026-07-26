@@ -1,0 +1,72 @@
+{
+  "pages": [
+    "pages/index/index",
+    "pages/device/device",
+    "pages/device-detail/device-detail",
+    "pages/creation/creation",
+    "pages/my/my",
+    "pages/complete-profile/complete-profile",
+    "pages/withdraw/withdraw",
+    "pages/bosskg-contract/bosskg-contract",
+    "pages/withdraw-record/withdraw-record",
+    "pages/earnings-detail/earnings-detail",
+    "pages/ai-create/ai-create",
+    "pages/creation-history/creation-history",
+    "pages/invite/invite",
+    "pages/partner-devices/partner-devices",
+    "pages/member-devices/member-devices",
+    "pages/all-partner-devices/all-partner-devices",
+    "pages/partner-device-detail/partner-device-detail",
+    "pages/help/help",
+    "pages/feedback/feedback",
+    "pages/notice-detail/notice-detail",
+    "pages/edit-payment/edit-payment",
+    "pages/logs/logs",
+    "pages/webview/webview",
+    "pages/exchange/exchange",
+    "pages/exchange-detail/exchange-detail",
+    "pages/exchange-orders/exchange-orders",
+    "pages/exchange-order-detail/exchange-order-detail",
+    "pages/address-manage/address-manage"
+  ],
+  "window": {
+    "navigationBarTextStyle": "black",
+    "navigationBarTitleText": "聚芯 Orin",
+    "navigationBarBackgroundColor": "#ffffff"
+  },
+  "tabBar": {
+    "custom": true,
+    "color": "#999999",
+    "selectedColor": "#659f00",
+    "backgroundColor": "#ffffff",
+    "borderStyle": "white",
+    "list": [
+      {
+        "pagePath": "pages/index/index",
+        "text": "首页",
+        "iconPath": "images/tabbar/home.png",
+        "selectedIconPath": "images/tabbar/home-active.png"
+      },
+      {
+        "pagePath": "pages/device/device",
+        "text": "设备",
+        "iconPath": "images/tabbar/device.png",
+        "selectedIconPath": "images/tabbar/device-active.png"
+      },
+      {
+        "pagePath": "pages/creation/creation",
+        "text": "创作",
+        "iconPath": "images/tabbar/creation.png",
+        "selectedIconPath": "images/tabbar/creation-active.png"
+      },
+      {
+        "pagePath": "pages/my/my",
+        "text": "我的",
+        "iconPath": "images/tabbar/my.png",
+        "selectedIconPath": "images/tabbar/my-active.png"
+      }
+    ]
+  },
+  "style": "v2",
+  "lazyCodeLoading": "requiredComponents"
+}

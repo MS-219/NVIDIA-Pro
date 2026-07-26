@@ -1,0 +1,18 @@
+[Unit]
+Description=Juxin Orin edge node agent
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+EnvironmentFile=-/etc/juxin-orin/agent.env
+WorkingDirectory=/opt/juxin-orin/agent
+ExecStart=/usr/bin/python3 /opt/juxin-orin/agent/orin_agent.py
+Restart=always
+RestartSec=8
+NoNewPrivileges=true
+ProtectSystem=strict
+ReadWritePaths=/var/lib/juxin-orin /var/log/juxin-orin
+
+[Install]
+WantedBy=multi-user.target

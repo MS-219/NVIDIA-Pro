@@ -1,0 +1,70 @@
+services:
+  mysql:
+    image: mysql:8.4
+    container_name: juxin-orin-mysql
+    restart: unless-stopped
+    environment:
+      TZ: Asia/Shanghai
+      MYSQL_DATABASE: juxin_orin
+      MYSQL_USER: ${ORIN_DB_USERNAME:-juxin_orin}
+      MYSQL_PASSWORD: ${ORIN_DB_PASSWORD:?set ORIN_DB_PASSWORD in .env}
+      MYSQL_ROOT_PASSWORD: ${ORIN_MYSQL_ROOT_PASSWORD:?set ORIN_MYSQL_ROOT_PASSWORD in .env}
+    volumes:
+      - orin_mysql_data:/var/lib/mysql
+    networks:
+      - orin_internal
+
+  backend:
+    build:
+      context: ./backend
+    image: juxin-orin-backend:${IMAGE_TAG:-latest}
+    container_name: juxin-orin-backend
+    restart: unless-stopped
+    depends_on:
+      - mysql
+    environment:
+      TZ: Asia/Shanghai
+      ORIN_SERVER_PORT: 8090
+      ORIN_DB_URL: ${ORIN_DB_URL}
+      ORIN_DB_USERNAME: ${ORIN_DB_USERNAME:-juxin_orin}
+      ORIN_DB_PASSWORD: ${ORIN_DB_PASSWORD}
+      ORIN_JWT_SECRET: ${ORIN_JWT_SECRET:?set ORIN_JWT_SECRET in .env}
+      ORIN_ADMIN_USERNAME: ${ORIN_ADMIN_USERNAME:-admin}
+      ORIN_ADMIN_PASSWORD: ${ORIN_ADMIN_PASSWORD:?set ORIN_ADMIN_PASSWORD in .env}
+      ORIN_PUBLIC_BASE_URL: ${ORIN_PUBLIC_BASE_URL}
+      ORIN_CORS_ALLOWED_ORIGINS: ${ORIN_CORS_ALLOWED_ORIGINS:-http://localhost:5174}
+      ORIN_WECHAT_APP_ID: ${ORIN_WECHAT_APP_ID:-}
+      ORIN_WECHAT_APP_SECRET: ${ORIN_WECHAT_APP_SECRET:-}
+      ORIN_TEXT_API_KEY: ${ORIN_TEXT_API_KEY:-}
+      ORIN_IMAGE_API_KEY: ${ORIN_IMAGE_API_KEY:-}
+      ORIN_VIDU_API_KEY: ${ORIN_VIDU_API_KEY:-}
+      ORIN_AGENT_ASSET_PATH: /agent-assets
+    ports:
+      - "8090:8090"
+    volumes:
+      - ./backend/uploads:/app/uploads
+      - ./image/agent:/agent-assets:ro
+    networks:
+      - orin_internal
+
+  admin:
+    build:
+      context: ./admin
+      dockerfile: Dockerfile
+    image: juxin-orin-admin:${IMAGE_TAG:-latest}
+    container_name: juxin-orin-admin
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "8174:80"
+    networks:
+      - orin_internal
+
+volumes:
+  orin_mysql_data:
+    name: juxin-orin-mysql-data
+
+networks:
+  orin_internal:
+    name: juxin-orin-internal

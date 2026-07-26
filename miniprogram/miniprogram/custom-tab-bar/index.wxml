@@ -1,0 +1,31 @@
+<!-- custom-tab-bar/index.wxml -->
+<view class="tab-bar">
+    <view class="tab-bar-border"></view>
+    <!-- 首页 -->
+    <view class="tab-bar-item" data-path="/pages/index/index" data-index="0" bindtap="switchTab">
+        <image src="{{selected === 0 ? list[0].selectedIconPath : list[0].iconPath}}" class="cover-image"></image>
+        <view style="color: {{selected === 0 ? selectedColor : color}}">{{list[0].text}}</view>
+    </view>
+    <!-- 设备 -->
+    <view class="tab-bar-item" data-path="/pages/device/device" data-index="1" bindtap="switchTab">
+        <image src="{{selected === 1 ? list[1].selectedIconPath : list[1].iconPath}}" class="cover-image"></image>
+        <view style="color: {{selected === 1 ? selectedColor : color}}">{{list[1].text}}</view>
+    </view>
+    <!-- 扫码按钮（中间突出） -->
+    <view class="tab-bar-item scan-btn-wrapper" bindtap="onScanCode">
+        <view class="scan-btn">
+            <image src="/images/tabbar/scan.png" class="scan-icon"></image>
+        </view>
+        <view class="scan-text">扫码</view>
+    </view>
+    <!-- 创作 -->
+    <view class="tab-bar-item" data-path="/pages/creation/creation" data-index="2" bindtap="switchTab">
+        <image src="{{selected === 2 ? list[2].selectedIconPath : list[2].iconPath}}" class="cover-image"></image>
+        <view style="color: {{selected === 2 ? selectedColor : color}}">{{list[2].text}}</view>
+    </view>
+    <!-- 我的 -->
+    <view class="tab-bar-item" data-path="/pages/my/my" data-index="3" bindtap="switchTab">
+        <image src="{{selected === 3 ? list[3].selectedIconPath : list[3].iconPath}}" class="cover-image"></image>
+        <view style="color: {{selected === 3 ? selectedColor : color}}">{{list[3].text}}</view>
+    </view>
+</view>

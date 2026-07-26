@@ -1,0 +1,70 @@
+<view class="container">
+    <view class="header-section" style="padding-top: {{navBarTop}}px;">
+        <text class="page-title">创作中心</text>
+        <view class="intro-bar">
+            <text class="intro-emoji">🔥</text>
+            <text class="intro-text">AI创作工具选择一个工具开始创作</text>
+        </view>
+    </view>
+    <!-- 已消耗聚芯 Orin值卡片 -->
+    <view class="status-card">
+        <view class="status-header">
+            <view class="status-info">
+                <text class="status-label">已消耗聚芯 Orin值</text>
+                <view class="status-value-row">
+                    <text class="status-number">{{consumedHashrate}}</text>
+                </view>
+            </view>
+            <view class="history-btn-box" bindtap="goToHistory">
+                <view class="history-inner">
+                    <text class="history-icon">📜</text>
+                    <text class="history-txt">历史创作 ›</text>
+                </view>
+            </view>
+        </view>
+        <view class="status-bar">
+            <view class="status-item">
+                <text class="item-label">图片生成</text>
+                <text class="item-val">{{imagesCount}}次</text>
+            </view>
+            <view class="item-sep"></view>
+            <view class="status-item">
+                <text class="item-label">视频创作</text>
+                <text class="item-val">{{vGenCount + i2vCount}}次</text>
+            </view>
+            <view class="item-sep"></view>
+            <view class="status-item">
+                <text class="item-label">AI文案</text>
+                <text class="item-val">{{chatCount}}次</text>
+            </view>
+        </view>
+        <!-- 装饰 -->
+        <view class="card-decoration deco-1"></view>
+    </view>
+    <!-- 工具列表 -->
+    <view class="creation-grid">
+        <block wx:for="{{creationTools}}" wx:key="id">
+            <view class="create-card {{item.id === 'video' ? 'primary' : 'small'}}" bindtap="onToolTap" data-id="{{item.id}}">
+                <image wx:if="{{item.id === 'video'}}" class="card-cover" src="{{item.bgImage}}" mode="aspectFill"></image>
+                <view class="card-info">
+                    <view class="card-header">
+                        <text class="card-icon">{{item.icon}}</text>
+                        <text class="card-title">{{item.title}}</text>
+                    </view>
+                    <text class="card-desc">{{item.desc}}</text>
+                    <view class="card-footer">
+                        <view class="card-cost">
+                            <text class="cost-icon">⚡</text>
+                            <text class="cost-value">{{item.cost}}</text>
+                        </view>
+                        <button class="start-btn" wx:if="{{item.id === 'video'}}">立即开始</button>
+                    </view>
+                </view>
+                <!-- 卡片装饰 -->
+                <view class="card-decoration deco-tool" wx:if="{{item.id !== 'video'}}">
+                    {{item.icon}}
+                </view>
+            </view>
+        </block>
+    </view>
+</view>

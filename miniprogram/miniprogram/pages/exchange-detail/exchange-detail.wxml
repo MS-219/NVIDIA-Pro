@@ -1,0 +1,83 @@
+<view class="container" wx:if="{{product}}">
+    <view class="custom-nav" style="padding-top: {{navBarTop}}px; height: {{navBarHeight}}px; line-height: {{navBarHeight}}px;">
+        <view class="nav-back" bindtap="onGoBack">‹</view>
+        <text class="nav-title">商品详情</text>
+        <view class="nav-placeholder"></view>
+    </view>
+
+    <!-- 商品主图 -->
+    <image class="detail-image" src="{{product.imageUrl}}" mode="aspectFill"></image>
+
+    <!-- 商品信息 -->
+    <view class="detail-card">
+        <text class="detail-name">{{product.name}}</text>
+        <view class="detail-price-row">
+            <text class="detail-price-icon">⚡</text>
+            <text class="detail-price-value">{{product.userHashratePrice}}</text>
+            <text class="detail-price-unit">算力值</text>
+            <text class="detail-price-yuan">≈ ¥{{product.userPrice}}</text>
+        </view>
+        <text class="detail-desc" wx:if="{{product.description}}">{{product.description}}</text>
+    </view>
+
+
+    <!-- 收货地址 -->
+    <view class="address-card" bindtap="toggleAddressPicker">
+        <text class="card-title">收货地址</text>
+        <view class="address-content" wx:if="{{selectedAddress}}">
+            <view class="address-info">
+                <text class="address-name">{{selectedAddress.receiverName}}</text>
+                <text class="address-phone">{{selectedAddress.phone}}</text>
+            </view>
+            <text class="address-detail">{{selectedAddress.province}}{{selectedAddress.city}}{{selectedAddress.district}}{{selectedAddress.detailAddress}}</text>
+        </view>
+        <view class="address-empty" wx:else>
+            <text class="address-empty-text">请选择收货地址</text>
+        </view>
+        <text class="address-arrow">›</text>
+    </view>
+
+    <!-- 数量选择 -->
+    <view class="qty-card">
+        <text class="card-title">购买数量</text>
+        <view class="qty-control">
+            <view class="qty-btn" bindtap="decreaseQty">−</view>
+            <text class="qty-value">{{quantity}}</text>
+            <view class="qty-btn" bindtap="increaseQty">+</view>
+        </view>
+    </view>
+
+    <!-- 底部操作栏 -->
+    <view class="bottom-bar">
+        <view class="bottom-info">
+            <text class="bottom-label">合计:</text>
+            <text class="bottom-total">⚡ {{product.userHashratePrice * quantity}}</text>
+        </view>
+        <button class="exchange-btn {{userLevel < 1 ? 'btn-disabled' : ''}}" bindtap="confirmExchange">
+            {{userLevel < 1 ? '需升级等级' : '立即兑换'}}
+        </button>
+    </view>
+
+    <!-- 地址选择弹窗 -->
+    <view class="address-mask" wx:if="{{showAddressPicker}}" bindtap="toggleAddressPicker"></view>
+    <view class="address-popup {{showAddressPicker ? 'popup-show' : ''}}">
+        <view class="popup-header">
+            <text class="popup-title">选择收货地址</text>
+            <text class="popup-close" bindtap="toggleAddressPicker">✕</text>
+        </view>
+        <scroll-view scroll-y class="popup-list">
+            <view class="popup-addr-item {{selectedAddress && selectedAddress.id === item.id ? 'addr-active' : ''}}"
+                  wx:for="{{addresses}}" wx:key="id" bindtap="selectAddress" data-index="{{index}}">
+                <view class="popup-addr-info">
+                    <text class="popup-addr-name">{{item.receiverName}}</text>
+                    <text class="popup-addr-phone">{{item.phone}}</text>
+                    <text class="popup-addr-default" wx:if="{{item.isDefault === 1}}">默认</text>
+                </view>
+                <text class="popup-addr-detail">{{item.province}}{{item.city}}{{item.district}}{{item.detailAddress}}</text>
+            </view>
+        </scroll-view>
+        <view class="popup-add" bindtap="goToAddressManage">
+            <text class="popup-add-text">+ 管理收货地址</text>
+        </view>
+    </view>
+</view>

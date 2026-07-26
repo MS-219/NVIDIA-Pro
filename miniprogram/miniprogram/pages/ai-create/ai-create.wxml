@@ -1,0 +1,158 @@
+<view class="container">
+    <view class="custom-nav" style="padding-top: {{navBarTop}}px; height: {{navBarHeight}}px;">
+        <view class="nav-back" bindtap="goBack">
+            <text class="back-icon">←</text>
+        </view>
+        <text class="nav-title">{{modeTitle}}</text>
+    </view>
+    <!-- 内容区域 -->
+    <view class="content-wrapper">
+        <!-- 图片上传区域 (支持多图) -->
+        <view class="upload-section card" wx:if="{{needImage}}">
+            <view class="upload-header">
+                <text class="upload-label">素材图片</text>
+                <text class="upload-count">{{uploadedImages.length}}/{{isVideoMode ? 1 : 9}}</text>
+            </view>
+            <view class="image-grid">
+                <view class="image-item" wx:for="{{uploadedImages}}" wx:key="*this">
+                    <image class="grid-img" src="{{item}}" mode="aspectFill" bindtap="previewUploaded" data-index="{{index}}"></image>
+                    <view class="delete-btn" catchtap="removeImage" data-index="{{index}}">×</view>
+                </view>
+                <view class="image-item upload-btn" bindtap="chooseImage" wx:if="{{uploadedImages.length < (isVideoMode ? 1 : 9)}}">
+                    <text class="plus">+</text>
+                </view>
+            </view>
+            <view class="upload-hint" wx:if="{{uploadedImages.length === 0}}">
+                点击上方加号上传图片{{isVideoMode ? '' : '，多张图片将进行融合创作'}}
+                <text class="optional-text" wx:if="{{isVideoMode}}">(可选)</text>
+            </view>
+        </view>
+        <!-- 文本描述输入 -->
+        <view class="prompt-card card">
+            <view class="prompt-header">
+                <text class="prompt-label">描述你想要的效果</text>
+                <text class="prompt-example" bindtap="showExamples">💡 示例</text>
+            </view>
+            <textarea class="prompt-input" placeholder="{{placeholder}}" value="{{prompt}}" bindinput="onPromptInput" maxlength="500"></textarea>
+            <view class="prompt-footer">
+                <text class="char-count">{{prompt.length}}/500</text>
+            </view>
+            <view class="card-deco">✍️</view>
+        </view>
+        <!-- 快捷提示词 -->
+        <view class="quick-prompts-wrapper" wx:if="{{quickPrompts.length > 0}}">
+            <text class="section-title">快捷提示词</text>
+            <scroll-view class="quick-scroll" scroll-x>
+                <view class="quick-tag" wx:for="{{quickPrompts}}" wx:key="*this" bindtap="useQuickPrompt" data-prompt="{{item}}">
+                    {{item}}
+                </view>
+            </scroll-view>
+        </view>
+        <!-- 视频时长选择 -->
+        <view class="option-section" wx:if="{{isVideoMode}}">
+            <text class="section-title">视频时长</text>
+            <view class="option-grid">
+                <view wx:for="{{durationOptions}}" wx:key="value" class="option-item {{duration === item.value ? 'active' : ''}}" bindtap="selectDuration" data-value="{{item.value}}">
+                    <text class="opt-label">{{item.label}}</text>
+                </view>
+            </view>
+        </view>
+        <!-- 视频宽高比 -->
+        <view class="option-section" wx:if="{{isVideoMode}}">
+            <text class="section-title">画面比例</text>
+            <view class="option-grid">
+                <view wx:for="{{aspectRatioOptions}}" wx:key="value" class="option-item {{aspectRatio === item.value ? 'active' : ''}}" bindtap="selectAspectRatio" data-value="{{item.value}}">
+                    <text class="opt-label">{{item.label}}</text>
+                    <text class="opt-desc">{{item.desc}}</text>
+                </view>
+            </view>
+        </view>
+        <!-- 视频分辨率 -->
+        <view class="option-section" wx:if="{{isVideoMode}}">
+            <text class="section-title">分辨率</text>
+            <view class="option-grid">
+                <view wx:for="{{resolutionOptions}}" wx:key="value" class="option-item {{resolution === item.value ? 'active' : ''}}" bindtap="selectResolution" data-value="{{item.value}}">
+                    <text class="opt-label">{{item.label}}</text>
+                    <text class="opt-desc">{{item.desc}}</text>
+                </view>
+            </view>
+        </view>
+        <!-- 图片尺寸选择 -->
+        <view class="option-section" wx:if="{{!isVideoMode && !isCopywritingMode}}">
+            <text class="section-title">图片尺寸</text>
+            <view class="option-grid">
+                <view wx:for="{{sizeOptions}}" wx:key="value" class="option-item {{size === item.value ? 'active' : ''}}" bindtap="selectSize" data-value="{{item.value}}">
+                    {{item.label}}
+                </view>
+            </view>
+        </view>
+        <!-- 文案类型选择 -->
+        <view class="option-section" wx:if="{{isCopywritingMode && copyTypeOptions.length > 0}}">
+            <text class="section-title">文案类型</text>
+            <scroll-view class="style-scroll" scroll-x>
+                <view wx:for="{{copyTypeOptions}}" wx:key="value" class="style-item {{copyType === item.value ? 'active' : ''}}" bindtap="selectCopyType" data-value="{{item.value}}">
+                    <text class="style-icon">{{item.icon}}</text>
+                    <text class="style-name">{{item.label}}</text>
+                </view>
+            </scroll-view>
+        </view>
+        <!-- 风格选择 -->
+        <view class="option-section" wx:if="{{styleOptions.length > 0}}">
+            <text class="section-title">{{isCopywritingMode ? '文案风格' : '风格选择'}}</text>
+            <scroll-view class="style-scroll" scroll-x>
+                <view wx:for="{{styleOptions}}" wx:key="value" class="style-item {{style === item.value ? 'active' : ''}}" bindtap="selectStyle" data-value="{{item.value}}">
+                    <text class="style-icon">{{item.icon}}</text>
+                    <text class="style-name">{{item.label}}</text>
+                </view>
+            </scroll-view>
+        </view>
+        <text class="ai-disclaimer" style="margin-top: 40rpx; margin-bottom: 20rpx;">
+            内容由 AI 生成，请仔细甄别
+        </text>
+    </view>
+    <!-- 生成按钮 -->
+    <view class="generate-bar">
+        <view class="cost-summary">
+            <text class="total-label">预估消耗:</text>
+            <text class="total-value">{{totalCost}}</text>
+            <text class="total-unit">聚芯 Orin值</text>
+        </view>
+        <button class="generate-btn {{generating ? 'disabled' : ''}}" bindtap="startGenerate" disabled="{{generating}}">
+            <text wx:if="{{!generating}}">✨ 开始生成</text>
+            <text wx:else>⏳ 处理中...</text>
+        </button>
+        <view class="estimate-tip">
+            预计时间: {{isVideoMode ? '1-3分钟' : (isCopywritingMode ? '5-15秒' : '10-30秒')}}
+        </view>
+    </view>
+    <!-- 文案结果展示 -->
+    <view class="result-card card" wx:if="{{resultContent}}">
+        <text class="result-title">✨ 生成结果</text>
+        <view class="copywriting-result">
+            <text class="copywriting-content" selectable="true">{{resultContent}}</text>
+        </view>
+        <text class="ai-disclaimer">内容由 AI 生成，请仔细甄别</text>
+        <view class="result-btns">
+            <button class="res-btn save" bindtap="copyCopywriting">📋 复制文案</button>
+            <button class="res-btn share" open-type="share">分享</button>
+        </view>
+    </view>
+    <!-- 图片/视频结果展示 -->
+    <view class="result-card card" wx:if="{{resultUrl && !isCopywritingMode}}">
+        <text class="result-title">生成结果</text>
+        <video wx:if="{{isVideoMode}}" class="result-media" src="{{resultUrl}}" controls></video>
+        <image wx:else class="result-media" src="{{resultUrl}}" mode="widthFix" bindtap="previewImage"></image>
+        <text class="ai-disclaimer">内容由 AI 生成，请仔细甄别</text>
+        <view class="result-btns">
+            <button class="res-btn save" bindtap="saveResult">保存</button>
+            <button class="res-btn share" open-type="share">分享</button>
+        </view>
+    </view>
+    <!-- 加载浮层 -->
+    <view class="loading-mask" wx:if="{{generating && !resultUrl}}">
+        <view class="loading-box">
+            <view class="loading-spinner"></view>
+            <text class="loading-text">{{statusText}}</text>
+        </view>
+    </view>
+</view>

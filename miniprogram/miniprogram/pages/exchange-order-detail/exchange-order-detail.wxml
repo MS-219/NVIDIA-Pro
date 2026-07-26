@@ -1,0 +1,99 @@
+<view class="container" wx:if="{{order}}">
+    <view class="custom-nav" style="padding-top: {{navBarTop}}px; height: {{navBarHeight}}px; line-height: {{navBarHeight}}px;">
+        <view class="nav-back" bindtap="onGoBack">‹</view>
+        <text class="nav-title">订单详情</text>
+        <view class="nav-placeholder"></view>
+    </view>
+
+    <!-- 状态卡片 -->
+    <view class="status-card status-bg-{{order.status}}">
+        <text class="status-emoji">{{statusIcons[order.status]}}</text>
+        <text class="status-text-main">{{statusTexts[order.status]}}</text>
+    </view>
+
+    <!-- 物流信息 -->
+    <view class="section-card" wx:if="{{order.expressNo}}">
+        <text class="card-title">物流信息</text>
+        <view class="express-row">
+            <text class="express-label">快递公司</text>
+            <text class="express-value">{{order.expressCompany || '—'}}</text>
+        </view>
+        <view class="express-row">
+            <text class="express-label">快递单号</text>
+            <view class="express-copy-row">
+                <text class="express-value">{{order.expressNo}}</text>
+                <text class="copy-btn" bindtap="copyExpressNo">复制</text>
+            </view>
+        </view>
+    </view>
+
+    <!-- 实时物流时间线 -->
+    <view class="section-card" wx:if="{{expressLogistics.length > 0}}">
+        <text class="card-title">实时物流轨迹</text>
+        <view class="timeline">
+            <view class="timeline-item {{index === 0 ? 'timeline-active' : ''}}" wx:for="{{expressLogistics}}" wx:key="index">
+                <view class="timeline-dot"></view>
+                <view class="timeline-line" wx:if="{{index < expressLogistics.length - 1}}"></view>
+                <view class="timeline-content">
+                    <text class="timeline-desc">{{item.status}}</text>
+                    <text class="timeline-time">{{item.time}}</text>
+                </view>
+            </view>
+        </view>
+    </view>
+
+    <!-- 收货地址 -->
+    <view class="section-card">
+        <text class="card-title">收货信息</text>
+        <view class="info-row">
+            <text class="info-label">收货人</text>
+            <text class="info-value">{{order.receiverName}} {{order.receiverPhone}}</text>
+        </view>
+        <view class="info-row">
+            <text class="info-label">地址</text>
+            <text class="info-value">{{order.receiverAddress}}</text>
+        </view>
+    </view>
+
+    <!-- 商品信息 -->
+    <view class="section-card">
+        <text class="card-title">商品信息</text>
+        <view class="product-row">
+            <image class="product-thumb" src="{{order.productImage}}" mode="aspectFill" wx:if="{{order.productImage}}"></image>
+            <view class="product-detail">
+                <text class="product-name">{{order.productName}}</text>
+                <text class="product-qty">×{{order.quantity}}</text>
+            </view>
+        </view>
+    </view>
+
+    <!-- 订单信息 -->
+    <view class="section-card">
+        <text class="card-title">订单信息</text>
+        <view class="info-row">
+            <text class="info-label">订单编号</text>
+            <text class="info-value mono">{{order.orderNo}}</text>
+        </view>
+        <view class="info-row">
+            <text class="info-label">消耗算力值</text>
+            <text class="info-value highlight">⚡ {{order.hashrateCost}}</text>
+        </view>
+        <view class="info-row">
+            <text class="info-label">等值金额</text>
+            <text class="info-value">¥{{order.totalPrice}}</text>
+        </view>
+        <view class="info-row">
+            <text class="info-label">下单时间</text>
+            <text class="info-value">{{order.createTime}}</text>
+        </view>
+        <view class="info-row" wx:if="{{order.remark}}">
+            <text class="info-label">备注</text>
+            <text class="info-value">{{order.remark}}</text>
+        </view>
+    </view>
+
+    <!-- 操作按钮 -->
+    <view class="bottom-actions" wx:if="{{order.status === 1 || order.status === 2}}">
+        <button class="confirm-btn" bindtap="confirmReceive">确认收货</button>
+    </view>
+</view>

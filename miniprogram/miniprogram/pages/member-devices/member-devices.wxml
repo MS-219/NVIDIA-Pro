@@ -1,0 +1,78 @@
+<scroll-view class="scrollarea" scroll-y type="list">
+    <view class="container">
+        <!-- 自定义导航栏 -->
+        <view class="custom-nav" style="padding-top: {{navBarTop}}px; height: {{navBarHeight}}px;">
+            <view class="nav-back" bindtap="goBack">
+                <text class="back-icon">‹</text>
+            </view>
+            <text class="nav-title">设备详情</text>
+        </view>
+        <!-- 用户信息卡片 -->
+        <view class="member-card">
+            <view class="member-info">
+                <view class="member-avatar">
+                    <image wx:if="{{memberAvatar}}" src="{{memberAvatar}}" mode="aspectFill"></image>
+                    <text wx:else class="avatar-placeholder">👤</text>
+                </view>
+                <view class="member-detail">
+                    <view class="member-name-row">
+                        <text class="member-name">{{memberNickname}}</text>
+                        <view class="level-badge" wx:if="{{memberLevel > 0}}">
+                            Lv.{{memberLevel}}
+                        </view>
+                    </view>
+                </view>
+            </view>
+        </view>
+        <!-- 状态筛选 -->
+        <view class="filter-tabs">
+            <view class="filter-tab {{filterStatus === 'all' ? 'active' : ''}}" bindtap="onFilterChange" data-status="all">
+                <text>全部</text>
+                <text class="tab-count">{{totalCount}}</text>
+            </view>
+            <view class="filter-tab {{filterStatus === 'online' ? 'active' : ''}}" bindtap="onFilterChange" data-status="online">
+                <view class="status-dot online"></view>
+                <text>在线</text>
+                <text class="tab-count">{{onlineCount}}</text>
+            </view>
+            <view class="filter-tab {{filterStatus === 'offline' ? 'active' : ''}}" bindtap="onFilterChange" data-status="offline">
+                <view class="status-dot offline"></view>
+                <text>离线</text>
+                <text class="tab-count">{{offlineCount}}</text>
+            </view>
+        </view>
+        <!-- 设备列表 -->
+        <view class="devices-list" wx:if="{{devices.length > 0}}">
+            <view class="device-item" wx:for="{{devices}}" wx:key="id">
+                <view class="device-header">
+                    <view class="device-icon">
+                        <image src="/images/product.png" mode="aspectFit"></image>
+                    </view>
+                    <view class="device-info">
+                        <text class="device-name">{{item.name}}</text>
+                        <text class="device-sn">绑定码: {{item.bindCode}}</text>
+                    </view>
+                    <view class="device-status {{item.status === 1 ? 'online' : 'offline'}}">
+                        <view class="status-indicator"></view>
+                        <text>{{item.statusText}}</text>
+                    </view>
+                </view>
+                <view class="device-stats-simple">
+                    <text class="stat-label">最后心跳时间:</text>
+                    <text class="stat-value">{{item.lastHeartbeat}}</text>
+                </view>
+            </view>
+        </view>
+        <!-- 空状态 -->
+        <view class="empty-state" wx:if="{{!loading && devices.length === 0}}">
+            <text class="empty-icon">📭</text>
+            <text class="empty-title">暂无设备</text>
+            <text class="empty-desc">该用户还没有绑定设备</text>
+        </view>
+        <!-- 加载中 -->
+        <view class="loading-state" wx:if="{{loading}}">
+            <view class="loading-spinner"></view>
+            <text>加载中...</text>
+        </view>
+    </view>
+</scroll-view>

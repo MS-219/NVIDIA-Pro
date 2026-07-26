@@ -1,0 +1,42 @@
+<view class="container">
+    <!-- 自定义导航栏 -->
+    <view class="nav-bar" style="padding-top: {{navBarTop}}px; height: {{navBarHeight}}px;">
+        <text class="nav-title">完善个人资料</text>
+    </view>
+    <!-- 主内容区 -->
+    <view class="content">
+        <!-- 头部提示 -->
+        <view class="header-tip">
+            <text class="tip-emoji">🎉</text>
+            <text class="tip-title">欢迎加入聚芯 Orin！</text>
+            <text class="tip-desc">请完善您的头像和昵称</text>
+        </view>
+        <!-- 头像选择 -->
+        <view class="avatar-section">
+            <view class="avatar-wrapper">
+                <button class="avatar-btn" open-type="chooseAvatar" bindchooseavatar="onChooseAvatar">
+                    <image class="avatar-img" src="{{avatarUrl}}" mode="aspectFill" wx:if="{{avatarUrl}}"></image>
+                    <view class="avatar-placeholder" wx:else>
+                        <text class="placeholder-icon">📷</text>
+                        <text class="placeholder-text">上传头像</text>
+                    </view>
+                </button>
+                <view class="avatar-edit-badge">编辑</view>
+            </view>
+        </view>
+        <!-- 表单区域 -->
+        <view class="form-card">
+            <view class="nickname-section">
+                <text class="input-label">您的昵称</text>
+                <input class="nickname-input" type="nickname" placeholder="输入昵称" placeholder-class="placeholder-style" value="{{nickname}}" bindinput="onNicknameInput" maxlength="20" />
+            </view>
+            <!-- 操作按钮 -->
+            <view class="action-buttons">
+                <button class="save-btn {{saving ? 'disabled' : ''}}" bindtap="onSave" disabled="{{saving}}">
+                    {{saving ? '保存中...' : '保存并继续'}}
+                </button>
+                <button class="skip-btn" bindtap="onSkip" wx:if="{{!forceMode}}">稍后再说</button>
+            </view>
+        </view>
+    </view>
+</view>

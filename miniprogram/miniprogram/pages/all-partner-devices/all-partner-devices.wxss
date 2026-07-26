@@ -1,0 +1,307 @@
+page {
+    background: linear-gradient(180deg, #DEF1DD 0%, #f0fdf4 30%, #f5f5f5 100%);
+    min-height: 100vh;
+}
+
+.container {
+    padding: 0 24rpx 40rpx;
+}
+
+/* 导航栏 */
+.custom-nav {
+    display: flex;
+    align-items: center;
+    padding-bottom: 20rpx;
+}
+
+.nav-back {
+    width: 60px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+}
+
+.back-icon {
+    font-size: 28px;
+    color: #1a1a1a;
+    font-weight: 300;
+}
+
+.nav-title {
+    flex: 1;
+    font-size: 36rpx;
+    font-weight: 600;
+    color: #1a1a1a;
+    text-align: center;
+    margin-right: 60px;
+}
+
+/* 筛选卡片 */
+.filter-card {
+    background: rgba(255, 255, 255, 0.7);
+    backdrop-filter: blur(20px);
+    border-radius: 20rpx;
+    padding: 16rpx;
+    margin-bottom: 24rpx;
+    border: 1px solid rgba(255, 255, 255, 0.8);
+}
+
+.filter-tabs {
+    display: flex;
+    gap: 8rpx;
+}
+
+.filter-tab {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8rpx;
+    padding: 20rpx 16rpx;
+    border-radius: 12rpx;
+    font-size: 26rpx;
+    color: #6b7280;
+    transition: all 0.2s ease;
+}
+
+.filter-tab.active {
+    background: linear-gradient(135deg, #16a34a 0%, #15803d 100%);
+    color: #fff;
+    font-weight: 600;
+    box-shadow: 0 4rpx 12rpx rgba(22, 163, 74, 0.3);
+}
+
+.tab-count {
+    font-size: 22rpx;
+    opacity: 0.8;
+}
+
+.status-dot {
+    width: 12rpx;
+    height: 12rpx;
+    border-radius: 50%;
+}
+
+.status-dot.online {
+    background: #16a34a;
+}
+
+.filter-tab.active .status-dot.online {
+    background: #4ade80;
+}
+
+.status-dot.offline {
+    background: #f59e0b;
+}
+
+.filter-tab.active .status-dot.offline {
+    background: #fbbf24;
+}
+
+/* 设备列表 */
+.devices-list {
+    display: flex;
+    flex-direction: column;
+    gap: 16rpx;
+}
+
+.device-item {
+    background: rgba(255, 255, 255, 0.8);
+    backdrop-filter: blur(20px);
+    border-radius: 20rpx;
+    padding: 24rpx;
+    border: 1px solid rgba(255, 255, 255, 0.9);
+    transition: transform 0.2s ease;
+}
+
+.device-item:active {
+    transform: scale(0.98);
+}
+
+.device-header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 16rpx;
+    padding-bottom: 16rpx;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.device-icon {
+    width: 64rpx;
+    height: 64rpx;
+    background: linear-gradient(135deg, #e0e7ff, #c7d2fe);
+    border-radius: 14rpx;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 32rpx;
+    margin-right: 16rpx;
+    overflow: hidden;
+}
+
+.device-icon image {
+    width: 100%;
+    height: 100%;
+}
+
+.device-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 4rpx;
+}
+
+.device-name {
+    font-size: 28rpx;
+    font-weight: 600;
+    color: #1a1a1a;
+}
+
+.device-sn {
+    font-size: 22rpx;
+    color: #9ca3af;
+}
+
+.device-status {
+    display: flex;
+    align-items: center;
+    gap: 8rpx;
+    padding: 8rpx 16rpx;
+    border-radius: 20rpx;
+    font-size: 24rpx;
+    font-weight: 500;
+}
+
+.device-status.online {
+    background: rgba(22, 163, 74, 0.1);
+    color: #16a34a;
+}
+
+.device-status.offline {
+    background: rgba(245, 158, 11, 0.1);
+    color: #f59e0b;
+}
+
+.status-indicator {
+    width: 10rpx;
+    height: 10rpx;
+    border-radius: 50%;
+}
+
+.device-status.online .status-indicator {
+    background: #16a34a;
+    box-shadow: 0 0 8rpx rgba(22, 163, 74, 0.5);
+}
+
+.device-status.offline .status-indicator {
+    background: #f59e0b;
+}
+
+/* 设备所属用户 */
+.device-owner {
+    display: flex;
+    align-items: center;
+    gap: 12rpx;
+}
+
+.owner-avatar {
+    width: 48rpx;
+    height: 48rpx;
+    border-radius: 50%;
+    overflow: hidden;
+    background: linear-gradient(135deg, #e0e7ff, #c7d2fe);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.owner-avatar image {
+    width: 100%;
+    height: 100%;
+}
+
+.avatar-placeholder {
+    font-size: 24rpx;
+}
+
+.owner-info {
+    display: flex;
+    align-items: center;
+    gap: 8rpx;
+    flex: 1;
+}
+
+.owner-name {
+    font-size: 24rpx;
+    color: #374151;
+}
+
+.owner-level {
+    font-size: 18rpx;
+    color: #fff;
+    background: linear-gradient(135deg, #16a34a, #15803d);
+    padding: 2rpx 10rpx;
+    border-radius: 12rpx;
+}
+
+.last-heartbeat {
+    font-size: 20rpx;
+    color: #9ca3af;
+}
+
+/* 空状态 */
+.empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 80rpx 40rpx;
+    background: rgba(255, 255, 255, 0.45);
+    backdrop-filter: blur(20px);
+    border-radius: 24rpx;
+    border: 1px solid rgba(255, 255, 255, 0.8);
+}
+
+.empty-icon {
+    font-size: 100rpx;
+    margin-bottom: 24rpx;
+    opacity: 0.5;
+}
+
+.empty-title {
+    font-size: 32rpx;
+    font-weight: 500;
+    color: #374151;
+    margin-bottom: 12rpx;
+}
+
+.empty-desc {
+    font-size: 26rpx;
+    color: #9ca3af;
+}
+
+/* 加载状态 */
+.loading-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 60rpx;
+    color: #6b7280;
+    font-size: 26rpx;
+}
+
+.loading-spinner {
+    width: 48rpx;
+    height: 48rpx;
+    border: 4rpx solid #e5e7eb;
+    border-top-color: #16a34a;
+    border-radius: 50%;
+    margin-bottom: 20rpx;
+    animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}

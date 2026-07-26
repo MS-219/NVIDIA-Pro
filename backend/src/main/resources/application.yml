@@ -1,0 +1,84 @@
+server:
+  port: ${ORIN_SERVER_PORT:8090}
+
+spring:
+  application:
+    name: juxin-orin-platform
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: ${ORIN_DB_URL:jdbc:mysql://localhost:3306/juxin_orin?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false}
+    username: ${ORIN_DB_USERNAME:juxin_orin}
+    password: ${ORIN_DB_PASSWORD:}
+    hikari:
+      maximum-pool-size: ${ORIN_DB_MAX_POOL_SIZE:30}
+      minimum-idle: ${ORIN_DB_MIN_IDLE:5}
+      connection-timeout: ${ORIN_DB_CONNECTION_TIMEOUT:10000}
+      idle-timeout: ${ORIN_DB_IDLE_TIMEOUT:600000}
+      max-lifetime: ${ORIN_DB_MAX_LIFETIME:1800000}
+      leak-detection-threshold: ${ORIN_DB_LEAK_DETECTION_THRESHOLD:20000}
+  jackson:
+    date-format: yyyy-MM-dd HH:mm:ss
+    time-zone: GMT+8
+  servlet:
+    multipart:
+      max-file-size: 500MB
+      max-request-size: 500MB
+
+orin:
+  public-base-url: ${ORIN_PUBLIC_BASE_URL:https://orin-api.example.invalid}
+  cors-allowed-origins: ${ORIN_CORS_ALLOWED_ORIGINS:http://localhost:5174}
+
+mybatis-plus:
+  global-config:
+    db-config:
+      logic-delete-field: deleted
+      logic-delete-value: 1
+      logic-not-delete-value: 0
+
+ip:
+  location:
+    xdb-path: ${IP2REGION_XDB_PATH:/app/ip2region.xdb}
+
+wechat:
+  miniapp:
+    appid: ${ORIN_WECHAT_APP_ID:}
+    secret: ${ORIN_WECHAT_APP_SECRET:}
+
+ai:
+  cost:
+    video-base: ${ORIN_AI_VIDEO_BASE_COST:10}
+    image-base: ${ORIN_AI_IMAGE_BASE_COST:2}
+    video-extra:
+      d4: 0
+      d10: 5
+      d15: 10
+      d25: 20
+  vidu:
+    api-key: ${ORIN_VIDU_API_KEY:}
+    base-url: ${ORIN_VIDU_BASE_URL:https://api.example.invalid/v1}
+    model: ${ORIN_VIDU_MODEL:viduq3-turbo}
+  gpt-image:
+    api-key: ${ORIN_IMAGE_API_KEY:}
+    base-url: ${ORIN_IMAGE_BASE_URL:https://api.example.invalid/v1}
+    model: ${ORIN_IMAGE_MODEL:gpt-image-2}
+  gemini:
+    api-key: ${ORIN_TEXT_API_KEY:}
+    base-url: ${ORIN_TEXT_BASE_URL:https://api.example.invalid/v1beta}
+    model: ${ORIN_TEXT_MODEL:gemini-3-pro-preview-thinking}
+
+bosskg:
+  enabled: ${ORIN_BOSSKG_ENABLED:false}
+  api-url: ${ORIN_BOSSKG_API_URL:https://api.example.invalid}
+  mer-id: ${ORIN_BOSSKG_MER_ID:}
+  provider-id: ${ORIN_BOSSKG_PROVIDER_ID:}
+  task-id: ${ORIN_BOSSKG_TASK_ID:}
+  des-key: ${ORIN_BOSSKG_DES_KEY:}
+  merchant-private-key: ${ORIN_BOSSKG_PRIVATE_KEY:}
+  platform-public-key: ${ORIN_BOSSKG_PUBLIC_KEY:}
+  contract-notify-url: ${ORIN_BOSSKG_CONTRACT_NOTIFY_URL:https://orin-api.example.invalid/api/bosskg/notify/contract}
+  payment-notify-url: ${ORIN_BOSSKG_PAYMENT_NOTIFY_URL:https://orin-api.example.invalid/api/bosskg/notify/payment}
+  version: V1.0
+  connect-timeout: 10000
+  read-timeout: 60000
+  require-id-card-pic: false
+  default-memo: 服务费

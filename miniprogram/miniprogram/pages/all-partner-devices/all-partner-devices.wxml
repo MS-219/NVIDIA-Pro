@@ -1,0 +1,75 @@
+<scroll-view class="scrollarea" scroll-y type="list">
+    <view class="container">
+        <!-- 自定义导航栏 -->
+        <view class="custom-nav" style="padding-top: {{navBarTop}}px; height: {{navBarHeight}}px;">
+            <view class="nav-back" bindtap="goBack">
+                <text class="back-icon">‹</text>
+            </view>
+            <text class="nav-title">{{pageTitle}}</text>
+        </view>
+        <!-- 统计和筛选 -->
+        <view class="filter-card">
+            <view class="filter-tabs">
+                <view class="filter-tab {{filterStatus === 'all' ? 'active' : ''}}" bindtap="onFilterChange" data-status="all">
+                    <text>全部</text>
+                    <text class="tab-count">{{totalCount}}</text>
+                </view>
+                <view class="filter-tab {{filterStatus === 'online' ? 'active' : ''}}" bindtap="onFilterChange" data-status="online">
+                    <view class="status-dot online"></view>
+                    <text>在线</text>
+                    <text class="tab-count">{{onlineCount}}</text>
+                </view>
+                <view class="filter-tab {{filterStatus === 'offline' ? 'active' : ''}}" bindtap="onFilterChange" data-status="offline">
+                    <view class="status-dot offline"></view>
+                    <text>离线</text>
+                    <text class="tab-count">{{offlineCount}}</text>
+                </view>
+            </view>
+        </view>
+        <!-- 设备列表 -->
+        <view class="devices-list" wx:if="{{devices.length > 0}}">
+            <view class="device-item" wx:for="{{devices}}" wx:key="id">
+                <view class="device-header">
+                    <view class="device-icon">
+                        <image src="/images/product.png" mode="aspectFit"></image>
+                    </view>
+                    <view class="device-info">
+                        <text class="device-name">{{item.name}}</text>
+                        <text class="device-sn">绑定码: {{item.bindCode}}</text>
+                    </view>
+                    <view class="device-status {{item.status === 1 ? 'online' : 'offline'}}">
+                        <view class="status-indicator"></view>
+                        <text>{{item.statusText}}</text>
+                    </view>
+                </view>
+                <!-- 设备所属用户 -->
+                <view class="device-owner">
+                    <view class="owner-avatar">
+                        <image wx:if="{{item.ownerAvatar}}" src="{{item.ownerAvatar}}" mode="aspectFill"></image>
+                        <text wx:else class="avatar-placeholder">👤</text>
+                    </view>
+                    <view class="owner-info">
+                        <text class="owner-name">{{item.ownerNickname}}</text>
+                        <view class="owner-level" wx:if="{{item.ownerLevel > 0}}">
+                            Lv.{{item.ownerLevel}}
+                        </view>
+                    </view>
+                    <text class="last-heartbeat">最后心跳: {{item.lastHeartbeat}}</text>
+                </view>
+            </view>
+        </view>
+        <!-- 空状态 -->
+        <view class="empty-state" wx:if="{{!loading && devices.length === 0}}">
+            <text class="empty-icon">📭</text>
+            <text class="empty-title">
+                暂无{{filterStatus === 'online' ? '在线' : filterStatus === 'offline' ? '离线' : ''}}设备
+            </text>
+            <text class="empty-desc">您邀请的伙伴还没有相关设备</text>
+        </view>
+        <!-- 加载中 -->
+        <view class="loading-state" wx:if="{{loading}}">
+            <view class="loading-spinner"></view>
+            <text>加载中...</text>
+        </view>
+    </view>
+</scroll-view>

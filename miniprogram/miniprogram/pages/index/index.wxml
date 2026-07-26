@@ -1,0 +1,147 @@
+<scroll-view class="scrollarea" scroll-y type="list">
+  <view class="container">
+    <view class="home-header" style="padding-top: {{navBarTop}}px; height: {{navBarHeight}}px; margin-bottom: 20px;">
+      <image class="header-logo" src="/images/home-logo.png" mode="aspectFit"></image>
+    </view>
+
+    <view class="banner-wrapper">
+      <swiper class="banner-swiper" indicator-dots="{{true}}" autoplay="{{true}}" interval="{{5000}}" duration="{{800}}" indicator-color="rgba(255,255,255,0.4)" indicator-active-color="#fff" circular previous-margin="0px" next-margin="0px">
+        <block wx:for="{{bannerList}}" wx:key="id">
+          <swiper-item class="banner-item">
+            <view class="banner-card">
+              <image wx:if="{{item.imageUrl}}" src="{{item.imageUrl}}" class="banner-image" mode="aspectFill"></image>
+              <view wx:else class="banner-fallback"></view>
+              <view class="banner-shade"></view>
+              <view class="banner-overlay">
+                <text class="banner-title">{{item.title}}</text>
+                <text class="banner-subtitle">{{item.subtitle}}</text>
+              </view>
+            </view>
+          </swiper-item>
+        </block>
+      </swiper>
+    </view>
+
+    <view class="earnings-card">
+      <view class="earnings-bg-decoration"></view>
+      <view class="earnings-content">
+        <view class="earnings-top">
+          <view>
+            <text class="card-kicker">收益看板</text>
+            <text class="earnings-title">收益总览</text>
+          </view>
+          <view class="live-pill">
+            <view class="live-dot"></view>
+            <text>实时更新</text>
+          </view>
+        </view>
+        <view class="earnings-row">
+          <view class="earnings-item primary">
+            <text class="earnings-label">昨日收益 (元)</text>
+            <view class="earnings-money">
+              <text class="currency">¥</text>
+              <text class="earnings-num">{{earnings.yesterday}}</text>
+            </view>
+          </view>
+          <view class="earnings-divider"></view>
+          <view class="earnings-item">
+            <text class="earnings-label">累计收益 (元)</text>
+            <view class="earnings-money">
+              <text class="currency total-currency">¥</text>
+              <text class="earnings-num total">{{earnings.total}}</text>
+            </view>
+          </view>
+        </view>
+        <view class="earnings-footer">
+          <view class="footer-left">
+            <view class="footer-mark"></view>
+            <text>收益结算以后台最终账单为准</text>
+          </view>
+          <view class="refresh-icon">↻</view>
+        </view>
+      </view>
+    </view>
+
+    <view class="node-stats-card">
+      <view class="card-title-row">
+        <view>
+          <text class="card-title-text">节点监控</text>
+          <text class="card-subtitle">设备运行状态</text>
+        </view>
+        <view class="node-health-chip">
+          <text class="node-health-main">{{nodeStats.online}}</text>
+          <text class="node-health-sub">/{{nodeStats.total}}</text>
+        </view>
+      </view>
+      <view class="node-overview">
+        <view class="overview-left">
+          <text class="overview-num">{{nodeStats.total}}</text>
+          <text class="overview-label">设备总数 (台)</text>
+        </view>
+        <view class="overview-right">
+          <!-- Simple Chart Placeholder -->
+          <view class="mini-chart">
+            <view class="bar" style="height: 60%"></view>
+            <view class="bar" style="height: 80%"></view>
+            <view class="bar" style="height: 40%"></view>
+            <view class="bar active" style="height: 90%"></view>
+          </view>
+          <text class="chart-label">近况</text>
+        </view>
+      </view>
+      <view class="node-grid">
+        <view class="node-status-item online-card">
+          <view class="status-dot online"></view>
+          <text class="status-num">{{nodeStats.online}}</text>
+          <text class="status-label">在线</text>
+        </view>
+        <view class="node-status-item offline-card">
+          <view class="status-dot offline"></view>
+          <text class="status-num">{{nodeStats.offline}}</text>
+          <text class="status-label">离线</text>
+        </view>
+        <view class="node-status-item partner-card" bindtap="goToPartnerDevices" hover-class="node-status-hover">
+          <view class="status-dot partner"></view>
+          <text class="status-num">{{nodeStats.partnerDevices || 0}}</text>
+          <text class="status-label">伙伴设备</text>
+        </view>
+      </view>
+    </view>
+
+    <view class="system-notice-card">
+      <view class="card-header-row">
+        <view>
+          <text class="card-title-text">系统公告</text>
+          <text class="card-subtitle">平台消息与业务提醒</text>
+        </view>
+        <view class="more-btn">
+          <text>全部</text>
+          <text class="arrow">></text>
+        </view>
+      </view>
+      <view class="notices-list-inner">
+        <block wx:if="{{notices.length}}">
+          <block wx:for="{{notices}}" wx:key="id">
+            <view class="notice-item {{index == 0 ? 'is-first' : ''}}" bindtap="onNoticeTap" data-id="{{item.id}}">
+              <view class="notice-left">
+                <view wx:if="{{index == 0}}" class="notice-tag">NEW</view>
+                <image wx:if="{{item.imageUrl}}" class="notice-thumb" src="{{item.imageUrl}}" mode="aspectFill"></image>
+                <view class="notice-icon-placeholder" wx:else>
+                  <text>公</text>
+                </view>
+              </view>
+              <view class="notice-right">
+                <view class="notice-head">
+                  <text class="notice-title">{{item.title}}</text>
+                  <text class="notice-time">{{item.time}}</text>
+                </view>
+                <text class="notice-summary">{{item.content}}</text>
+              </view>
+            </view>
+          </block>
+        </block>
+        <view wx:else class="notice-empty">暂无公告</view>
+      </view>
+    </view>
+  </view>
+</scroll-view>

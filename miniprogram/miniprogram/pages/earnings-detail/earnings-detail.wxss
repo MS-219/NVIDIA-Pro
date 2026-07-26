@@ -1,0 +1,405 @@
+page {
+    background: #f7f7f9;
+    min-height: 100vh;
+}
+
+.container {
+    padding: 0 20px 20px 20px;
+}
+
+.custom-nav {
+    display: flex;
+    align-items: center;
+    padding-bottom: 10px;
+}
+
+.nav-back {
+    width: 60px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    padding-left: 0;
+}
+
+.back-icon {
+    font-size: 28px;
+    color: #1a1a1a;
+    font-weight: 300;
+}
+
+.nav-title {
+    flex: 1;
+    font-size: 18px;
+    font-weight: 600;
+    color: #1a1a1a;
+    text-align: center;
+    margin-right: 32px;
+}
+
+/* Overview Card */
+.overview-card {
+    background: linear-gradient(135deg, #16a34a 0%, #15803d 100%);
+    border-radius: 20px;
+    padding: 24px;
+    color: #fff;
+    margin-top: 10px;
+    margin-bottom: 16px;
+    box-shadow: 0 10px 30px rgba(22, 163, 74, 0.25);
+}
+
+.overview-main {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.overview-label {
+    font-size: 14px;
+    color: rgba(255, 255, 255, 0.8);
+    display: block;
+    margin-bottom: 8px;
+}
+
+.overview-amount {
+    font-size: 36px;
+    font-weight: 700;
+}
+
+.overview-stats {
+    display: flex;
+    justify-content: space-around;
+    padding-top: 16px;
+    border-top: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.stat-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.stat-value {
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: 4px;
+}
+
+.stat-label {
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.stat-divider {
+    width: 1px;
+    height: 40px;
+    background: rgba(255, 255, 255, 0.2);
+}
+
+/* Filter Bar */
+.filter-bar {
+    margin-bottom: 16px;
+}
+
+.filter-tabs {
+    display: flex;
+    background: #fff;
+    border-radius: 12px;
+    padding: 4px;
+}
+
+.filter-tab {
+    flex: 1;
+    text-align: center;
+    padding: 10px;
+    font-size: 14px;
+    color: #6b7280;
+    border-radius: 10px;
+    transition: all 0.2s;
+}
+
+.filter-tab.active {
+    background: #16a34a;
+    color: #fff;
+    font-weight: 500;
+}
+
+/* Earnings List */
+.earnings-list {
+    background: #fff;
+    border-radius: 16px;
+    overflow: hidden;
+}
+
+.earnings-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px;
+    border-bottom: 1px solid #f3f4f6;
+}
+
+.earnings-item:last-child {
+    border-bottom: none;
+}
+
+.item-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.item-icon {
+    width: 40px;
+    height: 40px;
+    background: #f0fdf4;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+}
+
+.item-info {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.item-title {
+    font-size: 15px;
+    font-weight: 500;
+    color: #1a1a1a;
+}
+
+.item-desc {
+    font-size: 12px;
+    color: #9ca3af;
+}
+
+.item-right {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 4px;
+}
+
+.item-amount {
+    font-size: 16px;
+    font-weight: 600;
+    color: #16a34a;
+}
+
+.item-time {
+    font-size: 12px;
+    color: #9ca3af;
+}
+
+/* Empty State */
+.empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 60px 0;
+    background: #fff;
+    border-radius: 16px;
+}
+
+.empty-icon {
+    font-size: 48px;
+    margin-bottom: 16px;
+}
+
+.empty-text {
+    font-size: 15px;
+    color: #6b7280;
+    margin-bottom: 8px;
+}
+
+.empty-tip {
+    font-size: 13px;
+    color: #9ca3af;
+}
+
+/* Load More */
+.load-more {
+    text-align: center;
+    padding: 20px;
+    font-size: 14px;
+    color: #6b7280;
+}
+
+/* Monthly Table */
+.monthly-table {
+    background: #fff;
+    border-radius: 16px;
+    overflow: hidden;
+    margin-bottom: 16px;
+}
+
+.table-header {
+    display: flex;
+    background: linear-gradient(135deg, #16a34a 0%, #15803d 100%);
+    padding: 12px 16px;
+}
+
+.th {
+    font-size: 14px;
+    font-weight: 600;
+    color: #fff;
+}
+
+.table-row {
+    display: flex;
+    padding: 14px 16px;
+    border-bottom: 1px solid #f3f4f6;
+    align-items: center;
+}
+
+.table-row:last-child {
+    border-bottom: none;
+}
+
+.td {
+    font-size: 14px;
+    color: #374151;
+}
+
+.month-col {
+    flex: 1.2;
+}
+
+.device-col {
+    flex: 1;
+    text-align: center;
+}
+
+.amount-col {
+    flex: 1;
+    text-align: right;
+    font-weight: 600;
+    color: #16a34a;
+}
+
+/* Daily Table */
+.daily-table {
+    background: #fff;
+    border-radius: 16px;
+    overflow: hidden;
+    margin-bottom: 16px;
+}
+
+.date-col {
+    flex: 1.2;
+}
+
+/* Section Title */
+.section-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: #374151;
+    padding: 16px 16px 8px 16px;
+    background: #f9fafb;
+}
+
+/* Reward Item */
+.reward-item .item-icon {
+    background: #fef3c7;
+}
+
+.reward-color {
+    color: #f59e0b !important;
+}
+
+.td.device-col.multi-line {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    line-height: 1.4;
+}
+
+.td.device-col.multi-line .main-text {
+    font-size: 26rpx;
+    color: #374151;
+    font-weight: 500;
+}
+
+.td.device-col.multi-line .sub-text {
+    font-size: 20rpx;
+    color: #9ca3af;
+}
+
+.sub-tabs-bar {
+    background: #fff;
+    border-radius: 24rpx;
+    padding: 10rpx 20rpx;
+    margin-bottom: 20rpx;
+}
+
+.sub-tabs {
+    display: flex;
+    justify-content: space-around;
+    position: relative;
+}
+
+.sub-tab {
+    font-size: 28rpx;
+    color: #6b7280;
+    padding: 20rpx 0;
+    flex: 1;
+    text-align: center;
+    position: relative;
+    transition: all 0.2s;
+}
+
+.sub-tab.active {
+    color: #16a34a;
+    font-weight: 600;
+}
+
+.sub-tab.active::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 20%;
+    right: 20%;
+    height: 4rpx;
+    background: #16a34a;
+    border-radius: 2rpx;
+}
+
+.empty-state.mini {
+    padding: 40rpx 0;
+    background: transparent;
+}
+
+.empty-state.mini .empty-text {
+    font-size: 26rpx;
+    color: #9ca3af;
+}
+
+.earnings-list-container {
+    background: #fff;
+    border-radius: 32rpx;
+    padding: 0 20rpx 20rpx 20rpx;
+    margin-bottom: 30rpx;
+}
+
+.amount-col.multi {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    justify-content: center;
+}
+
+.amount-col.multi .total {
+    font-size: 28rpx;
+    font-weight: 600;
+    color: #16a34a;
+}
+
+.amount-col.multi .sub {
+    font-size: 20rpx;
+    color: #9ca3af;
+    margin-top: 4rpx;
+}

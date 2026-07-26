@@ -1,0 +1,98 @@
+import { API_BASE } from '../../config';
+export { };
+
+Page({
+    data: {
+        navBarTop: 0,
+        navBarHeight: 44,
+        contactWechat: 'orin-support',
+        contactWorkTime: '9:00-18:00',
+        faqList: [
+            {
+                id: 1,
+                question: '如何绑定设备？',
+                answer: '进入"设备"页面，点击右上角"+"按钮，扫描设备上的二维码即可绑定。',
+                expanded: false
+            },
+            {
+                id: 2,
+                question: '收益是如何计算的？',
+                answer: '设备在线期间，每小时自动结算一次收益。收益金额根据设备算力和当前收益率计算。',
+                expanded: false
+            },
+            {
+                id: 3,
+                question: '如何提现？',
+                answer: '进入"我的"页面，点击"申请提现"，输入提现金额后提交申请。提现将在1-3个工作日内到账。',
+                expanded: false
+            },
+            {
+                id: 4,
+                question: '最低提现金额是多少？',
+                answer: '最低提现金额以页面配置为准。线上打款会按配置扣除提现手续费，线下打款不扣手续费。',
+                expanded: false
+            },
+            {
+                id: 5,
+                question: '设备离线会影响收益吗？',
+                answer: '是的，设备离线期间不产生收益。请确保设备保持在线状态以获得持续收益。',
+                expanded: false
+            },
+            {
+                id: 6,
+                question: '如何使用AI创作功能？',
+                answer: '进入"创作"页面，选择视频或图片模式，输入描述词后点击生成即可。生成需消耗聚芯 Orin值。',
+                expanded: false
+            },
+        ]
+    },
+
+    onLoad() {
+        const menuButtonInfo = wx.getMenuButtonBoundingClientRect();
+        this.setData({
+            navBarTop: menuButtonInfo.top,
+            navBarHeight: menuButtonInfo.height
+        });
+
+        this.fetchSystemSettings();
+    },
+
+    fetchSystemSettings() {
+        wx.request({
+            url: `${API_BASE}/api/settings/system-config`,
+            method: 'GET',
+            success: (res: any) => {
+                if (res.data.code === 200 && res.data.data) {
+                    const sys = res.data.data;
+                    this.setData({
+                        contactWechat: sys.contactWechat || 'orin-support',
+                        contactWorkTime: sys.contactWorkTime || '9:00-18:00'
+                    });
+                }
+            }
+        });
+    },
+
+    goBack() {
+        wx.navigateBack();
+    },
+
+    toggleFaq(e: any) {
+        const id = e.currentTarget.dataset.id;
+        const faqList = this.data.faqList.map(item => ({
+            ...item,
+            expanded: item.id === id ? !item.expanded : false
+        }));
+        this.setData({ faqList });
+    },
+
+    contactService() {
+        const { contactWechat, contactWorkTime } = this.data;
+        wx.showModal({
+            title: '联系客服',
+            content: `客服微信：${contactWechat}\n工作时间：${contactWorkTime}`,
+            showCancel: false,
+            confirmText: '我知道了'
+        });
+    }
+});

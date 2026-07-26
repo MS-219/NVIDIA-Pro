@@ -1,0 +1,67 @@
+<view class="container">
+    <view class="custom-nav" style="padding-top: {{navBarTop}}px; height: {{navBarHeight}}px; line-height: {{navBarHeight}}px;">
+        <view class="nav-back" bindtap="onGoBack">‹</view>
+        <text class="nav-title">收货地址管理</text>
+        <view class="nav-placeholder"></view>
+    </view>
+
+    <!-- 地址列表 -->
+    <view class="address-list" wx:if="{{!showForm}}">
+        <view class="addr-card" wx:for="{{addresses}}" wx:key="id">
+            <view class="addr-main" bindtap="showEditForm" data-index="{{index}}">
+                <view class="addr-top">
+                    <text class="addr-name">{{item.receiverName}}</text>
+                    <text class="addr-phone">{{item.phone}}</text>
+                    <text class="addr-default" wx:if="{{item.isDefault === 1}}">默认</text>
+                </view>
+                <text class="addr-detail">{{item.province}}{{item.city}}{{item.district}}{{item.detailAddress}}</text>
+            </view>
+            <view class="addr-actions">
+                <text class="action-btn set-default" bindtap="setDefault" data-id="{{item.id}}" wx:if="{{item.isDefault !== 1}}">设为默认</text>
+                <text class="action-btn delete" bindtap="deleteAddress" data-id="{{item.id}}">删除</text>
+            </view>
+        </view>
+
+        <view class="empty-state" wx:if="{{addresses.length === 0}}">
+            <text class="empty-icon">📍</text>
+            <text class="empty-text">暂无收货地址</text>
+        </view>
+
+        <button class="add-btn" bindtap="showAddForm">+ 新增收货地址</button>
+    </view>
+
+    <!-- 编辑表单 -->
+    <view class="form-container" wx:if="{{showForm}}">
+        <view class="form-card">
+            <view class="form-item">
+                <text class="form-label">收货人</text>
+                <input class="form-input" placeholder="请输入收货人姓名" value="{{form.receiverName}}" data-field="receiverName" bindinput="onInputChange" />
+            </view>
+            <view class="form-item">
+                <text class="form-label">电话</text>
+                <input class="form-input" type="number" placeholder="请输入手机号" value="{{form.phone}}" data-field="phone" bindinput="onInputChange" />
+            </view>
+            <view class="form-item">
+                <text class="form-label">地区</text>
+                <picker mode="region" bindchange="onRegionChange" value="{{regionArray}}">
+                    <view class="form-input picker-input">
+                        {{form.province ? form.province + ' ' + form.city + ' ' + form.district : '请选择省市区'}}
+                    </view>
+                </picker>
+            </view>
+            <view class="form-item">
+                <text class="form-label">详细地址</text>
+                <input class="form-input" placeholder="请输入详细地址" value="{{form.detailAddress}}" data-field="detailAddress" bindinput="onInputChange" />
+            </view>
+            <view class="form-item switch-item">
+                <text class="form-label">设为默认</text>
+                <switch checked="{{form.isDefault === 1}}" bindchange="onDefaultChange" color="#16a34a" />
+            </view>
+        </view>
+
+        <view class="form-actions">
+            <button class="save-btn" bindtap="saveAddress">保存</button>
+            <button class="cancel-btn" bindtap="hideForm">取消</button>
+        </view>
+    </view>
+</view>

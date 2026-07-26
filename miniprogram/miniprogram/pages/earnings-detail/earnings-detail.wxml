@@ -1,0 +1,168 @@
+<view class="container">
+    <view class="custom-nav" style="padding-top: {{navBarTop}}px;">
+        <view class="nav-back" bindtap="goBack">
+            <text class="back-icon">‹</text>
+        </view>
+        <text class="nav-title">收益明细</text>
+    </view>
+    <!-- 收益概览 -->
+    <view class="overview-card">
+        <view class="overview-main">
+            <text class="overview-label">累计收益（元）</text>
+            <text class="overview-amount">{{totalEarnings}}</text>
+        </view>
+        <view class="overview-stats">
+            <view class="stat-item">
+                <text class="stat-value">{{yesterdayEarnings}}</text>
+                <text class="stat-label">昨日收益</text>
+            </view>
+            <view class="stat-divider"></view>
+            <view class="stat-item">
+                <text class="stat-value">{{monthEarnings}}</text>
+                <text class="stat-label">本月收益</text>
+            </view>
+            <view class="stat-divider"></view>
+            <view class="stat-item">
+                <text class="stat-value">{{deviceCount}}</text>
+                <text class="stat-label">在线设备</text>
+            </view>
+        </view>
+    </view>
+    <!-- 筛选条 -->
+    <view class="filter-bar">
+        <view class="filter-tabs">
+            <view class="filter-tab {{filter === 'all' ? 'active' : ''}}" bindtap="setFilter" data-filter="all">
+                全部
+            </view>
+            <view class="filter-tab {{filter === 'day' ? 'active' : ''}}" bindtap="setFilter" data-filter="day">
+                按日
+            </view>
+            <view class="filter-tab {{filter === 'month' ? 'active' : ''}}" bindtap="setFilter" data-filter="month">
+                按月
+            </view>
+        </view>
+    </view>
+    <!-- 子 Tab 切换（全局显示） -->
+    <view class="sub-tabs-bar">
+        <view class="sub-tabs">
+            <view class="sub-tab {{subFilter === 'device' ? 'active' : ''}}" bindtap="setSubFilter" data-sub="device">
+                设备收益
+            </view>
+            <view class="sub-tab {{subFilter === 'reward' ? 'active' : ''}}" bindtap="setSubFilter" data-sub="reward">
+                分润收益
+            </view>
+        </view>
+    </view>
+    <!-- 月收益汇总表 -->
+    <view class="monthly-table" wx:if="{{filter === 'month' && monthlyData.length > 0}}">
+        <view class="table-header">
+            <text class="th month-col">月份</text>
+            <text class="th device-col">{{subFilter === 'device' ? '我的设备' : '团队设备'}}</text>
+            <text class="th amount-col">{{subFilter === 'device' ? '机主收益' : '分润收益'}}</text>
+        </view>
+        <block wx:for="{{monthlyData}}" wx:key="month">
+            <view class="table-row" wx:if="{{(subFilter === 'device' && (item.deviceAmount > 0 || !item.deviceAmount)) || (subFilter === 'reward' && item.rewardAmount > 0)}}">
+                <text class="td month-col">{{item.month}}</text>
+                <text class="td device-col">
+                    {{subFilter === 'device' ? item.deviceCount : item.rewardDeviceCount}}
+                </text>
+                <text class="td amount-col">
+                    ¥{{subFilter === 'device' ? (item.deviceAmount || item.totalAmount) : (item.rewardAmount || '0.00')}}
+                </text>
+            </view>
+        </block>
+    </view>
+    <!-- 按日汇总表（每台设备每日收益） -->
+    <view class="daily-table" wx:if="{{filter === 'day' && dailyData.length > 0}}">
+        <view class="table-header">
+            <text class="th date-col">日期</text>
+            <text class="th device-col">收益来源</text>
+            <text class="th amount-col">{{subFilter === 'device' ? '机主收益' : '分润收益'}}</text>
+        </view>
+        <block wx:for="{{dailyData}}" wx:key="index">
+            <view class="table-row" wx:if="{{(subFilter === 'device' && (item.deviceAmount > 0 || !item.deviceAmount)) || (subFilter === 'reward' && item.rewardAmount > 0)}}">
+                <text class="td date-col">{{item.date}}</text>
+                <view class="td device-col multi-line">
+                    <block wx:if="{{subFilter === 'reward'}}">
+                        <text class="main-text">{{item.inviteeName || '团队成员'}}</text>
+                        <text class="sub-text">{{item.deviceSn}}</text>
+                    </block>
+                    <block wx:else>
+                        <text class="main-text">{{item.deviceSn}}</text>
+                        <text class="sub-text">我的设备</text>
+                    </block>
+                </view>
+                <text class="td amount-col">
+                    ¥{{subFilter === 'device' ? (item.deviceAmount || item.amount) : (item.rewardAmount || '0.00')}}
+                </text>
+            </view>
+        </block>
+    </view>
+    <!-- 收益列表（只在"全部"筛选时显示） -->
+    <view class="earnings-list-container" wx:if="{{filter === 'all'}}">
+        <view class="earnings-list">
+            <!-- 设备收益列表 -->
+            <block wx:if="{{subFilter === 'device'}}">
+                <view class="earnings-item" wx:for="{{records}}" wx:key="id">
+                    <view class="item-left">
+                        <view class="item-icon">💰</view>
+                        <view class="item-info">
+                            <text class="item-title">设备收益</text>
+                            <text class="item-desc">{{item.deviceSn || '设备收益结算'}}</text>
+                        </view>
+                    </view>
+                    <view class="item-right">
+                        <text class="item-amount">+¥{{item.earnings || item.amount}}</text>
+                        <text class="item-time">
+                            发放: {{item.createTimeFormatted || item.earningsDate || item.date}}
+                        </text>
+                    </view>
+                </view>
+                <view class="empty-state mini" wx:if="{{records.length === 0 && !loading}}">
+                    <text class="empty-text">暂无设备收益记录</text>
+                </view>
+            </block>
+            <!-- 分润收益列表 -->
+            <block wx:if="{{subFilter === 'reward'}}">
+                <view class="earnings-item reward-item" wx:for="{{rewards}}" wx:key="id">
+                    <view class="item-left">
+                        <view class="item-icon">🎁</view>
+                        <view class="item-info">
+                            <text class="item-title">团队分润</text>
+                            <text class="item-desc">
+                                来自 {{item.inviteeName}} - {{item.deviceSn}}
+                            </text>
+                        </view>
+                    </view>
+                    <view class="item-right">
+                        <text class="item-amount reward-color">+¥{{item.reward}}</text>
+                        <text class="item-time">{{item.createTime}}</text>
+                    </view>
+                </view>
+                <view class="empty-state mini" wx:if="{{rewards.length === 0 && !loading}}">
+                    <text class="empty-text">暂无分润收益记录</text>
+                </view>
+            </block>
+        </view>
+    </view>
+    <!-- 按日空状态 -->
+    <view class="empty-state" wx:if="{{filter === 'day' && dailyData.length === 0 && !loading}}">
+        <text class="empty-icon">📊</text>
+        <text class="empty-text">暂无日收益数据</text>
+    </view>
+    <!-- 月收益空状态 -->
+    <view class="empty-state" wx:if="{{filter === 'month' && monthlyData.length === 0 && !loading}}">
+        <text class="empty-icon">📊</text>
+        <text class="empty-text">暂无月收益数据</text>
+    </view>
+    <!-- 全部空状态 -->
+    <view class="empty-state" wx:if="{{filter === 'all' && subFilter === 'device' && records.length === 0 && !loading}}">
+        <text class="empty-icon">📊</text>
+        <text class="empty-text">暂无收益记录</text>
+        <text class="empty-tip">绑定设备后即可开始获得收益</text>
+    </view>
+    <!-- 加载更多 -->
+    <view class="load-more" wx:if="{{hasMore && records.length > 0}}" bindtap="loadMore">
+        <text>{{loading ? '加载中...' : '加载更多'}}</text>
+    </view>
+</view>

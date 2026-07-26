@@ -1,0 +1,52 @@
+<view class="container">
+    <view class="custom-nav" style="padding-top: {{navBarTop}}px; height: {{navBarHeight}}px; line-height: {{navBarHeight}}px;">
+        <view class="nav-back" bindtap="onGoBack">‹</view>
+        <text class="nav-title">兑换订单</text>
+        <view class="nav-placeholder"></view>
+    </view>
+
+    <!-- Tab 切换 -->
+    <scroll-view scroll-x class="tab-scroll">
+        <view class="tab-bar">
+            <view class="tab-item {{activeTab === item.value ? 'tab-active' : ''}}"
+                  wx:for="{{tabs}}" wx:key="value" bindtap="switchTab" data-value="{{item.value}}">
+                {{item.label}}
+            </view>
+        </view>
+    </scroll-view>
+
+    <!-- 订单列表 -->
+    <view class="order-list">
+        <view class="order-card" wx:for="{{orders}}" wx:key="id" bindtap="goToDetail" data-orderno="{{item.orderNo}}">
+            <view class="order-header">
+                <text class="order-no">{{item.orderNo}}</text>
+                <text class="order-status status-{{item.status}}">{{statusTexts[item.status]}}</text>
+            </view>
+            <view class="order-body">
+                <image class="order-product-img" src="{{item.productImage}}" mode="aspectFill" wx:if="{{item.productImage}}"></image>
+                <view class="order-product-info">
+                    <text class="order-product-name">{{item.productName}}</text>
+                    <text class="order-qty">×{{item.quantity}}</text>
+                    <view class="order-cost">
+                        <text class="cost-icon">⚡</text>
+                        <text class="cost-value">{{item.hashrateCost}}</text>
+                    </view>
+                </view>
+            </view>
+            <view class="order-footer">
+                <text class="order-time">{{item.createTime}}</text>
+                <text class="order-arrow">查看详情 ›</text>
+            </view>
+        </view>
+    </view>
+
+    <!-- 空状态 -->
+    <view class="empty-state" wx:if="{{!loading && orders.length === 0}}">
+        <text class="empty-icon">📋</text>
+        <text class="empty-text">暂无订单</text>
+    </view>
+
+    <view class="loading-more" wx:if="{{loading}}">
+        <text class="loading-text">加载中...</text>
+    </view>
+</view>

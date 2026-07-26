@@ -1,0 +1,49 @@
+<view class="container">
+    <!-- 自定义导航栏 -->
+    <view class="custom-nav" style="padding-top: {{navBarTop}}px;">
+        <view class="nav-back" bindtap="goBack">
+            <text class="back-icon">‹</text>
+        </view>
+        <text class="nav-title">意见反馈</text>
+    </view>
+    <!-- 反馈类型 -->
+    <view class="section">
+        <view class="section-title">反馈类型</view>
+        <view class="type-grid">
+            <view class="type-item {{feedbackType === item.value ? 'active' : ''}}" wx:for="{{typeOptions}}" wx:key="value" bindtap="selectType" data-type="{{item.value}}">
+                {{item.label}}
+            </view>
+        </view>
+    </view>
+    <!-- 反馈内容 -->
+    <view class="section">
+        <view class="section-title">问题描述</view>
+        <textarea class="content-input" placeholder="请详细描述您遇到的问题或建议（至少10个字）" value="{{content}}" bindinput="onContentInput" maxlength="500"></textarea>
+        <view class="word-count">{{content.length}}/500</view>
+    </view>
+    <!-- 上传图片 -->
+    <view class="section">
+        <view class="section-title">上传截图（可选）</view>
+        <view class="image-grid">
+            <view class="image-item" wx:for="{{images}}" wx:key="*this">
+                <image src="{{item}}" mode="aspectFill"></image>
+                <view class="remove-btn" bindtap="removeImage" data-index="{{index}}">×</view>
+            </view>
+            <view class="add-image" bindtap="chooseImage" wx:if="{{images.length < 3}}">
+                <text class="add-icon">+</text>
+                <text class="add-text">添加图片</text>
+            </view>
+        </view>
+    </view>
+    <!-- 联系方式 -->
+    <view class="section">
+        <view class="section-title">联系方式（可选）</view>
+        <input class="contact-input" placeholder="请输入手机号或微信号，方便我们联系您" value="{{contact}}" bindinput="onContactInput" />
+    </view>
+    <!-- 提交按钮 -->
+    <view class="submit-section">
+        <button class="submit-btn {{submitting ? 'disabled' : ''}}" bindtap="submit" disabled="{{submitting}}">
+            {{submitting ? '提交中...' : '提交反馈'}}
+        </button>
+    </view>
+</view>
