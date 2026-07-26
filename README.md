@@ -5,7 +5,7 @@
 ## Modules
 
 - `image/`: Jetson L4T 36.4.x 系统定制、ARM64 节点 Agent 和镜像构建说明。
-- `backend/`: 独立 Spring Boot API，默认端口 `8090`，独立数据库 `juxin_orin`。
+- `backend/`: 独立 Spring Boot API，容器内部端口 `8090`，独立数据库 `juxin_orin`。
 - `admin/`: Orin GPU 节点运营控制台。
 - `miniprogram/`: 独立微信小程序源码，发布前必须配置新的 AppID 和 API 域名。
 - `deploy/`: 独立部署配置。
@@ -27,8 +27,15 @@ No default administrator password is stored in SQL. The backend creates the firs
 
 After startup:
 
-- Admin console: `http://SERVER_IP:8174`
-- Backend health: `http://SERVER_IP:8090/api/health`
+- Admin console: `http://SERVER_IP:18174`
+- Backend health: `http://SERVER_IP:18090/api/health`
+
+The host ports are isolated from the old project and configurable in `.env`:
+
+```dotenv
+ORIN_BACKEND_PORT=18090
+ORIN_ADMIN_PORT=18174
+```
 
 Common operations:
 

@@ -36,7 +36,7 @@ wait_for_backend() {
   for _ in {1..60}; do
     status="$(docker inspect --format '{{if .State.Health}}{{.State.Health.Status}}{{else}}starting{{end}}' juxin-orin-backend 2>/dev/null || true)"
     if [[ "$status" == "healthy" ]]; then
-      echo "Backend is healthy: http://127.0.0.1:8090/api/health"
+      echo "Backend is healthy on $(compose port backend 8090)/api/health"
       return 0
     fi
     if [[ "$status" == "unhealthy" ]]; then

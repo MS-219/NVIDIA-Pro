@@ -56,7 +56,7 @@ services:
       ORIN_AGENT_ASSET_PATH: /agent-assets
       ORIN_PLATFORM_VERSION: ${IMAGE_TAG:-latest}
     ports:
-      - "8090:8090"
+      - "${ORIN_BACKEND_PORT:-18090}:8090"
     volumes:
       - ./backend/uploads:/app/uploads
       - ./image/agent:/agent-assets:ro
@@ -80,7 +80,7 @@ services:
       backend:
         condition: service_healthy
     ports:
-      - "8174:80"
+      - "${ORIN_ADMIN_PORT:-18174}:80"
     networks:
       - orin_internal
     healthcheck:
