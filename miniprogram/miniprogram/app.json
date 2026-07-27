@@ -41,20 +41,20 @@
       {
         "pagePath": "pages/index/index",
         "text": "首页",
-        "iconPath": "images/tabbar/home.png",
-        "selectedIconPath": "images/tabbar/home-active.png"
+        "iconPath": "images/tabbar/home-line.png",
+        "selectedIconPath": "images/tabbar/home-line-active.png"
       },
       {
         "pagePath": "pages/device/device",
         "text": "设备",
-        "iconPath": "images/tabbar/device.png",
-        "selectedIconPath": "images/tabbar/device-active.png"
+        "iconPath": "images/tabbar/device-line.png",
+        "selectedIconPath": "images/tabbar/device-line-active.png"
       },
       {
         "pagePath": "pages/my/my",
         "text": "我的",
-        "iconPath": "images/tabbar/my.png",
-        "selectedIconPath": "images/tabbar/my-active.png"
+        "iconPath": "images/tabbar/my-line.png",
+        "selectedIconPath": "images/tabbar/my-line-active.png"
       }
     ]
   },

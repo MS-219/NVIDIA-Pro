@@ -9,7 +9,7 @@
     </view>
     <view class="tab-bar-item scan-btn-wrapper" bindtap="onScanCode">
         <view class="scan-btn">
-            <image src="/images/tabbar/scan.png" class="scan-icon"></image>
+            <image src="/images/tabbar/scan-line.png" class="scan-icon"></image>
         </view>
         <view class="scan-text">接入</view>
     </view>
