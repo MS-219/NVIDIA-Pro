@@ -4,8 +4,8 @@ page {
     Segoe UI, Arial, Roboto, 'PingFang SC', 'miui', 'Hiragino Sans GB', 'Microsoft Yahei',
     sans-serif;
   height: 100%;
-  background: #080a08;
-  color: #f4f6f2;
+  background: #eef1ed;
+  color: #1c211b;
 }
 
 .container {
@@ -24,8 +24,8 @@ button::after {
   align-items: center;
   padding-left: 20px;
   padding-right: 100px;
-  background: rgba(10, 13, 10, .82);
-  border-bottom: 1px solid rgba(255, 255, 255, .09);
+  background: rgba(255, 255, 255, .78);
+  border-bottom: 1px solid rgba(28, 33, 27, .08);
   backdrop-filter: blur(18px);
   -webkit-backdrop-filter: blur(18px);
 }
@@ -33,24 +33,24 @@ button::after {
 .jx-nav-title {
   font-size: 18px;
   font-weight: 700;
-  color: #f4f6f2;
+  color: #1c211b;
 }
 
 .jx-kicker {
   display: block;
   font-size: 10px;
   line-height: 1.2;
-  color: #8c9588;
+  color: #7d857a;
   text-transform: uppercase;
 }
 
 .jx-section-title {
   font-size: 17px;
   font-weight: 700;
-  color: #f4f6f2;
+  color: #1c211b;
 }
 
 .jx-section-subtitle {
   font-size: 12px;
-  color: #8c9588;
+  color: #7d857a;
 }
