@@ -122,7 +122,7 @@ Page({
                     return { x, y, val };
                 });
 
-                ctx.strokeStyle = 'rgba(80, 91, 77, 0.10)';
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.09)';
                 ctx.lineWidth = 1;
                 for (let i = 0; i < 4; i++) {
                     const gridY = padding.top + (chartHeight / 3) * i;
@@ -168,7 +168,7 @@ Page({
                     // 绘制白底描边圆点
                     ctx.beginPath();
                     ctx.arc(p.x, p.y, 4, 0, Math.PI * 2);
-                    ctx.fillStyle = '#fff';
+                    ctx.fillStyle = '#111511';
                     ctx.fill();
                     ctx.strokeStyle = i === points.length - 1 ? '#a66b10' : '#76b900';
                     ctx.lineWidth = 2;
@@ -176,14 +176,14 @@ Page({
 
                     // 绘制数值 (仅当数值大于0时显示)
                     if (p.val > 0) {
-                        ctx.fillStyle = i === points.length - 1 ? '#a66b10' : '#353b33';
+                        ctx.fillStyle = i === points.length - 1 ? '#efbd68' : '#dfe5da';
                         ctx.font = 'bold 11px -apple-system, sans-serif';
                         ctx.textAlign = 'center';
                         ctx.fillText(p.val.toFixed(2), p.x, p.y - 12);
                     }
 
                     // 绘制X轴日期 (只显示日，如 06)
-                    ctx.fillStyle = '#8a9088';
+                    ctx.fillStyle = '#889184';
                     ctx.font = '11px sans-serif';
                     ctx.textAlign = 'center';
                     const dateStr = dates[i].split('-')[2]; // 假设格式为 YYYY-MM-DD

@@ -1,10 +1,10 @@
 <view class="tab-bar">
     <view class="tab-bar-item" data-path="/pages/index/index" data-index="0" bindtap="switchTab">
-        <image src="{{selected === 0 ? list[0].selectedIconPath : list[0].iconPath}}" class="cover-image"></image>
+        <image src="{{selected === 0 ? list[0].selectedIconPath : list[0].iconPath}}" class="cover-image {{selected === 0 ? 'is-active' : ''}}"></image>
         <view style="color: {{selected === 0 ? selectedColor : color}}">{{list[0].text}}</view>
     </view>
     <view class="tab-bar-item" data-path="/pages/device/device" data-index="1" bindtap="switchTab">
-        <image src="{{selected === 1 ? list[1].selectedIconPath : list[1].iconPath}}" class="cover-image"></image>
+        <image src="{{selected === 1 ? list[1].selectedIconPath : list[1].iconPath}}" class="cover-image {{selected === 1 ? 'is-active' : ''}}"></image>
         <view style="color: {{selected === 1 ? selectedColor : color}}">{{list[1].text}}</view>
     </view>
     <view class="tab-bar-item scan-btn-wrapper" bindtap="onScanCode">
@@ -14,7 +14,7 @@
         <view class="scan-text">接入</view>
     </view>
     <view class="tab-bar-item" data-path="/pages/my/my" data-index="2" bindtap="switchTab">
-        <image src="{{selected === 2 ? list[2].selectedIconPath : list[2].iconPath}}" class="cover-image"></image>
+        <image src="{{selected === 2 ? list[2].selectedIconPath : list[2].iconPath}}" class="cover-image {{selected === 2 ? 'is-active' : ''}}"></image>
         <view style="color: {{selected === 2 ? selectedColor : color}}">{{list[2].text}}</view>
     </view>
 </view>
