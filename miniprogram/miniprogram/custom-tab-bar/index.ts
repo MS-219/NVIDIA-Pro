@@ -4,8 +4,8 @@ import { API_BASE } from '../config';
 Component({
     data: {
         selected: 0,
-        color: "#999999",
-        selectedColor: "#16a34a",
+        color: "#777d75",
+        selectedColor: "#528400",
         list: [{
             "pagePath": "/pages/index/index",
             "text": "首页",

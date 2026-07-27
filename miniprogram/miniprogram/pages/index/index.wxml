@@ -1,147 +1,70 @@
-<scroll-view class="scrollarea" scroll-y type="list">
-  <view class="container">
-    <view class="home-header" style="padding-top: {{navBarTop}}px; height: {{navBarHeight}}px; margin-bottom: 20px;">
-      <image class="header-logo" src="/images/home-logo.png" mode="aspectFit"></image>
+<scroll-view class="page-scroll" scroll-y type="list">
+  <view class="home-page">
+    <view class="home-nav" style="padding-top: {{navBarTop}}px; height: {{navBarHeight}}px;">
+      <view class="brand">
+        <view class="brand-symbol">J</view>
+        <view><text class="brand-name">聚芯 ORIN</text><text class="brand-desc">边缘算力节点平台</text></view>
+      </view>
+      <view class="service-state"><view></view><text>服务正常</text></view>
     </view>
 
-    <view class="banner-wrapper">
-      <swiper class="banner-swiper" indicator-dots="{{true}}" autoplay="{{true}}" interval="{{5000}}" duration="{{800}}" indicator-color="rgba(255,255,255,0.4)" indicator-active-color="#fff" circular previous-margin="0px" next-margin="0px">
-        <block wx:for="{{bannerList}}" wx:key="id">
-          <swiper-item class="banner-item">
-            <view class="banner-card">
-              <image wx:if="{{item.imageUrl}}" src="{{item.imageUrl}}" class="banner-image" mode="aspectFill"></image>
-              <view wx:else class="banner-fallback"></view>
-              <view class="banner-shade"></view>
-              <view class="banner-overlay">
-                <text class="banner-title">{{item.title}}</text>
-                <text class="banner-subtitle">{{item.subtitle}}</text>
-              </view>
-            </view>
-          </swiper-item>
-        </block>
-      </swiper>
+    <view class="hero">
+      <view class="hero-copy">
+        <text class="hero-eyebrow">我的算力网络</text>
+        <text class="hero-title">让每一台设备，</text>
+        <text class="hero-title hero-title-second">持续创造价值</text>
+        <view class="hero-action">
+          <navigator url="/pages/device/device" open-type="switchTab">查看节点</navigator>
+          <text>{{nodeStats.online}} 台在线</text>
+        </view>
+      </view>
+      <image class="hero-product" src="/images/product.png" mode="aspectFit"></image>
     </view>
 
-    <view class="earnings-card">
-      <view class="earnings-bg-decoration"></view>
-      <view class="earnings-content">
-        <view class="earnings-top">
-          <view>
-            <text class="card-kicker">收益看板</text>
-            <text class="earnings-title">收益总览</text>
-          </view>
-          <view class="live-pill">
-            <view class="live-dot"></view>
-            <text>实时更新</text>
-          </view>
-        </view>
-        <view class="earnings-row">
-          <view class="earnings-item primary">
-            <text class="earnings-label">昨日收益 (元)</text>
-            <view class="earnings-money">
-              <text class="currency">¥</text>
-              <text class="earnings-num">{{earnings.yesterday}}</text>
-            </view>
-          </view>
-          <view class="earnings-divider"></view>
-          <view class="earnings-item">
-            <text class="earnings-label">累计收益 (元)</text>
-            <view class="earnings-money">
-              <text class="currency total-currency">¥</text>
-              <text class="earnings-num total">{{earnings.total}}</text>
-            </view>
-          </view>
-        </view>
-        <view class="earnings-footer">
-          <view class="footer-left">
-            <view class="footer-mark"></view>
-            <text>收益结算以后台最终账单为准</text>
-          </view>
-          <view class="refresh-icon">↻</view>
-        </view>
+    <view class="overview-card">
+      <view class="overview-title"><text>节点概况</text><text>{{nodeStats.total}} 台设备已接入</text></view>
+      <view class="overview-grid">
+        <view><text>{{nodeStats.online}}</text><view class="metric-label"><view class="dot online"></view><text>在线运行</text></view></view>
+        <view><text>{{nodeStats.offline}}</text><view class="metric-label"><view class="dot offline"></view><text>离线设备</text></view></view>
+        <view bindtap="goToPartnerDevices"><text>{{nodeStats.partnerDevices || 0}}</text><view class="metric-label"><view class="dot partner"></view><text>团队节点</text></view></view>
       </view>
     </view>
 
-    <view class="node-stats-card">
-      <view class="card-title-row">
-        <view>
-          <text class="card-title-text">节点监控</text>
-          <text class="card-subtitle">设备运行状态</text>
-        </view>
-        <view class="node-health-chip">
-          <text class="node-health-main">{{nodeStats.online}}</text>
-          <text class="node-health-sub">/{{nodeStats.total}}</text>
-        </view>
-      </view>
-      <view class="node-overview">
-        <view class="overview-left">
-          <text class="overview-num">{{nodeStats.total}}</text>
-          <text class="overview-label">设备总数 (台)</text>
-        </view>
-        <view class="overview-right">
-          <!-- Simple Chart Placeholder -->
-          <view class="mini-chart">
-            <view class="bar" style="height: 60%"></view>
-            <view class="bar" style="height: 80%"></view>
-            <view class="bar" style="height: 40%"></view>
-            <view class="bar active" style="height: 90%"></view>
-          </view>
-          <text class="chart-label">近况</text>
-        </view>
-      </view>
-      <view class="node-grid">
-        <view class="node-status-item online-card">
-          <view class="status-dot online"></view>
-          <text class="status-num">{{nodeStats.online}}</text>
-          <text class="status-label">在线</text>
-        </view>
-        <view class="node-status-item offline-card">
-          <view class="status-dot offline"></view>
-          <text class="status-num">{{nodeStats.offline}}</text>
-          <text class="status-label">离线</text>
-        </view>
-        <view class="node-status-item partner-card" bindtap="goToPartnerDevices" hover-class="node-status-hover">
-          <view class="status-dot partner"></view>
-          <text class="status-num">{{nodeStats.partnerDevices || 0}}</text>
-          <text class="status-label">伙伴设备</text>
-        </view>
-      </view>
+    <view class="section-head"><text>收益概览</text><navigator url="/pages/earnings-detail/earnings-detail">全部明细 ›</navigator></view>
+    <view class="income-card">
+      <view class="income-primary"><text>昨日收益</text><view><text>¥</text><text>{{earnings.yesterday}}</text></view><text>每日完成结算后更新</text></view>
+      <view class="income-total"><text>累计收益</text><text>¥{{earnings.total}}</text><view class="income-line"></view></view>
     </view>
 
-    <view class="system-notice-card">
-      <view class="card-header-row">
-        <view>
-          <text class="card-title-text">系统公告</text>
-          <text class="card-subtitle">平台消息与业务提醒</text>
+    <swiper class="notice-swiper" wx:if="{{bannerList.length}}" autoplay circular interval="5000" duration="350">
+      <swiper-item wx:for="{{bannerList}}" wx:key="id">
+        <view class="banner-row">
+          <image wx:if="{{item.imageUrl}}" src="{{item.imageUrl}}" mode="aspectFill"></image>
+          <view class="banner-fallback" wx:else>讯</view>
+          <view><text>{{item.title || '平台通知'}}</text><text>{{item.subtitle || '查看节点平台最新动态'}}</text></view>
+          <text class="banner-arrow">›</text>
         </view>
-        <view class="more-btn">
-          <text>全部</text>
-          <text class="arrow">></text>
-        </view>
-      </view>
-      <view class="notices-list-inner">
-        <block wx:if="{{notices.length}}">
-          <block wx:for="{{notices}}" wx:key="id">
-            <view class="notice-item {{index == 0 ? 'is-first' : ''}}" bindtap="onNoticeTap" data-id="{{item.id}}">
-              <view class="notice-left">
-                <view wx:if="{{index == 0}}" class="notice-tag">NEW</view>
-                <image wx:if="{{item.imageUrl}}" class="notice-thumb" src="{{item.imageUrl}}" mode="aspectFill"></image>
-                <view class="notice-icon-placeholder" wx:else>
-                  <text>公</text>
-                </view>
-              </view>
-              <view class="notice-right">
-                <view class="notice-head">
-                  <text class="notice-title">{{item.title}}</text>
-                  <text class="notice-time">{{item.time}}</text>
-                </view>
-                <text class="notice-summary">{{item.content}}</text>
-              </view>
-            </view>
-          </block>
-        </block>
-        <view wx:else class="notice-empty">暂无公告</view>
-      </view>
+      </swiper-item>
+    </swiper>
+
+    <view class="section-head"><text>常用服务</text></view>
+    <view class="service-grid">
+      <navigator url="/pages/device/device" open-type="switchTab"><view class="service-icon green">ND</view><text>节点设备</text><text>状态与管理</text></navigator>
+      <navigator url="/pages/earnings-detail/earnings-detail"><view class="service-icon gold">¥</view><text>收益记录</text><text>结算与明细</text></navigator>
+      <view bindtap="goToPartnerDevices"><view class="service-icon cyan">TM</view><text>团队节点</text><text>伙伴与设备</text></view>
     </view>
+
+    <view class="section-head news-head"><text>平台动态</text></view>
+    <view class="news-list">
+      <block wx:if="{{notices.length}}">
+        <view class="news-row" wx:for="{{notices}}" wx:key="id" bindtap="onNoticeTap" data-id="{{item.id}}">
+          <view class="news-mark">{{index + 1}}</view>
+          <view><text>{{item.title}}</text><text>{{item.content}}</text></view>
+          <text>›</text>
+        </view>
+      </block>
+      <view class="empty-news" wx:else>暂无平台动态</view>
+    </view>
+    <view class="safe-space"></view>
   </view>
 </scroll-view>

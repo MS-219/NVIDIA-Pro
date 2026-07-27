@@ -1,99 +1,53 @@
-<view class="container">
-    <view class="custom-nav" style="padding-top: {{navBarTop}}px; height: {{navBarHeight}}px; line-height: {{navBarHeight}}px;">
-        <text class="navbar-title">设备列表</text>
+<view class="device-page">
+  <view class="device-nav" style="padding-top: {{navBarTop}}px; height: {{navBarHeight}}px;">
+    <view><text class="navbar-title">我的设备</text><text class="navbar-subtitle">共接入 {{allDeviceList.length}} 台 Orin 节点</text></view>
+  </view>
+
+  <view class="device-summary">
+    <view><text>{{allDeviceList.length}}</text><text>全部设备</text></view>
+    <view><text class="online-num">{{onlineCount}}</text><view class="summary-label"><view class="online-light"></view><text>在线运行</text></view></view>
+    <view><text class="offline-num">{{offlineCount}}</text><view class="summary-label"><view class="offline-light"></view><text>已离线</text></view></view>
+  </view>
+
+  <view class="device-toolbar">
+    <view class="search-box">
+      <icon type="search" size="15" color="#8b9188" />
+      <input class="search-input" placeholder="搜索设备名称或 SN" placeholder-class="placeholder" value="{{searchKeyword}}" bindinput="onSearchInput" confirm-type="search" bindconfirm="handleSearch" />
+      <view class="search-submit" bindtap="handleSearch">搜索</view>
     </view>
-    <!-- Search & Filter Bar -->
-    <view class="search-bar-row">
-        <view class="search-input-wrapper">
-            <icon type="search" size="14" color="#999" style="margin-right: 6px;" />
-            <input
-                placeholder="搜索设备SN"
-                placeholder-class="placeholder"
-                class="search-input"
-                value="{{searchKeyword}}"
-                bindinput="onSearchInput"
-                confirm-type="search"
-                bindconfirm="handleSearch"
-            />
+    <view class="refresh-control {{loading ? 'loading' : ''}}" bindtap="handleRefresh">↻</view>
+  </view>
+
+  <view class="status-tabs">
+    <view class="status-tab {{currentTab === 'all' ? 'active' : ''}}" bindtap="switchTab" data-tab="all">全部</view>
+    <view class="status-tab {{currentTab === 'online' ? 'active' : ''}}" bindtap="switchTab" data-tab="online">在线</view>
+    <view class="status-tab {{currentTab === 'offline' ? 'active' : ''}}" bindtap="switchTab" data-tab="offline">离线</view>
+  </view>
+
+  <scroll-view class="device-scroll" scroll-y type="list">
+    <view class="list-title" wx:if="{{deviceList.length}}"><text>{{currentTab === 'all' ? '全部节点' : (currentTab === 'online' ? '在线节点' : '离线节点')}}</text><text>{{deviceList.length}} 台</text></view>
+    <view class="device-list" wx:if="{{deviceList.length}}">
+      <view class="device-card" wx:for="{{deviceList}}" wx:key="id" bindtap="onManageDevice" data-id="{{item.id}}">
+        <view class="device-main">
+          <view class="product-wrap"><image src="/images/product.png" mode="aspectFit"></image></view>
+          <view class="device-info">
+            <view class="device-name-line"><text>{{item.remarks || 'Orin 边缘节点'}}</text><view class="status-pill {{item.status}}"><view></view>{{item.statusText}}</view></view>
+            <text class="device-sn">SN {{item.bindCode || item.sn || '待分配'}}</text>
+            <view class="device-location"><text>部署位置</text><text>{{item.location || '未设置'}}</text></view>
+          </view>
         </view>
-        <view class="search-btn" bindtap="handleSearch">搜索</view>
-        <view class="filter-btn" bindtap="openFilterSheet">筛选</view>
-        <view class="refresh-btn {{loading ? 'loading' : ''}}" bindtap="handleRefresh">↻</view>
+        <view class="device-data">
+          <view><text>今日收益</text><text class="earning">¥{{item.earnings}}</text></view>
+          <view><text>节点权益</text><text>{{item.hashrate || 0}}</text></view>
+          <view><text>接入日期</text><text>{{item.onlineTime}}</text></view>
+          <text class="open-arrow">›</text>
+        </view>
+      </view>
     </view>
-    <!-- Tabs -->
-    <view class="status-tabs">
-        <view class="tab {{currentTab === 'all' ? 'active' : ''}}" bindtap="switchTab" data-tab="all">
-            全部 ({{allDeviceList.length}})
-        </view>
-        <view class="tab {{currentTab === 'online' ? 'active' : ''}}" bindtap="switchTab" data-tab="online">
-            在线 ({{onlineCount}})
-        </view>
-        <view class="tab {{currentTab === 'offline' ? 'active' : ''}}" bindtap="switchTab" data-tab="offline">
-            离线 ({{offlineCount}})
-        </view>
+    <view class="empty-state" wx:else>
+      <view class="empty-visual"><image src="/images/product.png" mode="aspectFit"></image></view>
+      <text>暂无设备</text><text>点击底部“接入”，扫描设备码完成绑定</text>
     </view>
-    <!-- Device List -->
-    <view class="device-list">
-        <block wx:if="{{deviceList.length > 0}}">
-            <block wx:for="{{deviceList}}" wx:key="id">
-                <view class="device-card-rich" bindtap="onManageDevice" data-id="{{item.id}}">
-                    <!-- Top Row: SN & Status -->
-                    <view class="card-row-top">
-                        <view class="device-title-group">
-                            <view class="device-title-line">
-                                <text class="device-sn">{{item.bindCode || item.sn}}</text>
-                                <view class="copy-tag" catchtap="onCopyContent" data-content="{{item.bindCode || item.sn}}">
-                                    复制
-                                </view>
-                            </view>
-                            <view class="card-row-sub">
-                                <text class="biz-id">业务号: {{item.businessId}}</text>
-                                <view class="copy-tag small" catchtap="onCopyContent" data-content="{{item.businessId}}">
-                                    复制
-                                </view>
-                                <text class="carrier-tag">(移动)</text>
-                            </view>
-                        </view>
-                        <view class="status-badge {{item.status}}">{{item.statusText}}</view>
-                    </view>
-                    <!-- Main Content -->
-                    <view class="card-main-content">
-                        <view class="thumb-wrapper">
-                            <image class="device-thumb" src="/images/product.png" mode="aspectFit"></image>
-                        </view>
-                        <view class="device-center-info">
-                            <view class="location-row">
-                                <text class="icon-loc">⌖</text>
-                                <text class="location-text">{{item.location}}</text>
-                            </view>
-                            <view class="remarks-row">
-                                <text class="remarks-text">{{item.remarks}}</text>
-                                <text class="icon-edit">✎</text>
-                            </view>
-                        </view>
-                        <view class="device-right-info">
-                            <view class="earnings-val">¥ {{item.earnings}}</view>
-                            <view class="earnings-date">📅 {{item.date}}</view>
-                        </view>
-                    </view>
-                    <!-- Footer Stats -->
-                    <view class="card-footer-stats">
-                        <view class="stat-col">
-                            <text class="stat-label">可回收聚芯 Orin值</text>
-                            <text class="stat-val">{{item.hashrate}}</text>
-                        </view>
-                        <view class="stat-divider"></view>
-                        <view class="stat-col">
-                            <text class="stat-label">上机时间</text>
-                            <text class="stat-val">{{item.onlineTime}}</text>
-                        </view>
-                    </view>
-                </view>
-            </block>
-        </block>
-        <!-- Empty State -->
-        <view class="empty-state" wx:else>
-            <text class="empty-text">暂无设备</text>
-        </view>
-    </view>
+    <view class="scroll-safe-space"></view>
+  </scroll-view>
 </view>

@@ -7,6 +7,8 @@ Page({
      * 页面的初始数据
      */
     data: {
+        navBarTop: 0,
+        navBarHeight: 44,
         deviceId: 0,
         device: {} as any,
         chartData: {
@@ -19,6 +21,11 @@ Page({
      * 生命周期函数--监听页面加载
      */
     onLoad(options: any) {
+        const menuButtonInfo = wx.getMenuButtonBoundingClientRect();
+        this.setData({
+            navBarTop: menuButtonInfo.top,
+            navBarHeight: menuButtonInfo.height
+        });
         if (options.id) {
             this.setData({ deviceId: options.id });
             this.fetchDeviceDetail(options.id);
@@ -115,7 +122,7 @@ Page({
                     return { x, y, val };
                 });
 
-                ctx.strokeStyle = 'rgba(47, 125, 243, 0.08)';
+                ctx.strokeStyle = 'rgba(80, 91, 77, 0.10)';
                 ctx.lineWidth = 1;
                 for (let i = 0; i < 4; i++) {
                     const gridY = padding.top + (chartHeight / 3) * i;
@@ -127,9 +134,9 @@ Page({
 
                 // 1. 绘制渐变区域背景
                 const gradient = ctx.createLinearGradient(0, padding.top, 0, height - padding.bottom);
-                gradient.addColorStop(0, 'rgba(47, 125, 243, 0.18)');
-                gradient.addColorStop(0.58, 'rgba(24, 180, 97, 0.07)');
-                gradient.addColorStop(1, 'rgba(47, 125, 243, 0.0)');
+                gradient.addColorStop(0, 'rgba(118, 185, 0, 0.20)');
+                gradient.addColorStop(0.58, 'rgba(19, 117, 112, 0.06)');
+                gradient.addColorStop(1, 'rgba(118, 185, 0, 0.0)');
 
                 ctx.beginPath();
                 if (points.length > 0) {
@@ -148,8 +155,8 @@ Page({
                     points.forEach((p: any) => ctx.lineTo(p.x, p.y));
                 }
                 const lineGradient = ctx.createLinearGradient(padding.left, 0, width - padding.right, 0);
-                lineGradient.addColorStop(0, '#2f7df3');
-                lineGradient.addColorStop(1, '#18b461');
+                lineGradient.addColorStop(0, '#76b900');
+                lineGradient.addColorStop(1, '#137570');
                 ctx.strokeStyle = lineGradient;
                 ctx.lineWidth = 2.5;
                 ctx.lineCap = 'round';
@@ -163,20 +170,20 @@ Page({
                     ctx.arc(p.x, p.y, 4, 0, Math.PI * 2);
                     ctx.fillStyle = '#fff';
                     ctx.fill();
-                    ctx.strokeStyle = i === points.length - 1 ? '#f97316' : '#2f7df3';
+                    ctx.strokeStyle = i === points.length - 1 ? '#a66b10' : '#76b900';
                     ctx.lineWidth = 2;
                     ctx.stroke();
 
                     // 绘制数值 (仅当数值大于0时显示)
                     if (p.val > 0) {
-                        ctx.fillStyle = i === points.length - 1 ? '#f97316' : '#334155';
+                        ctx.fillStyle = i === points.length - 1 ? '#a66b10' : '#353b33';
                         ctx.font = 'bold 11px -apple-system, sans-serif';
                         ctx.textAlign = 'center';
                         ctx.fillText(p.val.toFixed(2), p.x, p.y - 12);
                     }
 
                     // 绘制X轴日期 (只显示日，如 06)
-                    ctx.fillStyle = '#94a3b8';
+                    ctx.fillStyle = '#8a9088';
                     ctx.font = '11px sans-serif';
                     ctx.textAlign = 'center';
                     const dateStr = dates[i].split('-')[2]; // 假设格式为 YYYY-MM-DD

@@ -1,150 +1,62 @@
-<view class="container">
-    <view class="custom-nav" style="padding-top: {{navBarTop}}px; height: {{navBarHeight}}px; line-height: {{navBarHeight}}px;">
-        <text class="nav-title">个人中心</text>
+<scroll-view class="my-scroll" scroll-y type="list">
+  <view class="my-page">
+    <view class="account-nav" style="padding-top: {{navBarTop}}px; height: {{navBarHeight}}px;">
+      <view><text class="nav-title">我的</text><text class="nav-subtitle">账户与服务</text></view>
     </view>
-    <!-- Profile Header -->
-    <view class="profile-header">
-        <view class="user-card-gradient" bindtap="{{!isLoggedIn ? 'onLogin' : ''}}">
-            <!-- 用户信息区 - 极简稳重设计 -->
-            <view class="profile-card-content">
-                <!-- 头像 -->
-                <view class="avatar-container">
-                    <button class="avatar-trigger" open-type="chooseAvatar" bindchooseavatar="onChooseAvatar" wx:if="{{isLoggedIn}}">
-                        <image class="avatar-image" src="{{userInfo.avatarUrl}}" mode="aspectFill" wx:if="{{userInfo.avatarUrl}}"></image>
-                        <view class="avatar-fallback" wx:else>👤</view>
-                    </button>
-                    <view class="avatar-fallback" wx:else>👤</view>
-                </view>
-                <!-- 文字信息 -->
-                <view class="user-info-rows">
-                    <!-- 昵称行 -->
-                    <block wx:if="{{isLoggedIn}}">
-                        <view class="info-row-main">
-                            <input class="nick-input" type="nickname" placeholder="点击设置昵称" value="{{userInfo.nickname}}" bindchange="onNicknameInput" wx:if="{{!userInfo.nickname || userInfo.nickname === '微信用户' || userInfo.nickname === ''}}" />
-                            <text class="nick-text" bindtap="onEditNickname" wx:else>
-                                {{userInfo.nickname}}
-                            </text>
-                            <view class="user-badge badge-level-1" wx:if="{{userInfo.level === 1}}">
-                                会员
-                            </view>
-                            <view class="user-badge badge-level-2" wx:elif="{{userInfo.level === 2}}">
-                                社区
-                            </view>
-                            <view class="user-badge badge-level-3" wx:elif="{{userInfo.level === 3}}">
-                                县级
-                            </view>
-                            <view class="user-badge badge-level-4" wx:elif="{{userInfo.level === 4}}">
-                                市级
-                            </view>
-                            <view class="user-badge badge-level-5" wx:elif="{{userInfo.level === 5}}">
-                                联创
-                            </view>
-                            <view class="user-badge" wx:else>普通用户</view>
-                        </view>
-                        <!-- 聚合信息行 (ID + 手机号) -->
-                        <view class="info-row-sub">
-                            <text class="sub-text">ID: {{userInfo.id}}</text>
-                            <block wx:if="{{userInfo.phone}}">
-                                <text class="sub-divider">|</text>
-                                <text class="sub-text">{{userInfo.phone}}</text>
-                            </block>
-                            <button class="bind-link" open-type="getPhoneNumber" bindgetphonenumber="onGetPhoneNumber" wx:else>
-                                <text class="sub-divider">|</text>
-                                绑定手机 >
-                            </button>
-                        </view>
-                    </block>
-                    <text class="nick-text" wx:else>立即登录</text>
-                </view>
-                <text class="chevron" wx:if="{{!isLoggedIn}}">></text>
-            </view>
+
+    <view class="profile-card" bindtap="{{!isLoggedIn ? 'onLogin' : ''}}">
+      <view class="avatar-wrap">
+        <button class="avatar-trigger" open-type="chooseAvatar" bindchooseavatar="onChooseAvatar" wx:if="{{isLoggedIn}}">
+          <image class="avatar-image" src="{{userInfo.avatarUrl}}" mode="aspectFill" wx:if="{{userInfo.avatarUrl}}"></image>
+          <view class="avatar-fallback" wx:else>JX</view>
+        </button>
+        <view class="avatar-fallback" wx:else>JX</view>
+        <view class="avatar-status" wx:if="{{isLoggedIn}}"></view>
+      </view>
+      <view class="profile-copy" wx:if="{{isLoggedIn}}">
+        <view class="name-line">
+          <input class="nick-input" type="nickname" placeholder="设置昵称" value="{{userInfo.nickname}}" bindchange="onNicknameInput" wx:if="{{!userInfo.nickname || userInfo.nickname === '微信用户'}}" />
+          <text class="profile-name" bindtap="onEditNickname" wx:else>{{userInfo.nickname}}</text>
+          <text class="level-badge">L{{userInfo.level || 0}}</text>
         </view>
+        <text class="account-id">用户 ID {{userInfo.id}}</text>
+        <view class="phone-line" wx:if="{{userInfo.phone}}">{{userInfo.phone}}</view>
+        <button class="bind-phone" open-type="getPhoneNumber" bindgetphonenumber="onGetPhoneNumber" wx:else>绑定手机号</button>
+      </view>
+      <view class="profile-copy" wx:else><text class="profile-name">登录聚芯 Orin</text><text class="account-id">管理设备、收益和结算信息</text><text class="login-link">微信快捷登录 ›</text></view>
+      <text class="profile-arrow">›</text>
     </view>
-    <!-- 完善信息提示 -->
-    <view class="complete-tip" wx:if="{{isLoggedIn && needCompleteInfo}}">
-        <text class="tip-icon">💡</text>
-        <text class="tip-text">完善头像、昵称、手机号可获得更好体验</text>
-    </view>
-    <!-- Wallet Card -->
-    <view class="wallet-card" wx:if="{{isLoggedIn}}">
-        <view class="wallet-header">
-            <view class="wallet-title-wrap">
-                <view class="wallet-title-icon">¥</view>
-                <text class="wallet-title">我的钱包</text>
-            </view>
-            <view class="wallet-detail" bindtap="onWalletDetail">
-                <text>明细</text>
-                <text class="wallet-detail-arrow">></text>
-            </view>
-        </view>
-        <view class="wallet-content-v2">
-            <!-- 第一层：双列金额 -->
-            <view class="wallet-row-top">
-                <view class="wallet-item-mini" bindtap="onWithdraw">
-                    <text class="mini-label">可提现余额 (元)</text>
-                    <text class="mini-value">¥{{walletInfo.balance}}</text>
-                </view>
-                <view class="item-divider-v"></view>
-                <view class="wallet-item-mini">
-                    <text class="mini-label">累计收益 (元)</text>
-                    <text class="mini-value">¥{{walletInfo.totalEarnings}}</text>
-                </view>
-            </view>
-            <!-- 第二层：独立宽屏算力值 -->
-            <view class="wallet-row-bottom" bindtap="onWithdraw">
-                <view class="hashrate-banner">
-                    <view class="banner-left">
-                        <text class="banner-icon">⚡</text>
-                        <text class="banner-label">可回收聚芯 Orin值</text>
-                    </view>
-                    <text class="banner-value">{{walletInfo.displayHashrate || 0}}</text>
-                    <text class="banner-arrow">〉</text>
-                </view>
-            </view>
-        </view>
-        <view class="wallet-actions">
-            <button class="withdraw-btn" bindtap="onWithdraw">申请提现</button>
-            <button class="record-btn" bindtap="onWithdrawRecord">提现记录</button>
-        </view>
-    </view>
-    <!-- Stats Row (设备统计) -->
-    <view class="stats-card" wx:if="{{isLoggedIn}}">
-        <view class="stats-row">
-            <view class="stat-item" bindtap="goToDevicePage">
-                <view class="stat-dot stat-total"></view>
-                <text class="stat-num">{{deviceStats.total}}</text>
-                <text class="stat-label">设备总数</text>
-            </view>
-            <view class="stat-item">
-                <view class="stat-dot stat-online"></view>
-                <text class="stat-num online">{{deviceStats.online}}</text>
-                <text class="stat-label">在线</text>
-            </view>
-            <view class="stat-item">
-                <view class="stat-dot stat-offline"></view>
-                <text class="stat-num offline">{{deviceStats.offline}}</text>
-                <text class="stat-label">离线</text>
-            </view>
-        </view>
-    </view>
-    <!-- Menu List -->
-    <block wx:for="{{menuList}}" wx:for-item="group" wx:key="index">
-        <view class="menu-group">
-            <block wx:for="{{group}}" wx:for-item="item" wx:key="id">
-                <view class="menu-item-hover" bindtap="onMenuTap" data-id="{{item.id}}">
-                    <view class="menu-item">
-                        <view class="menu-left">
-                            <view class="menu-icon {{item.iconClass}}">{{item.icon}}</view>
-                            <text class="menu-text">{{item.text}}</text>
-                        </view>
-                        <text class="arrow">></text>
-                    </view>
-                </view>
-            </block>
-        </view>
+
+    <navigator class="complete-notice" url="/pages/complete-profile/complete-profile" wx:if="{{isLoggedIn && needCompleteInfo}}"><view>!</view><text>完善账户资料，便于收益结算</text><text>去完善 ›</text></navigator>
+
+    <block wx:if="{{isLoggedIn}}">
+      <view class="wallet-card">
+        <view class="wallet-head"><text>我的收益</text><view bindtap="onWalletDetail">查看明细 ›</view></view>
+        <view class="wallet-main" bindtap="onWithdraw"><text>可提现余额（元）</text><view><text>¥</text><text>{{walletInfo.balance}}</text></view></view>
+        <view class="wallet-stats"><view><text>累计收益</text><text>¥{{walletInfo.totalEarnings}}</text></view><view><text>节点权益</text><text>{{walletInfo.displayHashrate || 0}}</text></view></view>
+        <view class="wallet-actions"><button bindtap="onWithdraw">申请提现</button><button bindtap="onWithdrawRecord">提现记录</button></view>
+      </view>
+
+      <view class="section-head"><text>设备概况</text><view bindtap="goToDevicePage">设备中心 ›</view></view>
+      <view class="node-card" bindtap="goToDevicePage">
+        <view><text>{{deviceStats.total}}</text><text>全部设备</text></view>
+        <view><text class="online-num">{{deviceStats.online}}</text><text>在线运行</text></view>
+        <view><text class="offline-num">{{deviceStats.offline}}</text><text>已离线</text></view>
+      </view>
     </block>
-    <!-- Logout Button -->
-    <view class="logout-section" wx:if="{{isLoggedIn}}">
-        <button class="logout-btn" bindtap="onLogout">退出登录</button>
-    </view>
-</view>
+
+    <block wx:for="{{menuList}}" wx:for-item="group" wx:key="index">
+      <view class="section-head"><text>{{index === 0 ? '常用服务' : '帮助与支持'}}</text></view>
+      <view class="menu-list">
+        <view class="menu-row" wx:for="{{group}}" wx:for-item="item" wx:key="id" bindtap="onMenuTap" data-id="{{item.id}}">
+          <view class="menu-code {{item.iconClass}}">{{item.icon}}</view>
+          <view class="menu-copy"><text>{{item.text}}</text><text>{{item.desc}}</text></view>
+          <text class="menu-arrow">›</text>
+        </view>
+      </view>
+    </block>
+
+    <view class="logout-section" wx:if="{{isLoggedIn}}"><button bindtap="onLogout">退出当前账户</button></view>
+    <view class="safe-space"></view>
+  </view>
+</scroll-view>

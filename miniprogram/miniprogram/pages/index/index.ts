@@ -163,8 +163,8 @@ Page({
       {
         id: 1,
         imageUrl: '',
-        title: '聚芯 Orin',
-        subtitle: '管道收入 | 轻松躺赚 | 流量变现'
+        title: 'Orin 边缘算力节点',
+        subtitle: '设备在线监控 · 算力任务管理 · 运行收益结算'
       }
     ];
     this.setData({ bannerList: fallbackBanners });
@@ -196,8 +196,8 @@ Page({
         notices: [
           {
             id: 1,
-            title: '小程序迁移',
-            content: '如有企业用户或特殊权限用户，请提前与您的专属客户经理沟通。',
+            title: 'Orin 节点平台已启用',
+            content: '可在设备中心查看节点在线状态、运行数据与收益记录。',
             time: '2025-12-01 10:00',
             imageUrl: ''
           }

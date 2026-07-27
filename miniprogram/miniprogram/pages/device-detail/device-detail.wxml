@@ -1,65 +1,20 @@
-<view class="container">
-    <!-- 自定义导航栏 -->
-    <view class="nav-bar">
-        <view class="nav-back" bindtap="goBack">
-            <text class="back-icon">‹</text>
-        </view>
-        <text class="nav-title">设备详情</text>
-        <view class="nav-placeholder"></view>
-    </view>
-    <view class="device-header-card">
-        <view class="header-glow"></view>
-        <view class="header-top">
-            <view class="icon-box">
-                <image class="device-icon-img" src="/images/product.png" mode="aspectFit"></image>
-            </view>
-            <view class="device-meta">
-                <view class="meta-row">
-                    <view class="device-title-wrap">
-                        <text class="device-name">{{device.name || '聚芯 Orin节点'}}</text>
-                        <view class="device-sn-row">
-                            <text class="sn-label">SN</text>
-                            <text class="device-sn">{{device.bindCode || device.sn}}</text>
-                        </view>
-                    </view>
-                    <view class="status-tag {{device.status === 1 ? 'online' : 'offline'}}">
-                        <text class="dot"></text>
-                        <text>{{device.status === 1 ? '运行中' : '离线'}}</text>
-                    </view>
-                </view>
-            </view>
-        </view>
-        <view class="stats-panel">
-            <view class="stat-item primary">
-                <text class="label">可回收聚芯 Orin值</text>
-                <text class="value highlight">{{device.hashrate || 0}}</text>
-            </view>
-            <view class="stat-divider"></view>
-            <view class="stat-item right">
-                <text class="label">绑定时间</text>
-                <text class="value time">{{device.bindTime || '-'}}</text>
-            </view>
-        </view>
+<view class="detail-page">
+  <view class="detail-nav" style="padding-top: {{navBarTop}}px; height: {{navBarHeight}}px;"><view class="back-control" bindtap="goBack">‹</view><text>设备详情</text></view>
+  <scroll-view class="detail-scroll" scroll-y type="list">
+    <view class="device-hero">
+      <view class="hero-info"><text>{{device.name || 'Orin 边缘节点'}}</text><text>SN {{device.bindCode || device.sn || '待分配'}}</text><view class="hero-status {{device.status === 1 ? 'online' : 'offline'}}"><view></view>{{device.status === 1 ? '设备运行正常' : '设备当前离线'}}</view></view>
+      <image src="/images/product.png" mode="aspectFit"></image>
     </view>
 
-    <view class="chart-card">
-        <view class="card-header">
-            <view>
-                <text class="card-title">收益趋势</text>
-                <text class="card-desc">近 7 日收益统计</text>
-            </view>
-            <text class="card-subtitle">单位：元</text>
-        </view>
-        <view class="chart-wrapper">
-            <canvas type="2d" id="earningsChart" class="chart-canvas"></canvas>
-        </view>
-    </view>
+    <view class="metric-card"><view><text>今日收益</text><text class="earning">¥{{device.earnings || '0.00'}}</text></view><view><text>节点权益</text><text>{{device.hashrate || 0}}</text></view><view><text>运行状态</text><text>{{device.status === 1 ? '正常' : '中断'}}</text></view></view>
 
-    <view class="action-card">
-        <view class="action-copy">
-            <text class="action-title">设备操作</text>
-            <text class="action-subtitle">解除后将从当前账号移除</text>
-        </view>
-        <button class="unbind-btn" hover-class="btn-hover" bindtap="unbindDevice">解除绑定</button>
-    </view>
+    <view class="section-head"><text>设备信息</text></view>
+    <view class="info-card"><view><text>节点编号</text><text>{{device.businessId || '未分配'}}</text></view><view><text>设备型号</text><text>Jetson Orin Nano</text></view><view><text>部署位置</text><text>{{device.location || '未设置'}}</text></view><view><text>绑定时间</text><text>{{device.bindTime || '-'}}</text></view></view>
+
+    <view class="section-head"><text>近 7 日收益</text><text>单位：元</text></view>
+    <view class="chart-card"><canvas type="2d" id="earningsChart" class="chart-canvas"></canvas><view class="chart-empty" wx:if="{{!chartData.dates.length}}">暂无结算数据</view></view>
+
+    <view class="unbind-card"><view><text>解除设备绑定</text><text>解除后设备将从当前账户移除</text></view><button bindtap="unbindDevice">解除绑定</button></view>
+    <view class="detail-safe-space"></view>
+  </scroll-view>
 </view>
