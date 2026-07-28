@@ -29,16 +29,16 @@ Page({
         },
         menuList: [
             [
-                { id: 'earnings', icon: 'RC', text: '收益明细', desc: '每日任务与结算记录', iconClass: 'icon-earnings' },
-                { id: 'devices', icon: 'ND', text: '节点设备', desc: '查看设备运行状态', iconClass: 'icon-device' },
-                { id: 'payment', icon: 'AC', text: '收款账户', desc: '维护结算收款信息', iconClass: 'icon-payment' },
-                { id: 'invite', icon: 'TM', text: '邀请伙伴', desc: '团队关系与节点统计', iconClass: 'icon-invite' },
-                { id: 'exchange', icon: 'EX', text: '设备兑换', desc: '提交节点设备兑换', iconClass: 'icon-exchange' },
-                { id: 'exchange-orders', icon: 'OD', text: '兑换订单', desc: '查询兑换处理进度', iconClass: 'icon-orders' }
+                { id: 'earnings', iconPath: '/images/menu/earnings.png', text: '收益明细', desc: '每日任务与结算记录', iconClass: 'icon-earnings' },
+                { id: 'devices', iconPath: '/images/menu/devices.png', text: '节点设备', desc: '查看设备运行状态', iconClass: 'icon-device' },
+                { id: 'payment', iconPath: '/images/menu/payment.png', text: '收款账户', desc: '维护结算收款信息', iconClass: 'icon-payment' },
+                { id: 'invite', iconPath: '/images/menu/invite.png', text: '邀请伙伴', desc: '团队关系与节点统计', iconClass: 'icon-invite' },
+                { id: 'exchange', iconPath: '/images/menu/exchange.png', text: '设备兑换', desc: '提交节点设备兑换', iconClass: 'icon-exchange' },
+                { id: 'exchange-orders', iconPath: '/images/menu/orders.png', text: '兑换订单', desc: '查询兑换处理进度', iconClass: 'icon-orders' }
             ],
             [
-                { id: 'help', icon: 'HP', text: '帮助中心', desc: '设备接入与使用说明', iconClass: 'icon-help' },
-                { id: 'feedback', icon: 'FB', text: '问题反馈', desc: '提交设备与账户问题', iconClass: 'icon-feedback' }
+                { id: 'help', iconPath: '/images/menu/help.png', text: '帮助中心', desc: '设备接入与使用说明', iconClass: 'icon-help' },
+                { id: 'feedback', iconPath: '/images/menu/feedback.png', text: '问题反馈', desc: '提交设备与账户问题', iconClass: 'icon-feedback' }
             ]
         ]
     },

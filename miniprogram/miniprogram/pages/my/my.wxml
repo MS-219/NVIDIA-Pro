@@ -49,7 +49,7 @@
       <view class="section-head"><text>{{index === 0 ? '常用服务' : '帮助与支持'}}</text></view>
       <view class="menu-list">
         <view class="menu-row" wx:for="{{group}}" wx:for-item="item" wx:key="id" bindtap="onMenuTap" data-id="{{item.id}}">
-          <view class="menu-code {{item.iconClass}}">{{item.icon}}</view>
+          <view class="menu-code {{item.iconClass}}"><image src="{{item.iconPath}}" mode="aspectFit"></image></view>
           <view class="menu-copy"><text>{{item.text}}</text><text>{{item.desc}}</text></view>
           <text class="menu-arrow">›</text>
         </view>
