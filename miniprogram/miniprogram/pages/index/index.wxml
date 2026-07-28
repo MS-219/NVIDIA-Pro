@@ -2,8 +2,7 @@
   <view class="home-page">
     <view class="home-nav" style="padding-top: {{navBarTop}}px; height: {{navBarHeight}}px;">
       <view class="brand">
-        <view class="brand-symbol">J</view>
-        <view><text class="brand-name">聚芯 ORIN</text><text class="brand-desc">边缘算力节点平台</text></view>
+        <image class="brand-logo" src="/images/home-logo.png" mode="aspectFit"></image>
       </view>
       <view class="service-state"><view></view><text>服务正常</text></view>
     </view>
