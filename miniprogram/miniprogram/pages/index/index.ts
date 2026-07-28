@@ -8,13 +8,16 @@ Page({
     bannerList: [] as any[],
     earnings: {
       yesterday: '0.00',
-      total: '0.00'
+      total: '0.00',
+      yesterdayClass: '',
+      totalClass: ''
     },
     nodeStats: {
       total: 0,
       online: 0,
       offline: 0,
-      partnerDevices: 0
+      partnerDevices: 0,
+      onlineRate: 0
     },
     notices: [] as any[],
     firstShowHandled: false,
@@ -58,11 +61,30 @@ Page({
       return;
     }
 
+    const cachedNodeStats = snapshot.nodeStats || this.data.nodeStats;
+    const total = Math.max(0, Number(cachedNodeStats.total) || 0);
+    const online = Math.min(total, Math.max(0, Number(cachedNodeStats.online) || 0));
+    const cachedEarnings = snapshot.earnings || this.data.earnings;
+    const yesterday = this.formatEarningsValue(cachedEarnings.yesterday);
+    const earningsTotal = this.formatEarningsValue(cachedEarnings.total);
+
     this.setData({
       bannerList: snapshot.bannerList || this.data.bannerList,
       notices: snapshot.notices || this.data.notices,
-      earnings: snapshot.earnings || this.data.earnings,
-      nodeStats: snapshot.nodeStats || this.data.nodeStats
+      earnings: {
+        yesterday,
+        total: earningsTotal,
+        yesterdayClass: this.getAmountClass(yesterday),
+        totalClass: this.getAmountClass(earningsTotal)
+      },
+      nodeStats: {
+        ...this.data.nodeStats,
+        ...cachedNodeStats,
+        total,
+        online,
+        offline: total - online,
+        onlineRate: total > 0 ? Math.round((online / total) * 100) : 0
+      }
     });
   },
 
@@ -78,6 +100,17 @@ Page({
   getHomeSnapshotKey() {
     const userId = wx.getStorageSync('userId');
     return userId ? `homePageSnapshot:${userId}` : 'homePageSnapshot:guest';
+  },
+
+  formatEarningsValue(value: unknown) {
+    if (value === null || value === undefined || value === '') return '0.00';
+    return String(value);
+  },
+
+  getAmountClass(value: string) {
+    if (value.length > 9) return 'is-compact';
+    if (value.length > 6) return 'is-medium';
+    return '';
   },
 
   // 尝试绑定邀请码
@@ -227,16 +260,23 @@ Page({
     }).then(res => {
       if (res.code === 200) {
         const data = res.data;
+        const total = Math.max(0, Number(data.deviceCount) || 0);
+        const online = Math.min(total, Math.max(0, Number(data.onlineCount) || 0));
+        const yesterday = this.formatEarningsValue(data.yesterday);
+        const earningsTotal = this.formatEarningsValue(data.total);
         this.setData({
           earnings: {
-            yesterday: data.yesterday || '0.00',
-            total: data.total || '0.00'
+            yesterday,
+            total: earningsTotal,
+            yesterdayClass: this.getAmountClass(yesterday),
+            totalClass: this.getAmountClass(earningsTotal)
           },
           nodeStats: {
-            total: data.deviceCount || 0,
-            online: data.onlineCount || 0,
-            offline: (data.deviceCount || 0) - (data.onlineCount || 0),
-            partnerDevices: this.data.nodeStats.partnerDevices || 0
+            total,
+            online,
+            offline: total - online,
+            partnerDevices: this.data.nodeStats.partnerDevices || 0,
+            onlineRate: total > 0 ? Math.round((online / total) * 100) : 0
           }
         });
         this.cacheHomeSnapshot({

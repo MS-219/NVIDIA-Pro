@@ -4,11 +4,13 @@
       <view class="brand">
         <image class="brand-logo" src="/images/home-logo.png" mode="aspectFit"></image>
       </view>
-      <view class="service-state"><view></view><text>服务正常</text></view>
+      <view class="service-state is-online" wx:if="{{nodeStats.online}}"><view></view><text>节点在线</text></view>
+      <view class="service-state is-idle" wx:else><view></view><text>等待节点</text></view>
     </view>
 
     <view class="hero">
       <view class="hero-copy">
+        <view class="hero-protocol"><view></view><text>ORIN EDGE COMPUTE</text></view>
         <text class="hero-eyebrow">我的算力网络</text>
         <text class="hero-title">让每一台设备，</text>
         <text class="hero-title hero-title-second">持续创造价值</text>
@@ -17,7 +19,13 @@
           <view class="hero-live"><view></view><text>{{nodeStats.online}} 台在线</text></view>
         </view>
       </view>
-      <view class="hero-media"><image class="hero-product" src="/images/product.png" mode="aspectFit"></image></view>
+      <view class="hero-media">
+        <image class="hero-product" src="/images/product.png" mode="aspectFit"></image>
+        <view class="media-grid"></view>
+        <view class="media-status is-ready" wx:if="{{nodeStats.online}}"><view></view><text>ORIN ONLINE</text></view>
+        <view class="media-status is-standby" wx:else><view></view><text>NODE STANDBY</text></view>
+        <view class="media-specs"><text>CUDA</text><text>ARM64</text><text>EDGE</text></view>
+      </view>
     </view>
 
     <view class="overview-card">
@@ -30,16 +38,23 @@
         <view class="overview-metric"><text>{{nodeStats.offline}}</text><view class="metric-label"><view class="dot offline"></view><text>离线设备</text></view></view>
         <view class="overview-metric" bindtap="goToPartnerDevices"><text>{{nodeStats.partnerDevices || 0}}</text><view class="metric-label"><view class="dot partner"></view><text>团队节点</text></view></view>
       </view>
+      <view class="network-health">
+        <view class="network-health-head">
+          <view><text>节点在线率</text><text wx:if="{{nodeStats.total}}">LIVE NETWORK</text><text wx:else>等待节点接入</text></view>
+          <text wx:if="{{nodeStats.total}}">{{nodeStats.onlineRate}}%</text><text wx:else>--</text>
+        </view>
+        <view class="health-track"><view style="width: {{nodeStats.onlineRate}}%;"></view></view>
+      </view>
     </view>
 
-    <view class="section-head"><text>收益概览</text><navigator url="/pages/earnings-detail/earnings-detail">全部明细 ›</navigator></view>
+    <view class="section-head"><view class="section-title"><text>收益概览</text><text>COMPUTE REWARDS</text></view><navigator url="/pages/earnings-detail/earnings-detail">全部明细 ›</navigator></view>
     <view class="income-card">
       <view class="income-primary">
         <view class="income-label"><view><image src="/images/menu/earnings.png" mode="aspectFit"></image></view><text>昨日收益</text></view>
-        <view class="income-value"><text>¥</text><text>{{earnings.yesterday}}</text></view>
+        <view class="income-value {{earnings.yesterdayClass}}"><text>¥</text><text>{{earnings.yesterday}}</text></view>
         <text class="income-note">每日完成结算后更新</text>
       </view>
-      <view class="income-total"><text>累计收益</text><text>¥{{earnings.total}}</text><view class="income-line"></view><text>全部结算记录</text></view>
+      <view class="income-total"><text>累计收益</text><text class="income-total-value {{earnings.totalClass}}">¥{{earnings.total}}</text><view class="income-line"></view><text>全部结算记录</text></view>
     </view>
 
     <swiper class="notice-swiper" wx:if="{{bannerList.length}}" autoplay circular interval="5000" duration="350">
@@ -52,14 +67,14 @@
       </swiper-item>
     </swiper>
 
-    <view class="section-head"><text>常用服务</text></view>
+    <view class="section-head"><view class="section-title"><text>常用服务</text><text>NODE OPERATIONS</text></view></view>
     <view class="service-grid">
       <navigator url="/pages/device/device" open-type="switchTab"><view class="service-icon green"><image src="/images/home-services/devices.png" mode="aspectFit"></image></view><text>节点设备</text><text>状态与管理</text></navigator>
       <navigator url="/pages/earnings-detail/earnings-detail"><view class="service-icon gold"><image src="/images/home-services/earnings.png" mode="aspectFit"></image></view><text>收益记录</text><text>结算与明细</text></navigator>
       <view bindtap="goToPartnerDevices"><view class="service-icon cyan"><image src="/images/home-services/team.png" mode="aspectFit"></image></view><text>团队节点</text><text>伙伴与设备</text></view>
     </view>
 
-    <view class="section-head news-head"><text>平台动态</text></view>
+    <view class="section-head news-head"><view class="section-title"><text>平台动态</text><text>SYSTEM FEED</text></view></view>
     <view class="news-list">
       <block wx:if="{{notices.length}}">
         <view class="news-row" wx:for="{{notices}}" wx:key="id" bindtap="onNoticeTap" data-id="{{item.id}}">
