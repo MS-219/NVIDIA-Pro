@@ -1,0 +1,346 @@
+/* Shared polish layer for every secondary mini-program workflow. */
+page {
+  background: #eef1ed !important;
+  color: #1c211b;
+}
+
+.container {
+  box-sizing: border-box;
+}
+
+.custom-nav,
+.nav-bar {
+  background: rgba(255, 255, 255, .82) !important;
+  border-bottom: 1px solid rgba(28, 33, 27, .08);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+}
+
+.nav-title {
+  color: #1c211b !important;
+  font-weight: 700 !important;
+}
+
+.nav-back,
+.back-btn {
+  border-radius: 8px !important;
+}
+
+/* Glass surfaces */
+.form-card,
+.section,
+.overview-card,
+.chart-card,
+.reward-card,
+.monthly-card,
+.daily-card,
+.invite-card,
+.level-status-card,
+.team-stats-card,
+.team-list-card,
+.summary-card,
+.member-card,
+.filter-card,
+.device-item,
+.device-card,
+.owner-card,
+.earnings-card,
+.faq-item,
+.contact-section,
+.content-area,
+.notice-content,
+.detail-card,
+.product-card,
+.address-card,
+.order-card,
+.section-card,
+.addr-card,
+.record-item,
+.withdraw-form-card,
+.payment-card,
+.limit-card,
+.withdraw-limit-card,
+.contract-card,
+.rule-card,
+.tips-card,
+.agreement-card {
+  background: rgba(255, 255, 255, .76) !important;
+  border: 1px solid rgba(255, 255, 255, .88) !important;
+  border-radius: 8px !important;
+  box-shadow: 0 5px 18px rgba(30, 40, 27, .055) !important;
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+}
+
+.card,
+.input-card,
+.contract-manage-card,
+.inviter-card,
+.members-card,
+.users-card,
+.rules-card,
+.stats-card,
+.qty-card,
+.qr-upload-box,
+.modal-content,
+.daily-table,
+.monthly-table,
+.sub-tabs-bar,
+.tab-scroll,
+.pending-banner,
+.level-tip,
+.level-badge-bar,
+.form-section,
+.submit-section,
+.safe-footer,
+.bind-prompt {
+  background: rgba(255, 255, 255, .76) !important;
+  border: 1px solid rgba(255, 255, 255, .88) !important;
+  border-radius: 8px !important;
+  box-shadow: 0 5px 18px rgba(30, 40, 27, .055) !important;
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+}
+
+/* Feature headers stay branded without turning the whole page dark. */
+.balance-card,
+.hero-card,
+.status-card,
+.status-hero,
+.hashrate-info {
+  background: #151a14 !important;
+  border: 1px solid rgba(118, 185, 0, .24) !important;
+  border-radius: 8px !important;
+  box-shadow: none !important;
+}
+
+.balance-card::before,
+.hero-card::before,
+.status-card::before,
+.status-hero::before,
+.hashrate-info::before {
+  background: #76b900 !important;
+}
+
+.balance-card,
+.balance-card text,
+.hero-card,
+.hero-card text,
+.status-card,
+.status-card text,
+.status-hero,
+.status-hero text {
+  color: #f7f9f5;
+}
+
+.hashrate-info,
+.hashrate-info text {
+  color: #f7f9f5 !important;
+}
+
+.hashrate-info .hashrate-amount,
+.hashrate-info .hashrate-icon {
+  color: #8dd214 !important;
+}
+
+/* Inputs and choice controls */
+.nickname-input,
+.content-input,
+.contact-input,
+.amount-input,
+.form-input,
+.input-field,
+.textarea,
+.address-input,
+.search-input,
+.picker-field,
+.select-field,
+.bank-input {
+  background: rgba(255, 255, 255, .72) !important;
+  border: 1px solid rgba(28, 33, 27, .1) !important;
+  border-radius: 8px !important;
+  color: #252a24 !important;
+  box-shadow: none !important;
+}
+
+.field-input,
+.account-input,
+.card-input,
+.picker-input,
+.code-input,
+.modal-input {
+  background: rgba(255, 255, 255, .72) !important;
+  border: 1px solid rgba(28, 33, 27, .1) !important;
+  border-radius: 8px !important;
+  color: #252a24 !important;
+  box-shadow: none !important;
+}
+
+.type-item,
+.filter-tab,
+.tab-item,
+.quick-btn,
+.qty-btn,
+.price-row,
+.popup-addr-item {
+  border-radius: 8px !important;
+}
+
+.type-option,
+.radio-item,
+.switch-item,
+.sub-tab {
+  border-radius: 8px !important;
+}
+
+.type-item.active,
+.filter-tab.active,
+.tab-active,
+.price-row-active,
+.addr-active {
+  background: rgba(118, 185, 0, .13) !important;
+  border-color: rgba(118, 185, 0, .34) !important;
+  color: #4f7f00 !important;
+  box-shadow: none !important;
+}
+
+/* Primary and secondary commands */
+page .save-btn,
+page .submit-btn,
+page .action-btn,
+page .primary-btn,
+page .contact-btn,
+page .share-btn,
+page .invite-btn,
+page .exchange-btn,
+page .confirm-btn,
+page .add-btn,
+page .bind-btn,
+page .contract-btn {
+  background: #76b900 !important;
+  border: 0 !important;
+  border-radius: 8px !important;
+  color: #0b0e0a !important;
+  box-shadow: none !important;
+  font-weight: 700 !important;
+}
+
+page .skip-btn,
+page .cancel-btn,
+page .record-btn,
+page .secondary-btn,
+page .edit-card-btn,
+page .modal-btn,
+page .popup-add {
+  background: rgba(255, 255, 255, .7) !important;
+  border: 1px solid rgba(28, 33, 27, .1) !important;
+  border-radius: 8px !important;
+  color: #5f675d !important;
+  box-shadow: none !important;
+}
+
+page .danger-btn,
+page .cancel-contract-btn {
+  background: rgba(190, 79, 68, .1) !important;
+  border: 1px solid rgba(190, 79, 68, .24) !important;
+  border-radius: 8px !important;
+  color: #a14f47 !important;
+  box-shadow: none !important;
+}
+
+.copy-btn,
+.addr-default,
+.price-current-badge,
+.popup-addr-default,
+.level-badge,
+.current-level,
+.order-status,
+.record-status,
+.device-status,
+.hero-badge,
+.fail-badge {
+  border-radius: 999px !important;
+}
+
+.copy-btn,
+.addr-default,
+.price-current-badge,
+.popup-addr-default,
+.current-level {
+  background: rgba(118, 185, 0, .13) !important;
+  color: #4f7f00 !important;
+}
+
+/* Product, avatar and upload media */
+.detail-image,
+.product-image,
+.order-product-img,
+.product-thumb,
+.notice-image,
+.image-item,
+.add-image,
+.device-icon {
+  border-radius: 8px !important;
+}
+
+.member-avatar,
+.owner-avatar,
+.avatar-wrapper,
+.avatar-btn,
+.avatar-img,
+.avatar-placeholder {
+  border-radius: 50% !important;
+}
+
+/* Flat status treatments replacing legacy gradients. */
+.success-bg,
+.status-bg-3 {
+  background: #e8f3d9 !important;
+  color: #477400 !important;
+}
+
+.pending-bg,
+.status-bg-0 {
+  background: #fff3d9 !important;
+  color: #8b610e !important;
+}
+
+.fail-bg,
+.status-bg-4 {
+  background: #fbe5e2 !important;
+  color: #9a4e46 !important;
+}
+
+.cancel-bg,
+.status-bg-2 {
+  background: #ecefeb !important;
+  color: #666e63 !important;
+}
+
+.status-bg-1 {
+  background: #e2f0ef !important;
+  color: #216f6a !important;
+}
+
+.bottom-bar,
+.bottom-actions,
+.fixed-bottom,
+.action-footer {
+  background: rgba(255, 255, 255, .84) !important;
+  border-top: 1px solid rgba(28, 33, 27, .09) !important;
+  box-shadow: none !important;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
+.address-popup {
+  background: rgba(247, 249, 246, .94) !important;
+  border-radius: 8px 8px 0 0 !important;
+  backdrop-filter: blur(22px);
+  -webkit-backdrop-filter: blur(22px);
+}
+
+.empty-state,
+.loading-state {
+  color: #7b8378 !important;
+}

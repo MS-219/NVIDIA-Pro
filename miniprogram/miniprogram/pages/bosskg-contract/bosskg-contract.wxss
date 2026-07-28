@@ -1,3 +1,5 @@
+@import "../../styles/orin-polish.wxss";
+
 page {
     background: linear-gradient(180deg, #f0fdf4 0%, #f7f7f9 60%);
     min-height: 100vh;

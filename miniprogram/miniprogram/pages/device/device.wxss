@@ -1,3 +1,5 @@
+@import "../../styles/orin-polish.wxss";
+
 page { background: #eef1ed; color: #1c211b; }.device-page { height: 100vh; display: flex; flex-direction: column; overflow: hidden; background: #eef1ed; }
 .device-nav { box-sizing: content-box; flex: 0 0 auto; padding: 0 98px 0 18px; display: flex; align-items: center; background: rgba(255,255,255,.8); border-bottom: 1px solid rgba(28,33,27,.08); backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px); }.navbar-title,.navbar-subtitle { display: block; }.navbar-title { color: #1c211b; font-size: 18px; font-weight: 700; }.navbar-subtitle { margin-top: 2px; color: #7d8579; font-size: 9px; }
 .device-summary,.search-box,.refresh-control,.device-card { background: rgba(255,255,255,.72); border: 1px solid rgba(255,255,255,.84); backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px); }

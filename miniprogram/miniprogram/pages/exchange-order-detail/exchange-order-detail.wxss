@@ -1,3 +1,5 @@
+@import "../../styles/orin-polish.wxss";
+
 page { background: #f5f5f7; min-height: 100vh; }
 .container { padding: 0 0 120px 0; }
 .custom-nav { display: flex; align-items: center; justify-content: space-between; padding: 0 20px; background: #fff; }
