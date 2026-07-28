@@ -14,25 +14,32 @@
         <text class="hero-title hero-title-second">持续创造价值</text>
         <view class="hero-action">
           <navigator url="/pages/device/device" open-type="switchTab">查看节点</navigator>
-          <text>{{nodeStats.online}} 台在线</text>
+          <view class="hero-live"><view></view><text>{{nodeStats.online}} 台在线</text></view>
         </view>
       </view>
-      <image class="hero-product" src="/images/product.png" mode="aspectFit"></image>
+      <view class="hero-media"><image class="hero-product" src="/images/product.png" mode="aspectFit"></image></view>
     </view>
 
     <view class="overview-card">
-      <view class="overview-title"><text>节点概况</text><text>{{nodeStats.total}} 台设备已接入</text></view>
+      <view class="overview-title">
+        <view><text>节点概况</text><text>设备状态实时同步</text></view>
+        <view class="overview-badge"><view></view><text>{{nodeStats.total}} 台已接入</text></view>
+      </view>
       <view class="overview-grid">
-        <view><text>{{nodeStats.online}}</text><view class="metric-label"><view class="dot online"></view><text>在线运行</text></view></view>
-        <view><text>{{nodeStats.offline}}</text><view class="metric-label"><view class="dot offline"></view><text>离线设备</text></view></view>
-        <view bindtap="goToPartnerDevices"><text>{{nodeStats.partnerDevices || 0}}</text><view class="metric-label"><view class="dot partner"></view><text>团队节点</text></view></view>
+        <view class="overview-metric"><text>{{nodeStats.online}}</text><view class="metric-label"><view class="dot online"></view><text>在线运行</text></view></view>
+        <view class="overview-metric"><text>{{nodeStats.offline}}</text><view class="metric-label"><view class="dot offline"></view><text>离线设备</text></view></view>
+        <view class="overview-metric" bindtap="goToPartnerDevices"><text>{{nodeStats.partnerDevices || 0}}</text><view class="metric-label"><view class="dot partner"></view><text>团队节点</text></view></view>
       </view>
     </view>
 
     <view class="section-head"><text>收益概览</text><navigator url="/pages/earnings-detail/earnings-detail">全部明细 ›</navigator></view>
     <view class="income-card">
-      <view class="income-primary"><text>昨日收益</text><view><text>¥</text><text>{{earnings.yesterday}}</text></view><text>每日完成结算后更新</text></view>
-      <view class="income-total"><text>累计收益</text><text>¥{{earnings.total}}</text><view class="income-line"></view></view>
+      <view class="income-primary">
+        <view class="income-label"><view><image src="/images/menu/earnings.png" mode="aspectFit"></image></view><text>昨日收益</text></view>
+        <view class="income-value"><text>¥</text><text>{{earnings.yesterday}}</text></view>
+        <text class="income-note">每日完成结算后更新</text>
+      </view>
+      <view class="income-total"><text>累计收益</text><text>¥{{earnings.total}}</text><view class="income-line"></view><text>全部结算记录</text></view>
     </view>
 
     <swiper class="notice-swiper" wx:if="{{bannerList.length}}" autoplay circular interval="5000" duration="350">
@@ -41,16 +48,15 @@
           <image wx:if="{{item.imageUrl}}" src="{{item.imageUrl}}" mode="aspectFill"></image>
           <view class="banner-fallback" wx:else>讯</view>
           <view><text>{{item.title || '平台通知'}}</text><text>{{item.subtitle || '查看节点平台最新动态'}}</text></view>
-          <text class="banner-arrow">›</text>
         </view>
       </swiper-item>
     </swiper>
 
     <view class="section-head"><text>常用服务</text></view>
     <view class="service-grid">
-      <navigator url="/pages/device/device" open-type="switchTab"><view class="service-icon green">ND</view><text>节点设备</text><text>状态与管理</text></navigator>
-      <navigator url="/pages/earnings-detail/earnings-detail"><view class="service-icon gold">¥</view><text>收益记录</text><text>结算与明细</text></navigator>
-      <view bindtap="goToPartnerDevices"><view class="service-icon cyan">TM</view><text>团队节点</text><text>伙伴与设备</text></view>
+      <navigator url="/pages/device/device" open-type="switchTab"><view class="service-icon green"><image src="/images/home-services/devices.png" mode="aspectFit"></image></view><text>节点设备</text><text>状态与管理</text></navigator>
+      <navigator url="/pages/earnings-detail/earnings-detail"><view class="service-icon gold"><image src="/images/home-services/earnings.png" mode="aspectFit"></image></view><text>收益记录</text><text>结算与明细</text></navigator>
+      <view bindtap="goToPartnerDevices"><view class="service-icon cyan"><image src="/images/home-services/team.png" mode="aspectFit"></image></view><text>团队节点</text><text>伙伴与设备</text></view>
     </view>
 
     <view class="section-head news-head"><text>平台动态</text></view>
