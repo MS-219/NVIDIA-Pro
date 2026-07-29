@@ -19,7 +19,7 @@ import java.util.UUID;
 @RequestMapping("/api/upload")
 public class UploadController {
 
-    private static final String PUBLIC_FILE_BASE = System.getenv().getOrDefault("ORIN_PUBLIC_BASE_URL", "https://orin-api.example.invalid");
+    private static final String PUBLIC_FILE_BASE = System.getenv().getOrDefault("ORIN_PUBLIC_BASE_URL", "https://nvidia.juxinsuanli.cn");
     private final String uploadPath = System.getProperty("user.dir") + "/uploads/";
 
     /** 允许的图片扩展名白名单 */

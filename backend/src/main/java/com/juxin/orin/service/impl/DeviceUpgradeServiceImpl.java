@@ -404,7 +404,7 @@ public class DeviceUpgradeServiceImpl implements IDeviceUpgradeService {
         String log = "/opt/juxin-orin/runtime/upgrade-" + batch.getBatchNo() + ".log";
         String publicUrl = pkg.getFileUrl().startsWith("http")
                 ? pkg.getFileUrl()
-                : System.getenv().getOrDefault("ORIN_PUBLIC_BASE_URL", "https://orin-api.example.invalid") + pkg.getFileUrl();
+                : System.getenv().getOrDefault("ORIN_PUBLIC_BASE_URL", "https://nvidia.juxinsuanli.cn") + pkg.getFileUrl();
         return "set -e; VERSION=" + shellQuote(pkg.getVersion())
                 + "; PACKAGE_URL=" + shellQuote(publicUrl)
                 + "; EXPECTED_SHA256=" + shellQuote(pkg.getChecksum())

@@ -1,6 +1,6 @@
 /**
  * 聚芯 Orin小程序全局配置
- * 域名: orin-support.cn
+ * 正式域名: nvidia.juxinsuanli.cn
  */
 
 // API 基础地址
@@ -8,7 +8,7 @@
 // export const API_BASE = 'http://localhost:8090';
 
 // 生产环境 - 使用主域名（证书支持）
-export const API_BASE = 'https://orin-api.example.invalid';
+export const API_BASE = 'https://nvidia.juxinsuanli.cn';
 
 // 备用 - 使用 IP（不需要 HTTPS）
 

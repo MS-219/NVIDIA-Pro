@@ -421,8 +421,8 @@ Page({
             fullUrl = API_BASE + url.substring(idx);
         }
 
-        // 2. 针对生产环境的简单处理
-        if (fullUrl.startsWith('https://orin-api.example.invalid')) {
+        // 2. 正式域名强制使用 HTTPS
+        if (fullUrl.startsWith('http://nvidia.juxinsuanli.cn')) {
             fullUrl = fullUrl.replace('http://', 'https://');
         }
 

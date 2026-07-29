@@ -300,7 +300,7 @@ Page({
           return;
         }
 
-        // 解析 URL 格式的二维码 (如: https://orin-api.example.invalid/bind?code=JXHG762Y)
+        // 解析 URL 格式的二维码 (如: https://nvidia.juxinsuanli.cn/bind?code=JXHG762Y)
         if (code.includes('?code=')) {
           const match = code.match(/[?&]code=([^&]+)/);
           if (match) {

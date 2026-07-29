@@ -61,7 +61,7 @@ Page({
 
         // 生成邀请码
         const inviteCode = 'JX' + String(userId).padStart(6, '0');
-        const inviteUrl = `https://orin-api.example.invalid/invite?code=${inviteCode}`;
+        const inviteUrl = `${API_BASE}/invite?code=${inviteCode}`;
 
         this.setData({ inviteCode, inviteUrl, loading: true, inviteError: '' });
 
@@ -220,4 +220,3 @@ Page({
         };
     }
 });
-

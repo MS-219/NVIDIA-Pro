@@ -26,8 +26,8 @@ spring:
 
 orin:
   version: ${ORIN_PLATFORM_VERSION:development}
-  public-base-url: ${ORIN_PUBLIC_BASE_URL:https://orin-api.example.invalid}
-  cors-allowed-origins: ${ORIN_CORS_ALLOWED_ORIGINS:http://localhost:5174}
+  public-base-url: ${ORIN_PUBLIC_BASE_URL:https://nvidia.juxinsuanli.cn}
+  cors-allowed-origins: ${ORIN_CORS_ALLOWED_ORIGINS:https://nvidia.juxinsuanli.cn,http://localhost:5174}
 
 mybatis-plus:
   global-config:
@@ -54,8 +54,8 @@ bosskg:
   des-key: ${ORIN_BOSSKG_DES_KEY:}
   merchant-private-key: ${ORIN_BOSSKG_PRIVATE_KEY:}
   platform-public-key: ${ORIN_BOSSKG_PUBLIC_KEY:}
-  contract-notify-url: ${ORIN_BOSSKG_CONTRACT_NOTIFY_URL:https://orin-api.example.invalid/api/bosskg/notify/contract}
-  payment-notify-url: ${ORIN_BOSSKG_PAYMENT_NOTIFY_URL:https://orin-api.example.invalid/api/bosskg/notify/payment}
+  contract-notify-url: ${ORIN_BOSSKG_CONTRACT_NOTIFY_URL:https://nvidia.juxinsuanli.cn/api/bosskg/notify/contract}
+  payment-notify-url: ${ORIN_BOSSKG_PAYMENT_NOTIFY_URL:https://nvidia.juxinsuanli.cn/api/bosskg/notify/payment}
   version: V1.0
   connect-timeout: 10000
   read-timeout: 60000

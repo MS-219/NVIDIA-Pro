@@ -162,9 +162,6 @@ Page({
             const idx = url.indexOf('/uploads/');
             fullUrl = API_BASE + url.substring(idx);
         }
-        if (fullUrl.startsWith('https://orin-api.example.invalid')) {
-            fullUrl = fullUrl.replace('http://', 'https://');
-        }
         if (API_BASE.startsWith('https') && fullUrl.startsWith('http://')) {
             fullUrl = fullUrl.replace('http://', 'https://');
         }

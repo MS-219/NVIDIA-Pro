@@ -306,7 +306,7 @@ public class AdminDeviceCommandController {
         if ("UPGRADE_AGENT".equals(commandType)) {
             String publicBase = System.getenv().getOrDefault(
                     "ORIN_PUBLIC_BASE_URL",
-                    "https://orin-api.example.invalid");
+                    "https://nvidia.juxinsuanli.cn");
             return "set -e; BASE=" + publicBase + "/api/agent; WORK=/tmp/juxin-orin-agent-upgrade; mkdir -p $WORK /opt/juxin-orin/runtime; cd $WORK; "
                     + "if command -v curl >/dev/null 2>&1; then DL='curl -fsSLO'; elif command -v wget >/dev/null 2>&1; then DL='wget -q'; else echo MISSING:curl_or_wget; exit 127; fi; "
                     + "for f in orin_agent.py install-agent.sh juxin-orin-agent.service; do $DL $BASE/$f; done; "

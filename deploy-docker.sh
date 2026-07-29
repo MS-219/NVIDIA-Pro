@@ -33,6 +33,7 @@ initialize_env() {
   local backend_port="18090"
   local admin_port="18174"
   local public_host
+  local public_base_url="https://nvidia.juxinsuanli.cn"
   local admin_password
   public_host="$(detect_public_host)"
   admin_password="$(random_hex 12)"
@@ -45,13 +46,13 @@ initialize_env() {
     printf 'ORIN_DB_USERNAME=juxin_orin\n'
     printf 'ORIN_DB_PASSWORD=%s\n' "$(random_hex 24)"
     printf 'ORIN_MYSQL_ROOT_PASSWORD=%s\n' "$(random_hex 24)"
-    printf 'ORIN_CORS_ALLOWED_ORIGINS=http://%s:%s\n' "$public_host" "$admin_port"
-    printf 'ORIN_PUBLIC_BASE_URL=http://%s:%s\n' "$public_host" "$backend_port"
+    printf 'ORIN_CORS_ALLOWED_ORIGINS=%s,http://localhost:5174\n' "$public_base_url"
+    printf 'ORIN_PUBLIC_BASE_URL=%s\n' "$public_base_url"
     printf 'ORIN_JWT_SECRET=%s\n' "$(random_hex 32)"
     printf 'ORIN_ADMIN_USERNAME=admin\n'
     printf 'ORIN_ADMIN_PASSWORD=%s\n' "$admin_password"
-    printf 'ORIN_WECHAT_APP_ID=\n'
-    printf 'ORIN_WECHAT_APP_SECRET=\n'
+    printf 'ORIN_WECHAT_APP_ID=%s\n' "${ORIN_WECHAT_APP_ID:-wxd70a6d4437a87a1f}"
+    printf 'ORIN_WECHAT_APP_SECRET=%s\n' "${ORIN_WECHAT_APP_SECRET:-}"
     printf 'ORIN_BOSSKG_ENABLED=false\n'
     printf 'ORIN_BOSSKG_API_URL=https://api.example.invalid\n'
     printf 'ORIN_BOSSKG_MER_ID=\n'
@@ -60,14 +61,15 @@ initialize_env() {
     printf 'ORIN_BOSSKG_DES_KEY=\n'
     printf 'ORIN_BOSSKG_PRIVATE_KEY=\n'
     printf 'ORIN_BOSSKG_PUBLIC_KEY=\n'
-    printf 'ORIN_BOSSKG_CONTRACT_NOTIFY_URL=http://%s:%s/api/bosskg/notify/contract\n' "$public_host" "$backend_port"
-    printf 'ORIN_BOSSKG_PAYMENT_NOTIFY_URL=http://%s:%s/api/bosskg/notify/payment\n' "$public_host" "$backend_port"
+    printf 'ORIN_BOSSKG_CONTRACT_NOTIFY_URL=%s/api/bosskg/notify/contract\n' "$public_base_url"
+    printf 'ORIN_BOSSKG_PAYMENT_NOTIFY_URL=%s/api/bosskg/notify/payment\n' "$public_base_url"
   } > .env
   chmod 600 .env
 
   echo "Generated independent deployment configuration: $ROOT_DIR/.env"
   echo "Detected server address: $public_host"
-  echo "Admin URL: http://$public_host:$admin_port"
+  echo "Admin URL: $public_base_url"
+  echo "Backend health: $public_base_url/api/health"
   echo "Admin username: admin"
   echo "Admin initial password: $admin_password"
   echo "Keep this password secure; it is also stored in .env with mode 600."

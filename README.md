@@ -29,6 +29,8 @@ After startup:
 
 - Admin console: `http://SERVER_IP:18174`
 - Backend health: `http://SERVER_IP:18090/api/health`
+- Production domain: `https://nvidia.juxinsuanli.cn`
+- Production health: `https://nvidia.juxinsuanli.cn/api/health`
 
 The host ports are isolated from the old project and configurable in `.env`:
 
