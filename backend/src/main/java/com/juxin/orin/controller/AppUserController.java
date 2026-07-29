@@ -351,7 +351,14 @@ public class AppUserController {
      * 手动设置用户等级（后台管理员操作，优先级高于自动升级）
      */
     @PostMapping("/updateLevel")
-    public Result<String> updateLevel(@RequestBody Map<String, Object> params) {
+    public Result<String> updateLevel(
+            @RequestBody Map<String, Object> params,
+            @RequestHeader(value = "Authorization", required = false) String token) {
+        String authError = validateAdminToken(token);
+        if (authError != null) {
+            return Result.error(authError);
+        }
+
         Long userId = Long.valueOf(params.get("userId").toString());
         Integer level = Integer.valueOf(params.get("level").toString());
         // 允许外部传入 levelManual，默认 true (为了兼容旧逻辑)
@@ -585,7 +592,14 @@ public class AppUserController {
      * 更新用户的邀请人
      */
     @PostMapping("/updateInviter")
-    public Result<String> updateInviter(@RequestBody Map<String, Object> params) {
+    public Result<String> updateInviter(
+            @RequestBody Map<String, Object> params,
+            @RequestHeader(value = "Authorization", required = false) String token) {
+        String authError = validateAdminToken(token);
+        if (authError != null) {
+            return Result.error(authError);
+        }
+
         Long userId = Long.valueOf(params.get("userId").toString());
         // 允许 inviterId 为 null 或 0 (表示清除邀请人)
         Long inviterId = null;
@@ -1054,7 +1068,14 @@ public class AppUserController {
      * 充值配额
      */
     @PostMapping("/recharge-quota")
-    public Result<String> rechargeQuota(@RequestBody java.util.Map<String, Object> params) {
+    public Result<String> rechargeQuota(
+            @RequestBody java.util.Map<String, Object> params,
+            @RequestHeader(value = "Authorization", required = false) String token) {
+        String authError = validateAdminToken(token);
+        if (authError != null) {
+            return Result.error(authError);
+        }
+
         Long userId = Long.valueOf(params.get("userId").toString());
         Integer amount = Integer.valueOf(params.get("amount").toString());
 

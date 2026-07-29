@@ -11,6 +11,8 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * 文件上传控制器 - 仅允许安全的图片文件
@@ -34,10 +36,22 @@ public class UploadController {
 
     /** 最大文件大小: 5MB */
     private static final long MAX_FILE_SIZE = 5 * 1024 * 1024;
+    private static final int MAX_UPLOADS_PER_HOUR = 30;
+    private static final long RATE_WINDOW_MILLIS = 60L * 60L * 1000L;
+    private final Map<String, UploadRateWindow> uploadRateWindows = new ConcurrentHashMap<>();
 
     @PostMapping("/image")
-    public Result<Map<String, String>> uploadImage(@RequestParam("file") MultipartFile file,
-            jakarta.servlet.http.HttpServletRequest request) {
+    public Result<Map<String, String>> uploadImage(
+            @RequestParam("file") MultipartFile file,
+            @RequestHeader(value = "Authorization", required = false) String authorization) {
+
+        String principal = getUploadPrincipal(authorization);
+        if (principal == null) {
+            return Result.error("未登录或登录已过期");
+        }
+        if (isUploadRateLimited(principal)) {
+            return Result.error("上传过于频繁，请稍后再试");
+        }
 
         // 1. 空文件检查
         if (file.isEmpty()) {
@@ -92,6 +106,56 @@ public class UploadController {
             return Result.success(Map.of("url", fileUrl));
         } catch (IOException e) {
             return Result.error("文件保存失败");
+        }
+    }
+
+    private String getUploadPrincipal(String authorization) {
+        if (authorization == null || authorization.isBlank()) {
+            return null;
+        }
+        String token = authorization.trim();
+        if (token.startsWith("Bearer ")) {
+            token = token.substring(7).trim();
+        }
+        if (!com.juxin.orin.util.JwtUtil.validateToken(token)) {
+            return null;
+        }
+
+        String userType = com.juxin.orin.util.JwtUtil.getUserType(token);
+        Long userId = com.juxin.orin.util.JwtUtil.getUserId(token);
+        if (userId == null || (!"app".equals(userType) && !"admin".equals(userType))) {
+            return null;
+        }
+        if ("admin".equals(userType)
+                && "factory".equals(com.juxin.orin.util.JwtUtil.getRole(token))) {
+            return null;
+        }
+        return userType + ":" + userId;
+    }
+
+    private boolean isUploadRateLimited(String principal) {
+        long now = System.currentTimeMillis();
+        UploadRateWindow window = uploadRateWindows.compute(principal, (key, current) -> {
+            if (current == null || now - current.startedAt >= RATE_WINDOW_MILLIS) {
+                return new UploadRateWindow(now);
+            }
+            current.count.incrementAndGet();
+            return current;
+        });
+
+        if (uploadRateWindows.size() > 10_000) {
+            uploadRateWindows.entrySet().removeIf(entry ->
+                    now - entry.getValue().startedAt >= RATE_WINDOW_MILLIS);
+        }
+        return window.count.get() > MAX_UPLOADS_PER_HOUR;
+    }
+
+    private static final class UploadRateWindow {
+        private final long startedAt;
+        private final AtomicInteger count = new AtomicInteger(1);
+
+        private UploadRateWindow(long startedAt) {
+            this.startedAt = startedAt;
         }
     }
 

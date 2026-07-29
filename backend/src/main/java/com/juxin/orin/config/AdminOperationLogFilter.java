@@ -10,14 +10,18 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
+import org.springframework.util.MultiValueMap;
 import org.springframework.web.filter.OncePerRequestFilter;
 import org.springframework.web.util.ContentCachingRequestWrapper;
+import org.springframework.web.util.UriComponentsBuilder;
+import org.springframework.web.util.UriUtils;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.StringJoiner;
 
 @Component
 public class AdminOperationLogFilter extends OncePerRequestFilter {
@@ -53,6 +57,7 @@ public class AdminOperationLogFilter extends OncePerRequestFilter {
             "/api/user/list",
             "/api/user/stats",
             "/api/user/update",
+            "/api/user/updateAsset",
             "/api/user/updateLevel",
             "/api/user/toggleWithdraw",
             "/api/user/transfer-contract",
@@ -115,7 +120,7 @@ public class AdminOperationLogFilter extends OncePerRequestFilter {
                 int status = response.getStatus();
 
                 if (query != null && !query.isEmpty()) {
-                    path = path + "?" + query;
+                    path = path + "?" + redactQueryString(query);
                 }
 
                 log.info("管理后台操作: operator={}, userId={}, ip={}, method={}, path={}, status={}, durationMs={}, body={}",
@@ -242,15 +247,49 @@ public class AdminOperationLogFilter extends OncePerRequestFilter {
             return "-";
         }
 
-        String body = new String(content, StandardCharsets.UTF_8)
-                .replaceAll("(?i)\"password\"\\s*:\\s*\"[^\"]*\"", "\"password\":\"***\"")
-                .replaceAll("(?i)\"currentPassword\"\\s*:\\s*\"[^\"]*\"", "\"currentPassword\":\"***\"")
-                .replaceAll("(?i)\"newPassword\"\\s*:\\s*\"[^\"]*\"", "\"newPassword\":\"***\"");
+        String body = redactSensitiveBody(new String(content, StandardCharsets.UTF_8));
 
         if (body.length() > 1000) {
             return body.substring(0, 1000) + "...";
         }
         return body;
+    }
+
+    static String redactSensitiveBody(String body) {
+        return body
+                .replaceAll("(?i)\"password\"\\s*:\\s*\"[^\"]*\"", "\"password\":\"***\"")
+                .replaceAll("(?i)\"currentPassword\"\\s*:\\s*\"[^\"]*\"", "\"currentPassword\":\"***\"")
+                .replaceAll("(?i)\"newPassword\"\\s*:\\s*\"[^\"]*\"", "\"newPassword\":\"***\"")
+                .replaceAll(
+                        "(?i)\"(phone|mobile|openid|idCard|contractIdCard|bankCardNo|alipayAccount|account|cardNo|realName)\"\\s*:\\s*\"[^\"]*\"",
+                        "\"$1\":\"***\"")
+                .replaceAll(
+                        "(?i)\"(balance|quota|amount)\"\\s*:\\s*(\"[^\"]*\"|[-+0-9.eE]+)",
+                        "\"$1\":\"***\"");
+    }
+
+    static String redactQueryString(String query) {
+        if (query == null || query.isBlank()) {
+            return "";
+        }
+
+        try {
+            MultiValueMap<String, String> parameters = UriComponentsBuilder
+                    .fromUriString("/?" + query)
+                    .build()
+                    .getQueryParams();
+            StringJoiner redacted = new StringJoiner("&");
+            parameters.forEach((name, values) -> {
+                String safeName = UriUtils.encodeQueryParam(name, StandardCharsets.UTF_8);
+                int valueCount = values == null || values.isEmpty() ? 1 : values.size();
+                for (int i = 0; i < valueCount; i++) {
+                    redacted.add(safeName + "=***");
+                }
+            });
+            return redacted.toString();
+        } catch (IllegalArgumentException exception) {
+            return "redacted=***";
+        }
     }
 
     private String getClientIp(HttpServletRequest request) {

@@ -41,7 +41,15 @@ select { font: inherit; }
 .scheduling-page,
 .operations-page,
 .upgrades-page,
-.settings-page {
+.settings-page,
+.user-list-page,
+.team-list-page,
+.notice-list-page,
+.feedback-page,
+.withdraw-list-page,
+.payment-apply-list,
+.earnings-page,
+.reward-list-page {
   width: 100%;
   max-width: 1600px;
   margin: 0 auto;
@@ -75,6 +83,210 @@ select { font: inherit; }
 .el-dialog { max-width: calc(100vw - 32px); border-radius: 7px; }
 .el-tag { border-radius: 3px; }
 
+.user-list-page .el-card,
+.team-list-page .el-card,
+.notice-list-page .el-card,
+.feedback-page .el-card,
+.withdraw-list-page .el-card,
+.payment-apply-list .el-card,
+.earnings-page .el-card,
+.reward-list-page .el-card,
+.settings-page .el-card {
+  border-radius: 6px !important;
+  box-shadow: none !important;
+}
+
+.user-list-page .stat-card,
+.withdraw-list-page .amount-card,
+.withdraw-list-page .status-card,
+.earnings-page .stat-card {
+  border-radius: 6px !important;
+  box-shadow: none !important;
+}
+
+.user-list-page .stat-card {
+  color: var(--orin-ink) !important;
+  background: var(--orin-surface) !important;
+  border: 1px solid var(--orin-border) !important;
+  border-left: 4px solid #659f00 !important;
+}
+
+.user-list-page .stat-card.active { border-left-color: #2684c7 !important; }
+.user-list-page .stat-card.balance { border-left-color: #d58b00 !important; }
+.user-list-page .stat-card.quota { border-left-color: #5c6258 !important; }
+.user-list-page .stat-card .stat-value { color: var(--orin-ink) !important; }
+.user-list-page .stat-card .stat-label { color: #646b60 !important; }
+
+.withdraw-list-page .amount-card {
+  color: var(--orin-ink) !important;
+  background: var(--orin-surface) !important;
+  border: 1px solid var(--orin-border) !important;
+  border-left: 4px solid #659f00 !important;
+}
+
+.withdraw-list-page .amount-card.bosskg { border-left-color: #d58b00 !important; }
+.withdraw-list-page .amount-card.pending-pay { border-left-color: #d04a58 !important; }
+.withdraw-list-page .amount-card.paid-amount { border-left-color: #16865f !important; }
+.withdraw-list-page .amount-card .amount-value { color: var(--orin-ink) !important; }
+.withdraw-list-page .amount-card .amount-label { color: #646b60 !important; }
+
+.user-list-page .stat-card:hover,
+.withdraw-list-page .amount-card:hover,
+.withdraw-list-page .status-card:hover,
+.earnings-page .stat-card:hover {
+  transform: none !important;
+}
+
+.sensitive-toggle {
+  flex: 0 0 auto;
+}
+
 @media (max-width: 720px) {
   .el-dialog { width: calc(100vw - 32px) !important; }
+
+  .user-list-page .el-row,
+  .team-list-page .el-row,
+  .notice-list-page .el-row,
+  .feedback-page .el-row,
+  .withdraw-list-page .el-row,
+  .payment-apply-list .el-row,
+  .earnings-page .el-row,
+  .reward-list-page .el-row,
+  .settings-page > .el-row {
+    row-gap: 12px;
+  }
+
+  .user-list-page .el-col,
+  .team-list-page .search-card .el-col,
+  .notice-list-page .search-card .el-col,
+  .feedback-page .search-card .el-col,
+  .withdraw-list-page .el-col,
+  .payment-apply-list .filter-card .el-col,
+  .earnings-page .el-col,
+  .reward-list-page .search-card .el-col,
+  .settings-page > .el-row > .el-col {
+    width: 100% !important;
+    max-width: 100% !important;
+    flex: 0 0 100% !important;
+  }
+
+  .user-list-page .el-col[style*="text-align"],
+  .team-list-page .el-col[style*="text-align"],
+  .notice-list-page .el-col[style*="text-align"],
+  .withdraw-list-page .el-col[style*="text-align"],
+  .payment-apply-list .el-col[style*="text-align"] {
+    text-align: left !important;
+  }
+
+  .settings-page .profile-info,
+  .user-list-page .detail-header,
+  .withdraw-list-page .batch-bar-inner {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .settings-page .level-inputs {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .settings-page .banner-item-admin {
+    flex-direction: column;
+  }
+
+  .settings-page .banner-img-preview {
+    width: 100%;
+    height: auto;
+    aspect-ratio: 5 / 3;
+  }
+
+  .earnings-page .stat-row > .el-col {
+    width: 50% !important;
+    max-width: 50% !important;
+    flex: 0 0 50% !important;
+  }
+
+  .user-list-page .stat-cards > .el-col,
+  .withdraw-list-page .amount-stats-row > .el-col,
+  .withdraw-list-page .stats-row > .el-col {
+    width: 50% !important;
+    max-width: 50% !important;
+    flex: 0 0 50% !important;
+  }
+
+  .withdraw-list-page .stats-row > .el-col:last-child {
+    width: 100% !important;
+    max-width: 100% !important;
+    flex-basis: 100% !important;
+  }
+
+  .user-list-page .stat-card,
+  .withdraw-list-page .amount-card,
+  .withdraw-list-page .stat-card {
+    min-height: 92px;
+    padding: 12px !important;
+    gap: 10px;
+  }
+
+  .user-list-page .stat-icon,
+  .withdraw-list-page .amount-icon,
+  .withdraw-list-page .stat-icon {
+    width: 40px !important;
+    height: 40px !important;
+    flex: 0 0 40px;
+    font-size: 20px !important;
+  }
+
+  .user-list-page .stat-value,
+  .withdraw-list-page .amount-value,
+  .withdraw-list-page .stat-value {
+    font-size: 20px !important;
+  }
+
+  .earnings-page .stat-card {
+    min-height: 92px;
+    padding: 12px !important;
+    gap: 10px;
+  }
+
+  .earnings-page .stat-icon-wrapper {
+    width: 40px;
+    height: 40px;
+    flex: 0 0 40px;
+    border-radius: 6px;
+    font-size: 20px;
+  }
+
+  .earnings-page .stat-info {
+    min-width: 0;
+  }
+
+  .earnings-page .stat-value {
+    overflow: hidden;
+    font-size: 18px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .earnings-page .stat-label {
+    font-size: 12px;
+  }
+
+  .earnings-page .compensate-form {
+    padding: 20px;
+  }
+
+  .earnings-page .compensate-form .el-input-number {
+    width: 100% !important;
+  }
+
+  .earnings-page .tab-header {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .earnings-page .tab-header .el-date-editor,
+  .earnings-page .tab-header .el-input {
+    width: 100% !important;
+  }
 }

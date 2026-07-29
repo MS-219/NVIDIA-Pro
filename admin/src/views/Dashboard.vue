@@ -39,6 +39,42 @@
           <span>设备指令</span>
         </el-menu-item>
 
+        <div class="nav-label">用户与运营</div>
+        <el-menu-item index="/users">
+          <el-icon><UserFilled /></el-icon>
+          <span>用户管理</span>
+        </el-menu-item>
+        <el-menu-item index="/teams">
+          <el-icon><Avatar /></el-icon>
+          <span>团队管理</span>
+        </el-menu-item>
+        <el-menu-item index="/notices">
+          <el-icon><Bell /></el-icon>
+          <span>公告管理</span>
+        </el-menu-item>
+        <el-menu-item index="/feedback">
+          <el-icon><ChatDotRound /></el-icon>
+          <span>意见反馈</span>
+        </el-menu-item>
+
+        <div class="nav-label">财务与结算</div>
+        <el-menu-item index="/withdrawals">
+          <el-icon><Wallet /></el-icon>
+          <span>提现管理</span>
+        </el-menu-item>
+        <el-menu-item index="/payment-applies">
+          <el-icon><DocumentChecked /></el-icon>
+          <span>账户变更审核</span>
+        </el-menu-item>
+        <el-menu-item index="/earnings">
+          <el-icon><Money /></el-icon>
+          <span>收益管理</span>
+        </el-menu-item>
+        <el-menu-item index="/rewards">
+          <el-icon><Tickets /></el-icon>
+          <span>分润流水</span>
+        </el-menu-item>
+
         <div class="nav-label">调度控制</div>
         <el-menu-item index="/automation">
           <el-icon><Connection /></el-icon>
@@ -61,6 +97,10 @@
         <el-menu-item index="/terminal">
           <el-icon><Platform /></el-icon>
           <span>终端会话</span>
+        </el-menu-item>
+        <el-menu-item index="/device-settings">
+          <el-icon><Operation /></el-icon>
+          <span>设备参数</span>
         </el-menu-item>
         <el-menu-item index="/settings">
           <el-icon><Setting /></el-icon>
@@ -116,12 +156,17 @@ import { computed, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import {
   ArrowDown,
+  Avatar,
+  Bell,
+  ChatDotRound,
   CircleCheck,
   Connection,
   Cpu,
   DataAnalysis,
+  DocumentChecked,
   List,
   Menu,
+  Money,
   Monitor,
   Odometer,
   Operation,
@@ -129,7 +174,10 @@ import {
   Promotion,
   Setting,
   SwitchButton,
+  Tickets,
   UploadFilled,
+  UserFilled,
+  Wallet,
 } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 

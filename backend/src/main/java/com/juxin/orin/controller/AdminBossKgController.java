@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.*;
 import java.math.BigDecimal;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * 佣金保管理后台控制器
@@ -27,6 +28,7 @@ public class AdminBossKgController {
 
     @Autowired
     private IWithdrawService withdrawService;
+    private final AtomicBoolean pendingSyncRunning = new AtomicBoolean(false);
 
     /**
      * 获取佣金保状态信息
@@ -106,30 +108,40 @@ public class AdminBossKgController {
             return Result.error("无权限访问");
         }
 
-        // 查询所有佣金保状态为"付款中"的订单
-        java.util.List<com.juxin.orin.entity.Withdraw> pendingList = withdrawService.lambdaQuery()
-                .eq(com.juxin.orin.entity.Withdraw::getBossKgState, 1)
-                .isNotNull(com.juxin.orin.entity.Withdraw::getBossKgBatchId)
-                .list();
-
-        int successCount = 0;
-        int failCount = 0;
-
-        for (com.juxin.orin.entity.Withdraw withdraw : pendingList) {
-            boolean success = withdrawService.syncBossKgStatus(withdraw.getId());
-            if (success) {
-                successCount++;
-            } else {
-                failCount++;
-            }
+        if (!pendingSyncRunning.compareAndSet(false, true)) {
+            return Result.success(Map.of(
+                    "skipped", true,
+                    "message", "同步任务正在执行"));
         }
 
-        Map<String, Object> result = new HashMap<>();
-        result.put("total", pendingList.size());
-        result.put("success", successCount);
-        result.put("fail", failCount);
+        try {
+            // 查询所有佣金保状态为"付款中"的订单
+            java.util.List<com.juxin.orin.entity.Withdraw> pendingList = withdrawService.lambdaQuery()
+                    .eq(com.juxin.orin.entity.Withdraw::getBossKgState, 1)
+                    .isNotNull(com.juxin.orin.entity.Withdraw::getBossKgBatchId)
+                    .list();
 
-        return Result.success(result);
+            int successCount = 0;
+            int failCount = 0;
+
+            for (com.juxin.orin.entity.Withdraw withdraw : pendingList) {
+                boolean success = withdrawService.syncBossKgStatus(withdraw.getId());
+                if (success) {
+                    successCount++;
+                } else {
+                    failCount++;
+                }
+            }
+
+            Map<String, Object> result = new HashMap<>();
+            result.put("total", pendingList.size());
+            result.put("success", successCount);
+            result.put("fail", failCount);
+
+            return Result.success(result);
+        } finally {
+            pendingSyncRunning.set(false);
+        }
     }
 
     /**

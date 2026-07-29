@@ -74,10 +74,64 @@ const routes = [
                 meta: { title: '终端调试模式' }
             },
             {
-                path: 'settings',
-                name: 'Settings',
+                path: 'users',
+                name: 'UserList',
+                component: () => import('../views/UserList.vue'),
+                meta: { title: '用户管理' }
+            },
+            {
+                path: 'teams',
+                name: 'TeamList',
+                component: () => import('../views/TeamList.vue'),
+                meta: { title: '团队管理' }
+            },
+            {
+                path: 'notices',
+                name: 'NoticeList',
+                component: () => import('../views/NoticeList.vue'),
+                meta: { title: '公告管理' }
+            },
+            {
+                path: 'feedback',
+                name: 'FeedbackList',
+                component: () => import('../views/FeedbackList.vue'),
+                meta: { title: '意见反馈' }
+            },
+            {
+                path: 'withdrawals',
+                name: 'WithdrawList',
+                component: () => import('../views/WithdrawList.vue'),
+                meta: { title: '提现管理' }
+            },
+            {
+                path: 'payment-applies',
+                name: 'PaymentApplyList',
+                component: () => import('../views/PaymentApplyList.vue'),
+                meta: { title: '账户变更审核' }
+            },
+            {
+                path: 'earnings',
+                name: 'EarningsList',
+                component: () => import('../views/EarningsList.vue'),
+                meta: { title: '收益管理' }
+            },
+            {
+                path: 'rewards',
+                name: 'RewardList',
+                component: () => import('../views/RewardList.vue'),
+                meta: { title: '分润流水' }
+            },
+            {
+                path: 'device-settings',
+                name: 'DeviceSettings',
                 component: () => import('../views/Settings.vue'),
-                meta: { title: '系统配置中心' }
+                meta: { title: '设备参数' }
+            },
+            {
+                path: 'settings',
+                name: 'PlatformSettings',
+                component: () => import('../views/PlatformSettings.vue'),
+                meta: { title: '系统设置' }
             }
         ]
     }

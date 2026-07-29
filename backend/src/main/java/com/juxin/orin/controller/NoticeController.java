@@ -111,6 +111,9 @@ public class NoticeController {
         if (notice.getStatus() == null) {
             notice.setStatus(0); // 默认草稿
         }
+        if (notice.getStatus() == 1) {
+            notice.setPublishTime(LocalDateTime.now());
+        }
         if (notice.getSort() == null) {
             notice.setSort(0);
         }
@@ -133,6 +136,15 @@ public class NoticeController {
 
         if (notice.getId() == null) {
             return Result.error("公告ID不能为空");
+        }
+        Notice existing = noticeService.getById(notice.getId());
+        if (existing == null) {
+            return Result.error("公告不存在");
+        }
+        if (notice.getStatus() != null && notice.getStatus() == 1) {
+            notice.setPublishTime(existing.getPublishTime() == null
+                    ? LocalDateTime.now()
+                    : existing.getPublishTime());
         }
         notice.setUpdateTime(LocalDateTime.now());
         boolean success = noticeService.updateById(notice);
@@ -157,7 +169,9 @@ public class NoticeController {
             return Result.error("公告不存在");
         }
         notice.setStatus(1);
-        notice.setPublishTime(LocalDateTime.now());
+        if (notice.getPublishTime() == null) {
+            notice.setPublishTime(LocalDateTime.now());
+        }
         notice.setUpdateTime(LocalDateTime.now());
         boolean success = noticeService.updateById(notice);
         return success ? Result.success("发布成功") : Result.error("发布失败");
