@@ -1,80 +1,92 @@
 <view class="container">
-    <!-- 状态显示 (已提交且未点重新申请) -->
-    <view class="status-section" wx:if="{{contractStatus !== null && !showForm}}">
-        <!-- 成功状态 -->
+    <view class="status-gate" wx:if="{{!showForm && !statusError && (statusLoading || contractStatus === null)}}">
+        <view class="gate-spinner"></view>
+        <text class="gate-title">正在同步签约状态</text>
+        <text class="gate-code">IDENTITY LINK / SYNCING</text>
+    </view>
+    <view class="status-gate is-error" wx:elif="{{statusError && !showForm}}">
+        <view class="gate-error-mark">!</view>
+        <text class="gate-title">签约状态同步中断</text>
+        <text class="gate-desc">{{statusError}}</text>
+        <button class="retry-btn" bindtap="retryStatus">重新同步</button>
+    </view>
+    <view class="status-section" wx:elif="{{contractStatus !== null && !showForm}}">
         <block wx:if="{{contractStatus === 1}}">
             <view class="status-hero success-bg">
-                <view class="status-emoji">✅</view>
+                <view class="status-head"><text>CONTRACT STATUS</text><view class="status-signal"></view></view>
+                <view class="status-glyph success-glyph"></view>
                 <text class="status-title">签约成功</text>
-                <text class="status-subtitle">您已完成实名签约，可以发起提现申请了</text>
+                <text class="status-subtitle">实名与收款信息已完成核验，提现通道已开放</text>
+                <text class="status-code">VERIFIED / ACTIVE</text>
             </view>
         </block>
-        <!-- 审核中 -->
         <block wx:elif="{{contractStatus === 3}}">
             <view class="status-hero pending-bg">
-                <view class="status-emoji">⏳</view>
+                <view class="status-head"><text>CONTRACT STATUS</text><view class="status-signal"></view></view>
+                <view class="status-glyph pending-glyph"><view></view></view>
                 <text class="status-title">审核中</text>
-                <text class="status-subtitle">您的申请已提交，通常1-5分钟内完成审核</text>
+                <text class="status-subtitle">申请已提交，通常在 1-5 分钟内完成审核</text>
+                <text class="status-code">VERIFYING / QUEUED</text>
             </view>
         </block>
-        <!-- 失败 -->
         <block wx:elif="{{contractStatus === 2}}">
             <view class="status-hero fail-bg">
-                <view class="status-emoji">❌</view>
+                <view class="status-head"><text>CONTRACT STATUS</text><view class="status-signal"></view></view>
+                <view class="status-glyph fail-glyph"></view>
                 <text class="status-title">审核失败</text>
                 <text class="status-subtitle">{{failReason || '经审核，您的身份信息不符合要求'}}</text>
+                <text class="status-code">REVIEW / REQUIRED</text>
             </view>
-            <view class="action-area">
-                <button class="action-btn" bindtap="resetForm">重新申请</button>
-            </view>
+            <view class="action-area"><button class="action-btn" bindtap="resetForm">重新申请</button></view>
         </block>
-        <!-- 已解约 -->
         <block wx:elif="{{contractStatus === 5}}">
             <view class="status-hero cancel-bg">
-                <view class="status-emoji">📋</view>
-                <text class="status-title">已解约</text>
-                <text class="status-subtitle">您的签约已失效，如需提现请重新签约</text>
+                <view class="status-head"><text>CONTRACT STATUS</text><view class="status-signal"></view></view>
+                <view class="status-glyph document-glyph"><view></view></view>
+                <text class="status-title">签约已解除</text>
+                <text class="status-subtitle">签约已失效，重新完成核验后可恢复提现</text>
+                <text class="status-code">INACTIVE / CLOSED</text>
             </view>
-            <view class="action-area">
-                <button class="action-btn" bindtap="resetForm">重新申请</button>
-            </view>
+            <view class="action-area"><button class="action-btn" bindtap="resetForm">重新申请</button></view>
         </block>
-        <!-- 待签约 -->
         <block wx:else>
             <view class="status-hero default-bg">
-                <view class="status-emoji">📝</view>
-                <text class="status-title">待签约</text>
-                <text class="status-subtitle">请提交信息并完成人脸识别签约</text>
+                <view class="status-head"><text>CONTRACT STATUS</text><view class="status-signal"></view></view>
+                <view class="status-glyph document-glyph"><view></view></view>
+                <text class="status-title">等待签约</text>
+                <text class="status-subtitle">提交身份与银行卡信息后进入人脸识别</text>
+                <text class="status-code">IDENTITY / PENDING</text>
             </view>
-            <view class="action-area">
-                <button class="action-btn" bindtap="resetForm">去签约</button>
-            </view>
+            <view class="action-area"><button class="action-btn" bindtap="resetForm">开始签约</button></view>
         </block>
     </view>
-    <!-- 签约表单 -->
-    <view class="form-section" wx:if="{{contractStatus === null || showForm}}">
-        <!-- 步骤提示 -->
-        <view class="steps-bar">
-            <view class="step active">
-                <view class="step-num">1</view>
-                <text class="step-text">填写信息</text>
-            </view>
-            <view class="step-line"></view>
-            <view class="step">
-                <view class="step-num">2</view>
-                <text class="step-text">人脸识别</text>
-            </view>
-            <view class="step-line"></view>
-            <view class="step">
-                <view class="step-num">3</view>
-                <text class="step-text">签约完成</text>
+
+    <view class="form-section" wx:else>
+        <view class="form-telemetry">
+            <view class="status-head"><text>IDENTITY PIPELINE</text><view class="status-signal"></view></view>
+            <text class="telemetry-title">实名签约</text>
+            <text class="telemetry-subtitle">一次录入身份与结算信息，下一步进入人脸识别</text>
+            <view class="telemetry-meta">
+                <text>CHANNEL · BANK</text>
+                <text>SECURE · TLS</text>
             </view>
         </view>
-        <!-- 身份信息 -->
+
+        <view class="steps-bar">
+            <view class="step active"><view class="step-num">1</view><text class="step-text">填写信息</text></view>
+            <view class="step-line active-line"></view>
+            <view class="step"><view class="step-num">2</view><text class="step-text">人脸识别</text></view>
+            <view class="step-line"></view>
+            <view class="step"><view class="step-num">3</view><text class="step-text">签约完成</text></view>
+        </view>
+
         <view class="card">
             <view class="card-header">
-                <text class="card-icon">👤</text>
-                <text class="card-title">身份信息</text>
+                <view class="card-mark identity-mark"><view></view></view>
+                <view>
+                    <text class="card-kicker">IDENTITY</text>
+                    <text class="card-title">身份信息</text>
+                </view>
             </view>
             <view class="field">
                 <text class="field-label">真实姓名</text>
@@ -82,48 +94,51 @@
             </view>
             <view class="field">
                 <text class="field-label">身份证号</text>
-                <input class="field-input" type="idcard" placeholder="请输入18位身份证号" value="{{form.idCard}}" bindinput="onInput" data-field="idCard" maxlength="18" />
+                <input class="field-input" type="idcard" placeholder="请输入 18 位身份证号" value="{{form.idCard}}" bindinput="onInput" data-field="idCard" maxlength="18" />
             </view>
             <view class="field last">
                 <text class="field-label">手机号</text>
-                <input class="field-input" type="number" placeholder="银行预留手机号" value="{{form.mobile}}" bindinput="onInput" data-field="mobile" maxlength="11" />
+                <input class="field-input" type="number" placeholder="请输入银行预留手机号" value="{{form.mobile}}" bindinput="onInput" data-field="mobile" maxlength="11" />
             </view>
         </view>
-        <!-- 收款方式 -->
+
         <view class="card">
             <view class="card-header">
-                <text class="card-icon">💳</text>
-                <text class="card-title">收款银行卡</text>
+                <view class="card-mark bank-mark"><view></view></view>
+                <view>
+                    <text class="card-kicker">SETTLEMENT</text>
+                    <text class="card-title">收款银行卡</text>
+                </view>
             </view>
             <view class="field last">
                 <text class="field-label">银行卡号</text>
                 <input class="field-input" type="number" placeholder="请输入银行卡号" value="{{form.cardNo}}" bindinput="onInput" data-field="cardNo" />
             </view>
         </view>
-        <!-- 协议 -->
+
         <view class="agreement">
-            <checkbox-group bindchange="onAgreementChange">
-                <label class="agree-row">
-                    <checkbox value="agree" checked="{{agreed}}" color="#16a34a" />
+            <view class="agree-row">
+                <checkbox-group bindchange="onAgreementChange">
+                  <label class="agree-toggle">
+                    <checkbox value="agree" checked="{{agreed}}" color="#76B900" />
                     <text class="agree-text">我已阅读并同意</text>
-                    <text class="agree-link" bindtap="showProtocol">《灵活用工服务协议》</text>
-                </label>
-            </checkbox-group>
+                  </label>
+                </checkbox-group>
+                <text class="agree-link" catchtap="showProtocol">《灵活用工服务协议》</text>
+            </view>
         </view>
-        <!-- 提交 -->
-        <button class="submit-btn {{!canSubmit ? 'btn-disabled' : ''}}" bindtap="submitForm" loading="{{submitting}}" disabled="{{!canSubmit || submitting}}">
-            {{submitting ? '跳转中...' : '提交并进行人脸识别'}}
-        </button>
-        <!-- 提示 -->
+
+        <button class="submit-btn {{!canSubmit ? 'btn-disabled' : ''}}" bindtap="submitForm" loading="{{submitting}}" disabled="{{!canSubmit || submitting}}">{{submitting ? '跳转中...' : '提交并进行人脸识别'}}</button>
+
         <view class="tips">
-            <text>• 身份信息仅用于劳务报酬实名核验</text>
-            <text>• 完成人脸识别后系统将自动生成服务协议</text>
-            <text>• 审核通过后方可发起提现申请</text>
+            <view class="tip-row"><text class="tip-index">01</text><text>身份信息仅用于劳务报酬实名核验</text></view>
+            <view class="tip-row"><text class="tip-index">02</text><text>完成人脸识别后自动生成服务协议</text></view>
+            <view class="tip-row"><text class="tip-index">03</text><text>审核通过后可发起提现申请</text></view>
         </view>
     </view>
-    <!-- 底部安全 -->
+
     <view class="safe-footer">
-        <text class="safe-icon">🔒</text>
-        <text class="safe-text">信息已加密传输，仅用于合规核验</text>
+        <view class="lock-mark"><view></view></view>
+        <text class="safe-text">信息加密传输，仅用于合规核验</text>
     </view>
 </view>

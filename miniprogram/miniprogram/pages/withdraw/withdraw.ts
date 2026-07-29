@@ -521,10 +521,10 @@ Page({
         if (this.data.cancelling) return;
 
         wx.showModal({
-            title: '❗ 解约确认',
+            title: '解约确认',
             content: '解约后将无法正常提现，确定要解除签约吗？',
             confirmText: '确定解约',
-            confirmColor: '#e74c3c',
+            confirmColor: '#C65A52',
             success: (res: any) => {
                 if (res.confirm) {
                     this.doCancelContract();

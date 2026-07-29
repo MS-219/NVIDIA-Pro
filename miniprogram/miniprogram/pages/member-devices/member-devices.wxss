@@ -323,3 +323,35 @@ page {
         transform: rotate(360deg);
     }
 }
+.avatar-placeholder { color: #548600; font-family: "DIN Alternate", Menlo, monospace; font-size: 11px; font-weight: 800; }
+.empty-icon { width: 54px; height: 54px; padding: 14px; box-sizing: border-box; background: rgba(118,185,0,.11); border-radius: 8px; }
+
+/* Precision Edge Console overrides. */
+page { background: #eef1ed; }
+.container { padding: 0 12px 40px; }
+.custom-nav { margin: 0 -12px 12px; padding: 0 12px; box-sizing: content-box; background: rgba(255,255,255,.9); border-bottom: 1px solid rgba(28,33,27,.08); }
+.nav-back { width: 44px; flex: 0 0 44px; }
+.nav-title { margin-right: 44px; color: #1c211b; font-size: 18px; font-weight: 700; }
+.member-card { position: relative; margin-bottom: 12px; padding: 17px; overflow: hidden; background: #121611 !important; border: 1px solid rgba(118,185,0,.28) !important; border-radius: 8px !important; box-shadow: none !important; }
+.member-card::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: #76b900; }
+.member-avatar { width: 54px; height: 54px; margin-right: 13px; background: rgba(118,185,0,.14); border: 1px solid rgba(141,210,20,.3); }
+.member-name-row { min-height: 44px; margin: 0; }
+.member-name { min-width: 0; overflow: hidden; color: #f7f9f5; font-size: 17px; text-overflow: ellipsis; white-space: nowrap; }
+.level-badge { min-height: 22px; padding: 0 7px; display: flex; align-items: center; background: #76b900 !important; color: #0b0e0a !important; font-size: 10px; border-radius: 4px !important; }
+.filter-tabs { min-height: 52px; margin-bottom: 12px; padding: 3px; box-sizing: border-box; background: #e4e8e2; border: 1px solid rgba(28,33,27,.06); border-radius: 7px; backdrop-filter: none; -webkit-backdrop-filter: none; }
+.filter-tab { min-height: 44px; padding: 0 8px; box-sizing: border-box; font-size: 12px; border-radius: 5px; }
+.filter-tab.active { background: #121611 !important; color: #f7f9f5 !important; box-shadow: none; }
+.status-dot.offline { background: #c65a52; }
+.devices-list { gap: 10px; }
+.device-item { padding: 14px; background: #fff !important; border: 1px solid rgba(28,33,27,.075) !important; border-radius: 8px !important; box-shadow: none !important; backdrop-filter: none; -webkit-backdrop-filter: none; }
+.device-item-pressed { opacity: .72; }
+.device-header { min-height: 60px; margin-bottom: 0; padding-bottom: 12px; }
+.device-icon { width: 48px; height: 48px; margin-right: 12px; background: #edf1eb; border-radius: 7px; }
+.device-name { color: #1c211b; font-size: 15px; }
+.device-sn { margin-top: 5px; font-size: 11px; }
+.device-status { min-height: 28px; padding: 0 8px; font-size: 11px; border-radius: 5px; }
+.device-status.offline { background: rgba(198,90,82,.1); color: #a7524a; }
+.device-status.offline .status-indicator { background: #c65a52; }
+.device-stats-simple { margin-top: 0; padding-top: 12px; border-top: 1px solid rgba(28,33,27,.055); }
+.stat-label,.stat-value { font-size: 11px; }
+.empty-state { background: #fff; border-color: rgba(28,33,27,.075); border-radius: 8px; backdrop-filter: none; -webkit-backdrop-filter: none; }

@@ -4,9 +4,9 @@
       <view><text class="nav-title">我的</text><text class="nav-subtitle">账户与服务</text></view>
     </view>
 
-    <view class="profile-card" bindtap="{{!isLoggedIn ? 'onLogin' : ''}}">
+    <view class="profile-card" bindtap="onProfileCardTap" hover-class="profile-card-pressed">
       <view class="avatar-wrap">
-        <button class="avatar-trigger" open-type="chooseAvatar" bindchooseavatar="onChooseAvatar" wx:if="{{isLoggedIn}}">
+        <button class="avatar-trigger" open-type="chooseAvatar" bindchooseavatar="onChooseAvatar" catchtap="stopPropagation" wx:if="{{isLoggedIn}}">
           <image class="avatar-image" src="{{userInfo.avatarUrl}}" mode="aspectFill" wx:if="{{userInfo.avatarUrl}}"></image>
           <view class="avatar-fallback" wx:else>JX</view>
         </button>
@@ -15,13 +15,13 @@
       </view>
       <view class="profile-copy" wx:if="{{isLoggedIn}}">
         <view class="name-line">
-          <input class="nick-input" type="nickname" placeholder="设置昵称" value="{{userInfo.nickname}}" bindchange="onNicknameInput" wx:if="{{!userInfo.nickname || userInfo.nickname === '微信用户'}}" />
-          <text class="profile-name" bindtap="onEditNickname" wx:else>{{userInfo.nickname}}</text>
+          <input class="nick-input" type="nickname" placeholder="设置昵称" value="{{userInfo.nickname}}" bindchange="onNicknameInput" catchtap="stopPropagation" wx:if="{{!userInfo.nickname || userInfo.nickname === '微信用户'}}" />
+          <text class="profile-name" catchtap="onEditNickname" wx:else>{{userInfo.nickname}}</text>
           <text class="level-badge">L{{userInfo.level || 0}}</text>
         </view>
         <text class="account-id">用户 ID {{userInfo.id}}</text>
         <view class="phone-line" wx:if="{{userInfo.phone}}">{{userInfo.phone}}</view>
-        <button class="bind-phone" open-type="getPhoneNumber" bindgetphonenumber="onGetPhoneNumber" wx:else>绑定手机号</button>
+        <button class="bind-phone" open-type="getPhoneNumber" bindgetphonenumber="onGetPhoneNumber" catchtap="stopPropagation" wx:else>绑定手机号</button>
       </view>
       <view class="profile-copy" wx:else><text class="profile-name">登录聚芯 Orin</text><text class="account-id">管理设备、收益和结算信息</text><text class="login-link">微信快捷登录 ›</text></view>
       <text class="profile-arrow">›</text>
@@ -32,7 +32,7 @@
     <block wx:if="{{isLoggedIn}}">
       <view class="wallet-card">
         <view class="wallet-head"><text>我的收益</text><view bindtap="onWalletDetail">查看明细 ›</view></view>
-        <view class="wallet-main" bindtap="onWithdraw"><text>可提现余额（元）</text><view><text>¥</text><text>{{walletInfo.balance}}</text></view></view>
+        <view class="wallet-main" bindtap="onWalletDetail" hover-class="wallet-main-pressed"><text>可提现余额（元）</text><view><text>¥</text><text>{{walletInfo.balance}}</text></view></view>
         <view class="wallet-stats"><view><text>累计收益</text><text>¥{{walletInfo.totalEarnings}}</text></view><view><text>节点权益</text><text>{{walletInfo.displayHashrate || 0}}</text></view></view>
         <view class="wallet-actions"><button bindtap="onWithdraw">申请提现</button><button bindtap="onWithdrawRecord">提现记录</button></view>
       </view>

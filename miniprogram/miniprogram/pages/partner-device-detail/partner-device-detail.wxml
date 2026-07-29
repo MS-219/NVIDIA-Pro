@@ -33,7 +33,7 @@
                 <view class="device-owner">
                     <view class="owner-avatar">
                         <image wx:if="{{device.ownerAvatar}}" src="{{device.ownerAvatar}}" mode="aspectFill"></image>
-                        <text wx:else class="avatar-placeholder">👤</text>
+                        <text wx:else class="avatar-placeholder">JX</text>
                     </view>
                     <view class="owner-detail">
                         <text class="owner-name">{{device.ownerNickname}}</text>

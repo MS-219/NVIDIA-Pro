@@ -22,7 +22,11 @@ Page({
     notices: [] as any[],
     firstShowHandled: false,
     statisticsLoading: false,
-    partnerStatsLoading: false
+    partnerStatsLoading: false,
+    statisticsReady: false,
+    statisticsError: false,
+    syncLabel: '正在同步',
+    syncState: 'is-syncing'
   },
 
   onLoad(options: any) {
@@ -84,7 +88,10 @@ Page({
         online,
         offline: total - online,
         onlineRate: total > 0 ? Math.round((online / total) * 100) : 0
-      }
+      },
+      statisticsReady: true,
+      syncLabel: this.formatSyncLabel(snapshot.statisticsTs || snapshot.ts, true),
+      syncState: 'is-idle'
     });
   },
 
@@ -111,6 +118,14 @@ Page({
     if (value.length > 9) return 'is-compact';
     if (value.length > 6) return 'is-medium';
     return '';
+  },
+
+  formatSyncLabel(timestamp: number, cached = false) {
+    if (!timestamp) return cached ? '缓存数据' : '同步完成';
+    const date = new Date(timestamp);
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    return `${hours}:${minutes} ${cached ? '缓存' : '已同步'}`;
   },
 
   // 尝试绑定邀请码
@@ -248,9 +263,22 @@ Page({
 
     // 获取用户ID
     const userId = wx.getStorageSync('userId');
-    if (!userId) return Promise.resolve(null);
+    if (!userId) {
+      this.setData({
+        statisticsReady: true,
+        statisticsError: false,
+        syncLabel: '登录后同步',
+        syncState: 'is-idle'
+      });
+      return Promise.resolve(null);
+    }
 
-    this.setData({ statisticsLoading: true });
+    this.setData({
+      statisticsLoading: true,
+      statisticsError: false,
+      syncLabel: this.data.statisticsReady ? '正在更新' : '正在同步',
+      syncState: 'is-syncing'
+    });
 
     // 获取收益统计
     return request({
@@ -260,6 +288,7 @@ Page({
     }).then(res => {
       if (res.code === 200) {
         const data = res.data;
+        const statisticsTs = Date.now();
         const total = Math.max(0, Number(data.deviceCount) || 0);
         const online = Math.min(total, Math.max(0, Number(data.onlineCount) || 0));
         const yesterday = this.formatEarningsValue(data.yesterday);
@@ -277,14 +306,32 @@ Page({
             offline: total - online,
             partnerDevices: this.data.nodeStats.partnerDevices || 0,
             onlineRate: total > 0 ? Math.round((online / total) * 100) : 0
-          }
+          },
+          statisticsReady: true,
+          statisticsError: false,
+          syncLabel: this.formatSyncLabel(statisticsTs),
+          syncState: 'is-online'
         });
         this.cacheHomeSnapshot({
           earnings: this.data.earnings,
-          nodeStats: this.data.nodeStats
+          nodeStats: this.data.nodeStats,
+          statisticsTs
+        });
+      } else {
+        this.setData({
+          statisticsError: true,
+          syncLabel: this.data.statisticsReady ? '更新异常' : '同步异常',
+          syncState: 'is-error'
         });
       }
       return res;
+    }).catch(err => {
+      this.setData({
+        statisticsError: true,
+        syncLabel: this.data.statisticsReady ? '更新异常' : '同步异常',
+        syncState: 'is-error'
+      });
+      return err;
     }).finally(() => {
       this.setData({ statisticsLoading: false });
       if (options && options.includePartner === false) return;
@@ -334,6 +381,32 @@ Page({
         });
       }
     });
+  },
+
+  onBannerTap(e: any) {
+    const banner = this.data.bannerList[Number(e.currentTarget.dataset.index)];
+    if (!banner) return;
+
+    if (banner.noticeId) {
+      wx.navigateTo({ url: `/pages/notice-detail/notice-detail?id=${banner.noticeId}` });
+      return;
+    }
+
+    const target = banner.pagePath || banner.path || banner.linkUrl || banner.targetUrl || banner.url;
+    if (!target) return;
+
+    if (/^https?:\/\//.test(target)) {
+      wx.navigateTo({ url: `/pages/webview/webview?url=${encodeURIComponent(target)}` });
+      return;
+    }
+
+    const normalizedTarget = target.startsWith('/') ? target : `/${target}`;
+    const tabPages = ['/pages/index/index', '/pages/device/device', '/pages/my/my'];
+    if (tabPages.includes(normalizedTarget.split('?')[0])) {
+      wx.switchTab({ url: normalizedTarget });
+    } else if (normalizedTarget.startsWith('/pages/')) {
+      wx.navigateTo({ url: normalizedTarget });
+    }
   },
 
   // 跳转到伙伴设备页面

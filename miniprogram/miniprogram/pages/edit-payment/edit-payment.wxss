@@ -1,293 +1,460 @@
 @import "../../styles/orin-polish.wxss";
 
 page {
-    background: linear-gradient(180deg, #e8f5e9 0%, #f0fdf4 40%, #f7f7f9 100%);
     min-height: 100vh;
+    background: #eef1ed;
+    color: #1c211b;
 }
 
 .container {
-    padding-bottom: 60px;
+    box-sizing: border-box;
+    padding-bottom: 42px;
 }
 
-/* ========== 导航栏 ========== */
 .custom-nav {
     position: sticky;
     top: 0;
     z-index: 100;
-    background: transparent;
-    padding-bottom: 12px;
+    min-height: 48px;
     display: flex;
-    align-items: center;
+    align-items: flex-end;
     justify-content: center;
+    padding-bottom: 8px;
+    background: rgba(238, 241, 237, .94) !important;
+    border-bottom: 1px solid rgba(28, 33, 27, .08);
 }
 
 .nav-back {
     position: absolute;
-    left: 12px;
-    width: 36px;
-    height: 36px;
+    bottom: 4px;
+    left: 10px;
+    width: 44px;
+    height: 44px;
     display: flex;
     align-items: center;
     justify-content: center;
-    background: rgba(255, 255, 255, 0.7);
-    border-radius: 50%;
-    backdrop-filter: blur(10px);
+    background: transparent !important;
+    border: 0 !important;
 }
 
 .back-icon {
-    font-size: 22px;
-    color: #1a1a1a;
-    font-weight: 300;
+    color: #2c332b;
+    font-size: 26px;
+    font-weight: 400;
+    line-height: 1;
 }
 
 .nav-title {
+    color: #20261f !important;
     font-size: 17px;
-    font-weight: 600;
-    color: #1a1a1a;
+    font-weight: 700 !important;
 }
 
-/* ========== 顶部银行卡卡片 ========== */
 .hero-card {
-    margin: 8px 20px 20px;
-    background: linear-gradient(135deg, #15803d 0%, #16a34a 50%, #22c55e 100%);
-    border-radius: 20px;
-    padding: 24px 22px;
+    position: relative;
+    box-sizing: border-box;
+    min-height: 138px;
     display: flex;
     align-items: center;
-    position: relative;
+    gap: 14px;
     overflow: hidden;
-    box-shadow: 0 8px 30px rgba(22, 163, 74, 0.3);
+    margin: 12px 18px 14px;
+    padding: 22px 19px;
+    background: #151a14 !important;
+    border: 1px solid rgba(118, 185, 0, .26) !important;
+    border-radius: 8px !important;
+    box-shadow: none !important;
 }
 
 .hero-card::before {
     content: '';
     position: absolute;
-    right: -30px;
-    top: -30px;
-    width: 120px;
-    height: 120px;
-    background: rgba(255, 255, 255, 0.08);
-    border-radius: 50%;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: 4px;
+    background: #76B900 !important;
 }
 
-.hero-card::after {
-    content: '';
-    position: absolute;
-    right: 30px;
-    bottom: -40px;
-    width: 80px;
-    height: 80px;
-    background: rgba(255, 255, 255, 0.05);
-    border-radius: 50%;
-}
-
-.hero-icon-wrap {
+.hero-signal {
     width: 48px;
     height: 48px;
-    background: rgba(255, 255, 255, 0.2);
-    border-radius: 14px;
     display: flex;
     align-items: center;
     justify-content: center;
-    margin-right: 14px;
-    flex-shrink: 0;
-    backdrop-filter: blur(10px);
+    flex: 0 0 48px;
+    border: 1px solid rgba(19, 117, 112, .55);
+    border-radius: 7px;
+    background: rgba(19, 117, 112, .12);
+    color: #5fb5af;
 }
 
-.hero-icon {
-    font-size: 24px;
+.bank-glyph {
+    position: relative;
+    width: 29px;
+    height: 24px;
+    box-sizing: border-box;
+    border-top: 3px solid currentColor;
+    border-bottom: 3px solid currentColor;
+}
+
+.bank-glyph::before {
+    content: '';
+    position: absolute;
+    top: 5px;
+    left: 5px;
+    width: 2px;
+    height: 10px;
+    background: currentColor;
+    box-shadow: 8px 0 0 currentColor, 16px 0 0 currentColor;
+}
+
+.bank-glyph::after {
+    content: '';
+    position: absolute;
+    top: -8px;
+    left: 3px;
+    border-right: 11px solid transparent;
+    border-bottom: 5px solid currentColor;
+    border-left: 11px solid transparent;
 }
 
 .hero-text {
+    min-width: 0;
     flex: 1;
     display: flex;
     flex-direction: column;
-    gap: 4px;
-    min-width: 0;
+}
+
+.hero-kicker,
+.section-kicker {
+    display: block;
+    margin-bottom: 5px;
+    color: #8d968b;
+    font-size: 10px;
+    line-height: 1.2;
 }
 
 .hero-name {
+    color: #f5f7f3;
     font-size: 17px;
     font-weight: 700;
-    color: #ffffff;
 }
 
 .hero-card-no {
-    font-size: 14px;
-    color: rgba(255, 255, 255, 0.8);
-    letter-spacing: 1px;
+    margin-top: 7px;
+    overflow: hidden;
+    color: #c4cbc1;
+    font-family: Menlo, Consolas, monospace;
+    font-size: 13px;
+    font-variant-numeric: tabular-nums;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .hero-badge {
     position: absolute;
-    top: 14px;
-    right: 16px;
+    top: 13px;
+    right: 13px;
+    min-height: 24px;
+    box-sizing: border-box;
     display: flex;
     align-items: center;
-    gap: 5px;
-    background: rgba(255, 255, 255, 0.2);
-    padding: 4px 12px;
-    border-radius: 20px;
-    backdrop-filter: blur(10px);
+    gap: 6px;
+    padding: 0 8px;
+    border: 1px solid rgba(118, 185, 0, .3);
+    border-radius: 999px;
+    background: rgba(118, 185, 0, .1);
+    color: #9dd63d;
+    font-size: 10px;
+    font-weight: 700;
 }
 
 .badge-dot {
     width: 6px;
     height: 6px;
-    background: #bbf7d0;
     border-radius: 50%;
-}
-
-.badge-text {
-    font-size: 11px;
-    color: #ffffff;
-    font-weight: 600;
+    background: #76B900;
 }
 
 .badge-grey {
-    background: rgba(255, 255, 255, 0.15);
+    border-color: rgba(255, 255, 255, .16);
+    background: rgba(255, 255, 255, .06);
+    color: #aab1a7;
 }
 
-/* ========== 区域通用 ========== */
+.pending-banner {
+    box-sizing: border-box;
+    min-height: 68px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 0 18px 14px;
+    padding: 12px 13px;
+    background: rgba(255, 255, 255, .94) !important;
+    border: 1px solid rgba(192, 138, 47, .28) !important;
+    border-radius: 8px !important;
+    box-shadow: none !important;
+}
+
+.pending-mark {
+    position: relative;
+    width: 42px;
+    height: 42px;
+    flex: 0 0 42px;
+    border: 1px solid rgba(192, 138, 47, .38);
+    border-radius: 6px;
+    background: rgba(192, 138, 47, .08);
+}
+
+.pending-mark::before {
+    content: '';
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    width: 18px;
+    height: 18px;
+    border: 2px solid #C08A2F;
+    border-radius: 50%;
+}
+
+.pending-mark::after {
+    content: '';
+    position: absolute;
+    top: 15px;
+    left: 20px;
+    width: 1.5px;
+    height: 8px;
+    background: #C08A2F;
+    transform-origin: bottom center;
+    transform: rotate(-35deg);
+}
+
+.pending-copy {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.pending-title {
+    color: #6f511f;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.pending-text {
+    color: #84724f;
+    font-size: 11px;
+    line-height: 1.45;
+}
+
 .section {
-    margin: 0 20px 20px;
+    box-sizing: border-box;
+    margin: 0 18px 14px;
+    padding: 17px;
+    background: rgba(255, 255, 255, .94) !important;
+    border: 1px solid rgba(28, 33, 27, .08) !important;
+    border-radius: 8px !important;
+    box-shadow: none !important;
+}
+
+.payment-section {
+    position: relative;
+}
+
+.contract-section {
+    padding: 0;
+    background: transparent !important;
+    border: 0 !important;
 }
 
 .section-header {
     display: flex;
     align-items: center;
-    gap: 8px;
-    margin-bottom: 12px;
+    gap: 11px;
+    margin-bottom: 15px;
 }
 
-.section-icon {
-    font-size: 18px;
+.outside-header {
+    padding: 0 1px;
+}
+
+.section-mark {
+    position: relative;
+    width: 40px;
+    height: 40px;
+    box-sizing: border-box;
+    flex: 0 0 40px;
+    border: 1px solid rgba(19, 117, 112, .28);
+    border-radius: 6px;
+    background: rgba(19, 117, 112, .07);
+}
+
+.card-mark::before {
+    content: '';
+    position: absolute;
+    top: 10px;
+    left: 8px;
+    width: 22px;
+    height: 16px;
+    border: 2px solid #137570;
+    border-radius: 3px;
+}
+
+.card-mark::after {
+    content: '';
+    position: absolute;
+    top: 16px;
+    left: 10px;
+    width: 20px;
+    height: 2px;
+    background: #137570;
+}
+
+.shield-mark::before {
+    content: '';
+    position: absolute;
+    top: 8px;
+    left: 10px;
+    width: 16px;
+    height: 20px;
+    border: 2px solid #137570;
+    border-radius: 8px 8px 10px 10px;
+}
+
+.shield-mark view {
+    position: absolute;
+    top: 14px;
+    left: 17px;
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: #137570;
+    box-shadow: 0 7px 0 -1px #137570;
 }
 
 .section-title {
+    display: block;
+    color: #252b24;
     font-size: 16px;
     font-weight: 700;
-    color: #1a1a1a;
 }
 
-/* ========== 输入卡片 ========== */
-.input-card {
-    background: #ffffff;
-    border-radius: 16px;
-    padding: 18px;
-    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
-    margin-bottom: 16px;
+.input-block {
+    margin-bottom: 14px;
 }
 
 .input-label {
     display: block;
+    margin-bottom: 8px;
+    color: #596257;
     font-size: 13px;
-    color: #6b7280;
-    margin-bottom: 10px;
-    font-weight: 500;
+    font-weight: 600;
 }
 
 .card-input {
     width: 100%;
     height: 48px;
-    background: #f8fafb;
-    border-radius: 12px;
-    padding: 0 16px;
-    font-size: 16px;
-    color: #1a1a1a;
     box-sizing: border-box;
-    border: 1.5px solid #e5e7eb;
-    transition: border-color 0.2s;
-    letter-spacing: 1px;
+    padding: 0 13px;
+    background: #f8faf7 !important;
+    border: 1px solid rgba(28, 33, 27, .12) !important;
+    border-radius: 8px !important;
+    color: #242a23 !important;
+    font-family: Menlo, Consolas, monospace;
+    font-size: 14px !important;
+    font-variant-numeric: tabular-nums;
 }
 
-.card-input:focus {
-    border-color: #16a34a;
+.input-hint {
+    display: block;
+    margin-top: 7px;
+    color: #858d83;
+    font-size: 11px;
 }
 
-/* ========== 主按钮 ========== */
 .primary-btn {
     width: 100%;
-    height: 48px;
-    background: linear-gradient(135deg, #16a34a 0%, #15803d 100%);
-    color: #ffffff;
-    font-size: 16px;
-    font-weight: 600;
-    border-radius: 14px;
-    border: none;
-    margin: 0 0 14px 0;
+    min-height: 48px;
+    margin: 0 0 12px;
     padding: 0;
-    box-shadow: 0 4px 16px rgba(22, 163, 74, 0.3);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.primary-btn:active {
-    transform: scale(0.98);
-    opacity: 0.9;
+    font-size: 13px !important;
 }
 
 .btn-disabled {
-    background: linear-gradient(135deg, #d1d5db 0%, #9ca3af 100%) !important;
-    box-shadow: none !important;
+    background: #c9cec7 !important;
+    color: #6f776d !important;
 }
 
-/* ========== 提示 ========== */
 .tips-row {
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 5px;
 }
 
 .tip-item {
-    font-size: 12px;
-    color: #9ca3af;
-    line-height: 1.6;
+    color: #7e877c;
+    font-size: 11px;
+    line-height: 1.45;
 }
 
-/* ========== 签约管理卡片 ========== */
 .contract-status-card {
-    background: #ffffff;
-    border-radius: 16px;
-    padding: 20px;
-    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+    box-sizing: border-box;
+    padding: 17px;
+    background: rgba(255, 255, 255, .94);
+    border: 1px solid rgba(28, 33, 27, .08);
+    border-radius: 8px;
 }
 
 .card-muted {
-    opacity: 0.75;
+    border-color: rgba(28, 33, 27, .06);
 }
 
 .cs-row {
     display: flex;
-    justify-content: space-between;
     align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.cs-label,
+.cs-value {
+    display: block;
 }
 
 .cs-label {
-    font-size: 14px;
-    color: #6b7280;
-    font-weight: 500;
+    color: #7d857b;
+    font-size: 11px;
+}
+
+.cs-value {
+    margin-top: 3px;
+    color: #343b33;
+    font-size: 13px;
+    font-weight: 700;
 }
 
 .cs-tag {
+    min-height: 24px;
+    box-sizing: border-box;
     display: flex;
     align-items: center;
-    gap: 5px;
-    padding: 4px 14px;
-    border-radius: 20px;
-    font-size: 12px;
-    font-weight: 600;
+    gap: 6px;
+    padding: 0 9px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 700;
 }
 
 .tag-green {
-    background: #dcfce7;
-    color: #15803d;
+    background: rgba(118, 185, 0, .12);
+    color: #4f7f00;
 }
 
 .tag-grey {
-    background: #f3f4f6;
-    color: #6b7280;
+    background: #edf0eb;
+    color: #6e766c;
 }
 
 .tag-dot {
@@ -297,86 +464,76 @@ page {
 }
 
 .green-dot {
-    background: #16a34a;
+    background: #76B900;
 }
 
 .cs-divider {
     height: 1px;
-    background: #f3f4f6;
     margin: 14px 0;
+    background: rgba(28, 33, 27, .08);
 }
 
 .cs-desc {
     display: block;
-    font-size: 13px;
-    color: #9ca3af;
-    line-height: 1.6;
-    margin-bottom: 16px;
+    margin-bottom: 14px;
+    color: #7c857a;
+    font-size: 12px;
+    line-height: 1.55;
 }
 
-/* ========== 危险按钮 ========== */
 .danger-btn {
     width: 100%;
-    height: 44px;
-    background: #ffffff;
-    color: #ef4444;
-    font-size: 14px;
-    font-weight: 600;
-    border: 1.5px solid #fca5a5;
-    border-radius: 12px;
-    padding: 0;
+    min-height: 44px;
     margin: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.2s;
+    padding: 0;
+    font-size: 13px;
 }
 
-.danger-btn:active {
-    background: #fef2f2;
-    transform: scale(0.98);
-}
-
-/* ========== 底部安全提示 ========== */
 .safe-footer {
+    min-height: 44px;
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 6px;
-    padding: 24px 0 40px;
+    gap: 8px;
+    margin: 4px 18px 0;
+    padding: 0;
+    background: transparent !important;
+    border: 0 !important;
+    box-shadow: none !important;
 }
 
-.safe-icon {
-    font-size: 14px;
+.lock-mark {
+    position: relative;
+    width: 18px;
+    height: 18px;
+    box-sizing: border-box;
+    margin-top: 4px;
+    border: 1.5px solid #137570;
+    border-radius: 3px;
+}
+
+.lock-mark::before {
+    content: '';
+    position: absolute;
+    top: -7px;
+    left: 3px;
+    width: 8px;
+    height: 8px;
+    border: 1.5px solid #137570;
+    border-bottom: 0;
+    border-radius: 6px 6px 0 0;
+}
+
+.lock-mark view {
+    position: absolute;
+    top: 5px;
+    left: 7px;
+    width: 2px;
+    height: 5px;
+    background: #137570;
 }
 
 .safe-text {
-    font-size: 12px;
-    color: #c0c5cc;
-    font-weight: 500;
-}
-
-/* ========== 待审核提示 ========== */
-.pending-banner {
-    margin: 0 20px 16px;
-    background: #fffbeb;
-    border: 1px solid #fde68a;
-    border-radius: 12px;
-    padding: 12px 16px;
-    display: flex;
-    align-items: flex-start;
-    gap: 8px;
-    box-shadow: 0 2px 8px rgba(245, 158, 11, 0.1);
-}
-
-.pending-icon {
-    font-size: 16px;
-    margin-top: 2px;
-}
-
-.pending-text {
-    flex: 1;
-    font-size: 13px;
-    color: #d97706;
-    line-height: 1.5;
+    color: #7e877c;
+    font-size: 11px;
 }

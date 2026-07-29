@@ -15,6 +15,8 @@ Page({
         activeTab: -1,
         orders: [] as any[],
         loading: true,
+        loaded: false,
+        errorMessage: '',
         page: 1,
         hasMore: true,
         statusTexts: ['待发货', '已发货', '运输中', '已到货', '已取消'] as string[]
@@ -26,7 +28,6 @@ Page({
             navBarTop: menuButtonInfo.top,
             navBarHeight: menuButtonInfo.height
         });
-        this.fetchOrders(true);
     },
 
     onShow() {
@@ -35,7 +36,6 @@ Page({
 
     onPullDownRefresh() {
         this.fetchOrders(true);
-        wx.stopPullDownRefresh();
     },
 
     onReachBottom() {
@@ -52,33 +52,58 @@ Page({
 
     fetchOrders(refresh: boolean) {
         const userId = wx.getStorageSync('userId');
-        if (!userId) return;
+        if (!userId) {
+            this.setData({
+                loading: false,
+                loaded: true,
+                errorMessage: '登录后可查看兑换订单'
+            });
+            wx.stopPullDownRefresh();
+            return Promise.resolve();
+        }
 
+        const requestedPage = refresh ? 1 : this.data.page;
         if (refresh) {
             this.setData({ page: 1, orders: [], hasMore: true });
         }
 
-        this.setData({ loading: true });
+        this.setData({ loading: true, errorMessage: '' });
 
-        let url = `/api/exchange/orders?userId=${userId}&page=${this.data.page}&size=10`;
+        let url = `/api/exchange/orders?userId=${userId}&page=${requestedPage}&size=10`;
         if (this.data.activeTab >= 0) {
             url += `&status=${this.data.activeTab}`;
         }
 
-        request({ url, method: 'GET' }).then((res: any) => {
+        return request({ url, method: 'GET' }).then((res: any) => {
             if (res.code === 200) {
                 const data = res.data;
-                const newOrders = refresh ? data.records : [...this.data.orders, ...data.records];
+                const records = data.records || [];
+                const newOrders = refresh ? records : [...this.data.orders, ...records];
                 this.setData({
                     orders: newOrders,
-                    hasMore: this.data.page < data.pages,
-                    page: this.data.page + 1,
-                    loading: false
+                    hasMore: requestedPage < (data.pages || 0),
+                    page: requestedPage + 1,
+                    loaded: true
+                });
+            } else {
+                this.setData({
+                    loaded: true,
+                    errorMessage: res.msg || '订单列表加载失败'
                 });
             }
         }).catch(() => {
+            this.setData({
+                loaded: true,
+                errorMessage: '网络连接异常，请稍后重试'
+            });
+        }).finally(() => {
             this.setData({ loading: false });
+            wx.stopPullDownRefresh();
         });
+    },
+
+    retryOrders() {
+        this.fetchOrders(this.data.orders.length === 0);
     },
 
     goToDetail(e: any) {

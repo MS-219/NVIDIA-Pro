@@ -17,7 +17,9 @@ Page({
         agreed: false,
         submitting: false,
         canSubmit: false,
-        showForm: false // 是否强制显示表单（用于失败重新申请）
+        showForm: false, // 是否强制显示表单（用于失败重新申请）
+        statusLoading: false,
+        statusError: ''
     },
 
     onLoad() {
@@ -34,7 +36,10 @@ Page({
 
     // 检查签约状态
     checkContractStatus() {
-        request({
+        if (this.data.statusLoading) return Promise.resolve();
+
+        this.setData({ statusLoading: true, statusError: '' });
+        return request({
             url: '/api/bosskg/contract/status',
             method: 'GET'
         }).then(res => {
@@ -44,8 +49,18 @@ Page({
                     contractStatus: status,
                     failReason: res.data.failReason
                 });
+            } else {
+                this.setData({ statusError: res.msg || '签约状态同步失败' });
             }
+        }).catch(() => {
+            this.setData({ statusError: '网络连接异常，请重新同步' });
+        }).finally(() => {
+            this.setData({ statusLoading: false });
         });
+    },
+
+    retryStatus() {
+        this.checkContractStatus();
     },
 
     // 加载已填写的身份信息

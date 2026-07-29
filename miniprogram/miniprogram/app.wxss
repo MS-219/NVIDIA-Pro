@@ -1,11 +1,25 @@
 /**app.wxss**/
 page {
-  font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Helvetica,
-    Segoe UI, Arial, Roboto, 'PingFang SC', 'miui', 'Hiragino Sans GB', 'Microsoft Yahei',
-    sans-serif;
+  --jx-canvas: #eef1ed;
+  --jx-surface: #ffffff;
+  --jx-surface-muted: #f5f7f3;
+  --jx-carbon: #121611;
+  --jx-ink: #1c211b;
+  --jx-muted: #737b70;
+  --jx-subtle: #92998f;
+  --jx-line: rgba(28, 33, 27, .09);
+  --jx-green: #76b900;
+  --jx-green-ink: #4f7f00;
+  --jx-cyan: #137570;
+  --jx-amber: #a66b10;
+  --jx-danger: #a7524a;
+  --jx-panel-radius: 8px;
+  --jx-control-radius: 6px;
+  --jx-control-height: 44px;
+  font-family: 'PingFang SC', 'MiSans', 'HarmonyOS Sans SC', 'Microsoft Yahei', sans-serif;
   height: 100%;
-  background: #eef1ed;
-  color: #1c211b;
+  background: var(--jx-canvas);
+  color: var(--jx-ink);
 }
 
 .container {
@@ -33,24 +47,62 @@ button::after {
 .jx-nav-title {
   font-size: 18px;
   font-weight: 700;
-  color: #1c211b;
+  color: var(--jx-ink);
 }
 
 .jx-kicker {
   display: block;
-  font-size: 10px;
+  font-size: 11px;
   line-height: 1.2;
-  color: #7d857a;
+  color: var(--jx-muted);
   text-transform: uppercase;
 }
 
 .jx-section-title {
   font-size: 17px;
   font-weight: 700;
-  color: #1c211b;
+  color: var(--jx-ink);
 }
 
 .jx-section-subtitle {
   font-size: 12px;
-  color: #7d857a;
+  color: var(--jx-muted);
+}
+
+.jx-number {
+  font-family: 'DIN Alternate', Menlo, Consolas, monospace;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0;
+}
+
+.jx-surface {
+  background: var(--jx-surface);
+  border: 1px solid var(--jx-line);
+  border-radius: var(--jx-panel-radius);
+}
+
+.jx-telemetry-surface {
+  background: var(--jx-carbon);
+  border: 1px solid rgba(118, 185, 0, .25);
+  border-radius: var(--jx-panel-radius);
+  color: #f7f9f5;
+}
+
+.jx-skeleton {
+  position: relative;
+  overflow: hidden;
+  background: #e2e6df;
+}
+
+.jx-skeleton::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, .58), transparent);
+  transform: translateX(-100%);
+  animation: jx-skeleton-sweep 1.25s ease-in-out infinite;
+}
+
+@keyframes jx-skeleton-sweep {
+  to { transform: translateX(100%); }
 }

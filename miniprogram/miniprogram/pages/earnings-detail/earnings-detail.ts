@@ -1,5 +1,6 @@
 import { API_BASE } from '../../config';
-export { }; // 使文件成为 ES 模块
+
+export { };
 
 Page({
     data: {
@@ -8,16 +9,32 @@ Page({
         yesterdayEarnings: '0.00',
         monthEarnings: '0.00',
         deviceCount: 0,
+        overviewLoading: true,
+        overviewError: false,
         filter: 'all',
-        subFilter: 'device', // 子筛选：device-设备收益, reward-分润收益
+        subFilter: 'device',
         records: [] as any[],
-        rewards: [] as any[], // 分润记录
+        rewards: [] as any[],
         page: 1,
         size: 20,
         hasMore: true,
         loading: false,
+        rewardsLoading: false,
+        dailyLoading: false,
+        monthlyLoading: false,
+        errorMessage: '',
+        rewardsError: '',
+        dailyError: '',
+        monthlyError: '',
         monthlyData: [] as any[],
-        dailyData: [] as any[]
+        dailyData: [] as any[],
+        visibleMonthlyData: [] as any[],
+        visibleDailyData: [] as any[],
+        contentState: 'loading',
+        contentError: '',
+        currentCount: 0,
+        emptyTitle: '暂无设备收益',
+        emptyDescription: '设备在线结算后，收益记录将在这里生成'
     },
 
     onLoad() {
@@ -26,7 +43,7 @@ Page({
 
         this.fetchOverview();
         this.fetchRecords();
-        this.fetchRewards(); // 获取分润记录
+        this.fetchRewards();
     },
 
     goBack() {
@@ -35,7 +52,12 @@ Page({
 
     fetchOverview() {
         const userId = wx.getStorageSync('userId');
-        if (!userId) return;
+        if (!userId) {
+            this.setData({ overviewLoading: false });
+            return;
+        }
+
+        this.setData({ overviewLoading: true, overviewError: false });
 
         wx.request({
             url: `${API_BASE}/api/statistics/earnings`,
@@ -43,14 +65,21 @@ Page({
             data: { userId },
             success: (res: any) => {
                 if (res.data.code === 200) {
-                    const data = res.data.data;
+                    const data = res.data.data || {};
                     this.setData({
                         totalEarnings: data.total || '0.00',
                         yesterdayEarnings: data.yesterday || '0.00',
                         monthEarnings: data.month || '0.00',
-                        deviceCount: data.onlineCount || 0
+                        deviceCount: data.onlineCount || 0,
+                        overviewLoading: false,
+                        overviewError: false
                     });
+                } else {
+                    this.setData({ overviewLoading: false, overviewError: true });
                 }
+            },
+            fail: () => {
+                this.setData({ overviewLoading: false, overviewError: true });
             }
         });
     },
@@ -60,12 +89,14 @@ Page({
         if (!userId) {
             this.setData({
                 records: [],
-                hasMore: false
-            });
+                hasMore: false,
+                loading: false,
+                errorMessage: ''
+            }, () => this.syncContentState());
             return;
         }
 
-        this.setData({ loading: true });
+        this.setData({ loading: true, errorMessage: '' }, () => this.syncContentState());
 
         wx.request({
             url: `${API_BASE}/api/earnings/user/list`,
@@ -77,8 +108,7 @@ Page({
             },
             success: (res: any) => {
                 if (res.data.code === 200) {
-                    const data = res.data.data;
-                    // 格式化发放时间
+                    const data = res.data.data || {};
                     const formattedRecords = (data.records || []).map((item: any) => ({
                         ...item,
                         createTimeFormatted: item.createTime
@@ -86,29 +116,35 @@ Page({
                             : ''
                     }));
                     this.setData({
-                        records: this.data.page === 1 ? formattedRecords : [...this.data.records, ...formattedRecords],
-                        hasMore: data.hasMore,
-                        loading: false
-                    });
+                        records: this.data.page === 1
+                            ? formattedRecords
+                            : [...this.data.records, ...formattedRecords],
+                        hasMore: Boolean(data.hasMore),
+                        loading: false,
+                        errorMessage: ''
+                    }, () => this.syncContentState());
                 } else {
-                    this.setData({ loading: false });
-                    wx.showToast({ title: '加载失败', icon: 'none' });
+                    this.handleRecordsError('收益数据暂时未同步，请稍后重试');
                 }
             },
             fail: () => {
-                this.setData({ loading: false });
-                wx.showToast({ title: '网络错误', icon: 'none' });
+                this.handleRecordsError('网络连接异常，请检查后重试');
             }
         });
     },
 
-    // 获取分润记录
     fetchRewards() {
         const userId = wx.getStorageSync('userId');
         if (!userId) {
-            this.setData({ rewards: [] });
+            this.setData({
+                rewards: [],
+                rewardsLoading: false,
+                rewardsError: ''
+            }, () => this.syncContentState());
             return;
         }
+
+        this.setData({ rewardsLoading: true, rewardsError: '' }, () => this.syncContentState());
 
         wx.request({
             url: `${API_BASE}/api/earnings/user/rewards`,
@@ -116,50 +152,90 @@ Page({
             data: { userId, page: 1, size: 50 },
             success: (res: any) => {
                 if (res.data.code === 200) {
-                    const data = res.data.data;
-                    // 格式化时间显示
+                    const data = res.data.data || {};
                     const rewards = (data.records || []).map((item: any) => ({
                         ...item,
                         createTime: item.createTime ? item.createTime.split('T')[0] : ''
                     }));
-                    this.setData({ rewards });
+                    this.setData({
+                        rewards,
+                        rewardsLoading: false,
+                        rewardsError: ''
+                    }, () => this.syncContentState());
+                } else {
+                    this.setData({
+                        rewardsLoading: false,
+                        rewardsError: '分润数据暂时未同步，请稍后重试'
+                    }, () => this.syncContentState());
                 }
+            },
+            fail: () => {
+                this.setData({
+                    rewardsLoading: false,
+                    rewardsError: '网络连接异常，请检查后重试'
+                }, () => this.syncContentState());
             }
         });
     },
 
-    setFilter(e: any) {
-        const filter = e.currentTarget.dataset.filter;
+    setFilter(e: WechatMiniprogram.TouchEvent) {
+        const filter = e.currentTarget.dataset.filter as string;
         this.setData({
             filter,
             page: 1,
             records: [],
+            hasMore: true,
+            errorMessage: '',
+            dailyError: '',
+            monthlyError: '',
             monthlyData: [],
-            dailyData: []
+            dailyData: [],
+            visibleMonthlyData: [],
+            visibleDailyData: [],
+            contentState: 'loading'
+        }, () => {
+            if (filter === 'month') {
+                this.fetchMonthlyData();
+            } else if (filter === 'day') {
+                this.fetchDailyData();
+            } else if (this.data.subFilter === 'reward') {
+                this.fetchRewards();
+            } else {
+                this.fetchRecords();
+            }
         });
-
-        if (filter === 'month') {
-            this.fetchMonthlyData();
-        } else if (filter === 'day') {
-            this.fetchDailyData();
-        } else {
-            this.fetchRecords();
-        }
     },
 
-    setSubFilter(e: any) {
-        const subFilter = e.currentTarget.dataset.sub;
-        this.setData({ subFilter });
+    setSubFilter(e: WechatMiniprogram.TouchEvent) {
+        const subFilter = e.currentTarget.dataset.sub as string;
+        this.setData({
+            subFilter,
+            visibleMonthlyData: this.filterMonthlyData(this.data.monthlyData, subFilter),
+            visibleDailyData: this.filterDailyData(this.data.dailyData, subFilter)
+        }, () => {
+            this.syncContentState();
+
+            if (this.data.filter === 'all' && subFilter === 'device' && this.data.records.length === 0 && !this.data.loading) {
+                this.fetchRecords();
+            } else if (this.data.filter === 'all' && subFilter === 'reward' && this.data.rewards.length === 0 && !this.data.rewardsLoading) {
+                this.fetchRewards();
+            }
+        });
     },
 
     fetchMonthlyData() {
         const userId = wx.getStorageSync('userId');
         if (!userId) {
-            this.setData({ monthlyData: [] });
+            this.setData({
+                monthlyData: [],
+                visibleMonthlyData: [],
+                monthlyLoading: false,
+                monthlyError: ''
+            }, () => this.syncContentState());
             return;
         }
 
-        this.setData({ loading: true });
+        this.setData({ monthlyLoading: true, monthlyError: '' }, () => this.syncContentState());
 
         wx.request({
             url: `${API_BASE}/api/earnings/user/monthly`,
@@ -167,18 +243,19 @@ Page({
             data: { userId },
             success: (res: any) => {
                 if (res.data.code === 200) {
+                    const monthlyData = res.data.data || [];
                     this.setData({
-                        monthlyData: res.data.data || [],
-                        loading: false
-                    });
+                        monthlyData,
+                        visibleMonthlyData: this.filterMonthlyData(monthlyData, this.data.subFilter),
+                        monthlyLoading: false,
+                        monthlyError: ''
+                    }, () => this.syncContentState());
                 } else {
-                    this.setData({ loading: false });
-                    wx.showToast({ title: '加载失败', icon: 'none' });
+                    this.handlePeriodError('month', '月度收益暂时未同步，请稍后重试');
                 }
             },
             fail: () => {
-                this.setData({ loading: false });
-                wx.showToast({ title: '网络错误', icon: 'none' });
+                this.handlePeriodError('month', '网络连接异常，请检查后重试');
             }
         });
     },
@@ -186,11 +263,16 @@ Page({
     fetchDailyData() {
         const userId = wx.getStorageSync('userId');
         if (!userId) {
-            this.setData({ dailyData: [] });
+            this.setData({
+                dailyData: [],
+                visibleDailyData: [],
+                dailyLoading: false,
+                dailyError: ''
+            }, () => this.syncContentState());
             return;
         }
 
-        this.setData({ loading: true });
+        this.setData({ dailyLoading: true, dailyError: '' }, () => this.syncContentState());
 
         wx.request({
             url: `${API_BASE}/api/earnings/user/daily`,
@@ -198,35 +280,148 @@ Page({
             data: { userId, page: 1, size: 1000 },
             success: (res: any) => {
                 if (res.data.code === 200) {
-                    const data = res.data.data;
+                    const data = res.data.data || {};
+                    const dailyData = data.records || [];
                     this.setData({
-                        dailyData: data.records || [],
-                        hasMore: data.hasMore || false,
-                        loading: false
-                    });
+                        dailyData,
+                        visibleDailyData: this.filterDailyData(dailyData, this.data.subFilter),
+                        dailyLoading: false,
+                        dailyError: ''
+                    }, () => this.syncContentState());
                 } else {
-                    this.setData({ loading: false });
-                    wx.showToast({ title: '加载失败', icon: 'none' });
+                    this.handlePeriodError('day', '日收益暂时未同步，请稍后重试');
                 }
             },
             fail: () => {
-                this.setData({ loading: false });
-                wx.showToast({ title: '网络错误', icon: 'none' });
+                this.handlePeriodError('day', '网络连接异常，请检查后重试');
             }
         });
     },
 
-    loadMore() {
-        if (this.data.loading || !this.data.hasMore) return;
+    filterMonthlyData(data: any[], subFilter: string) {
+        return data.filter((item: any) => subFilter === 'device'
+            ? Number(item.deviceAmount || 0) > 0 || !item.deviceAmount
+            : Number(item.rewardAmount || 0) > 0);
+    },
 
-        this.setData({ page: this.data.page + 1 });
+    filterDailyData(data: any[], subFilter: string) {
+        return data.filter((item: any) => subFilter === 'device'
+            ? Number(item.deviceAmount || 0) > 0 || !item.deviceAmount
+            : Number(item.rewardAmount || 0) > 0);
+    },
+
+    handleRecordsError(message: string) {
+        this.setData({ loading: false, errorMessage: message }, () => this.syncContentState());
+        wx.showToast({ title: message, icon: 'none' });
+    },
+
+    handlePeriodError(period: string, message: string) {
+        if (period === 'month') {
+            this.setData({ monthlyLoading: false, monthlyError: message }, () => this.syncContentState());
+        } else {
+            this.setData({ dailyLoading: false, dailyError: message }, () => this.syncContentState());
+        }
+        wx.showToast({ title: message, icon: 'none' });
+    },
+
+    syncContentState() {
+        const { filter, subFilter } = this.data;
+        let loading = this.data.loading;
+        let error = this.data.errorMessage;
+        let count = 0;
+        let emptyTitle = '暂无设备收益';
+        let emptyDescription = '设备在线结算后，收益记录将在这里生成';
+
+        if (filter === 'all' && subFilter === 'device') {
+            count = this.data.records.length;
+        } else if (filter === 'all') {
+            loading = this.data.rewardsLoading;
+            error = this.data.rewardsError;
+            count = this.data.rewards.length;
+            emptyTitle = '暂无分润收益';
+            emptyDescription = '团队设备产生分润后，记录将在这里生成';
+        } else if (filter === 'day') {
+            loading = this.data.dailyLoading;
+            error = this.data.dailyError;
+            count = this.data.visibleDailyData.length;
+            emptyTitle = '暂无日收益数据';
+            emptyDescription = subFilter === 'device'
+                ? '当前周期内没有设备收益结算'
+                : '当前周期内没有团队分润结算';
+        } else {
+            loading = this.data.monthlyLoading;
+            error = this.data.monthlyError;
+            count = this.data.visibleMonthlyData.length;
+            emptyTitle = '暂无月收益数据';
+            emptyDescription = subFilter === 'device'
+                ? '当前月份内没有设备收益结算'
+                : '当前月份内没有团队分润结算';
+        }
+
+        const contentState = loading && count === 0
+            ? 'loading'
+            : error && count === 0
+                ? 'error'
+                : count > 0
+                    ? 'ready'
+                    : 'empty';
+
+        this.setData({
+            contentState,
+            contentError: error,
+            currentCount: count,
+            emptyTitle,
+            emptyDescription
+        });
+    },
+
+    retryContent() {
+        if (this.data.filter === 'month') {
+            this.fetchMonthlyData();
+        } else if (this.data.filter === 'day') {
+            this.fetchDailyData();
+        } else if (this.data.subFilter === 'reward') {
+            this.fetchRewards();
+        } else {
+            this.setData({ page: 1, hasMore: true }, () => this.fetchRecords());
+        }
+    },
+
+    loadMore() {
+        if (this.data.loading) return;
+
+        if (this.data.errorMessage) {
+            this.fetchRecords();
+            return;
+        }
+
+        if (!this.data.hasMore) return;
+
+        this.setData({ page: this.data.page + 1, errorMessage: '' });
         this.fetchRecords();
     },
 
     onPullDownRefresh() {
-        this.setData({ page: 1, hasMore: true });
+        this.setData({
+            page: 1,
+            hasMore: true,
+            errorMessage: '',
+            rewardsError: '',
+            dailyError: '',
+            monthlyError: ''
+        });
         this.fetchOverview();
-        this.fetchRecords();
+
+        if (this.data.filter === 'month') {
+            this.fetchMonthlyData();
+        } else if (this.data.filter === 'day') {
+            this.fetchDailyData();
+        } else if (this.data.subFilter === 'reward') {
+            this.fetchRewards();
+        } else {
+            this.fetchRecords();
+        }
+
         wx.stopPullDownRefresh();
     }
-})
+});

@@ -13,6 +13,7 @@ Page({
             cardNo: ''
         },
         submitting: false,
+        canSubmit: false,
         contractStatus: -1, // -1=未知 0=待签约 1=已签约 5=已解约
         cancelling: false,
         hasPendingApply: false
@@ -170,10 +171,10 @@ Page({
         if (this.data.cancelling) return;
 
         wx.showModal({
-            title: '❗ 解约确认',
+            title: '解约确认',
             content: '解约后将无法正常提现，确定要解除签约吗？',
             confirmText: '确定解约',
-            confirmColor: '#e74c3c',
+            confirmColor: '#C65A52',
             success: (res) => {
                 if (res.confirm) {
                     this.doCancelContract();

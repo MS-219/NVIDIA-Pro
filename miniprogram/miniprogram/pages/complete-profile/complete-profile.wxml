@@ -7,7 +7,7 @@
     <view class="content">
         <!-- 头部提示 -->
         <view class="header-tip">
-            <text class="tip-emoji">🎉</text>
+            <view class="tip-emoji">ID</view>
             <text class="tip-title">欢迎加入聚芯 Orin！</text>
             <text class="tip-desc">请完善您的头像和昵称</text>
         </view>
@@ -17,7 +17,7 @@
                 <button class="avatar-btn" open-type="chooseAvatar" bindchooseavatar="onChooseAvatar">
                     <image class="avatar-img" src="{{avatarUrl}}" mode="aspectFill" wx:if="{{avatarUrl}}"></image>
                     <view class="avatar-placeholder" wx:else>
-                        <text class="placeholder-icon">📷</text>
+                        <text class="placeholder-icon">+</text>
                         <text class="placeholder-text">上传头像</text>
                     </view>
                 </button>

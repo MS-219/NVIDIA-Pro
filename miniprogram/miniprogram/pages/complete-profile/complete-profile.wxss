@@ -110,17 +110,21 @@
     font-size: 20rpx;
 }
 
+.tip-emoji { width: 56px; height: 56px; margin-bottom: 14px; display: flex; align-items: center; justify-content: center; background: #121611; border: 1px solid rgba(118,185,0,.25); border-radius: 8px; color: #9dda39; font-family: "DIN Alternate", Menlo, monospace; font-size: 14px; font-weight: 800; }
+.placeholder-icon { width: 32px; height: 32px; margin-bottom: 4px; display: flex; align-items: center; justify-content: center; background: rgba(118,185,0,.13); border-radius: 6px; color: #548600; font-size: 24px; }
+
 .avatar-edit-badge {
     position: absolute;
     bottom: 0;
     right: 0;
-    background: #667eea;
+    background: #137570;
     color: #fff;
     font-size: 20rpx;
     padding: 4rpx 14rpx;
-    border-radius: 20rpx;
-    box-shadow: 0 4rpx 10rpx rgba(102, 126, 234, 0.3);
+    border-radius: 4px;
+    box-shadow: none;
     z-index: 10;
+    pointer-events: none;
 }
 
 /* 表单区域 */
@@ -191,3 +195,15 @@
     font-size: 28rpx !important;
     margin-top: 10rpx !important;
 }
+
+page { background: #eef1ed; }
+.container { background: #eef1ed; }
+.content { padding: 24px 20px 40px; }
+.header-tip { margin-bottom: 28px; }
+.tip-title { color: #1c211b; font-size: 23px; }
+.tip-desc { color: #7d8579; font-size: 14px; }
+.avatar-section { margin-bottom: 32px; }
+.avatar-btn { border-color: rgba(28,33,27,.1) !important; box-shadow: none; }
+.form-card { margin-bottom: 40px; padding: 24px; border-radius: 8px; box-shadow: none; }
+.input-label { margin-bottom: 12px; color: #737b70; font-size: 13px; }
+.nickname-input { min-height: 44px; padding: 0; color: #1c211b; font-size: 15px; border-bottom-color: rgba(28,33,27,.1); }

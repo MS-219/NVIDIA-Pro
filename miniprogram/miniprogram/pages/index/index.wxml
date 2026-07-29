@@ -4,8 +4,7 @@
       <view class="brand">
         <image class="brand-logo" src="/images/home-logo.png" mode="aspectFit"></image>
       </view>
-      <view class="service-state is-online" wx:if="{{nodeStats.online}}"><view></view><text>节点在线</text></view>
-      <view class="service-state is-idle" wx:else><view></view><text>等待节点</text></view>
+      <view class="service-state {{syncState}}"><view></view><text>{{syncLabel}}</text></view>
     </view>
 
     <view class="hero">
@@ -16,14 +15,16 @@
         <text class="hero-title hero-title-second">持续创造价值</text>
         <view class="hero-action">
           <navigator url="/pages/device/device" open-type="switchTab">查看节点</navigator>
-          <view class="hero-live"><view></view><text>{{nodeStats.online}} 台在线</text></view>
+          <view class="hero-live {{statisticsError ? 'is-error' : ''}}"><view></view><text>{{statisticsError ? '同步异常' : (statisticsReady ? nodeStats.online + ' 台在线' : '同步中')}}</text></view>
         </view>
       </view>
       <view class="hero-media">
         <image class="hero-product" src="/images/product.png" mode="aspectFit"></image>
         <view class="media-grid"></view>
-        <view class="media-status is-ready" wx:if="{{nodeStats.online}}"><view></view><text>ORIN ONLINE</text></view>
-        <view class="media-status is-standby" wx:else><view></view><text>NODE STANDBY</text></view>
+        <view class="media-status is-error" wx:if="{{statisticsError}}"><view></view><text>DATA LINK ERROR</text></view>
+        <view class="media-status is-ready" wx:elif="{{statisticsReady && nodeStats.online}}"><view></view><text>TELEMETRY ACTIVE</text></view>
+        <view class="media-status is-standby" wx:elif="{{statisticsReady}}"><view></view><text>TELEMETRY IDLE</text></view>
+        <view class="media-status is-syncing" wx:else><view></view><text>SYNCING DATA</text></view>
         <view class="media-specs"><text>CUDA</text><text>ARM64</text><text>EDGE</text></view>
       </view>
     </view>
@@ -31,12 +32,12 @@
     <view class="overview-card">
       <view class="overview-title">
         <view><text>节点概况</text><text>设备状态实时同步</text></view>
-        <view class="overview-badge"><view></view><text>{{nodeStats.total}} 台已接入</text></view>
+        <view class="overview-badge"><view></view><text>{{statisticsReady ? nodeStats.total : '--'}} 台已接入</text></view>
       </view>
       <view class="overview-grid">
-        <view class="overview-metric"><text>{{nodeStats.online}}</text><view class="metric-label"><view class="dot online"></view><text>在线运行</text></view></view>
-        <view class="overview-metric"><text>{{nodeStats.offline}}</text><view class="metric-label"><view class="dot offline"></view><text>离线设备</text></view></view>
-        <view class="overview-metric" bindtap="goToPartnerDevices"><text>{{nodeStats.partnerDevices || 0}}</text><view class="metric-label"><view class="dot partner"></view><text>团队节点</text></view></view>
+        <view class="overview-metric"><text>{{statisticsReady ? nodeStats.online : '--'}}</text><view class="metric-label"><view class="dot online"></view><text>在线运行</text></view></view>
+        <view class="overview-metric"><text>{{statisticsReady ? nodeStats.offline : '--'}}</text><view class="metric-label"><view class="dot offline"></view><text>离线设备</text></view></view>
+        <view class="overview-metric is-action" bindtap="goToPartnerDevices" hover-class="is-pressed"><text>{{statisticsReady ? (nodeStats.partnerDevices || 0) : '--'}}</text><view class="metric-label"><view class="dot partner"></view><text>团队节点</text></view></view>
       </view>
       <view class="network-health">
         <view class="network-health-head">
@@ -51,18 +52,19 @@
     <view class="income-card">
       <view class="income-primary">
         <view class="income-label"><view><image src="/images/menu/earnings.png" mode="aspectFit"></image></view><text>昨日收益</text></view>
-        <view class="income-value {{earnings.yesterdayClass}}"><text>¥</text><text>{{earnings.yesterday}}</text></view>
+        <view class="income-value {{earnings.yesterdayClass}}"><text>¥</text><text>{{statisticsReady ? earnings.yesterday : '--'}}</text></view>
         <text class="income-note">每日完成结算后更新</text>
       </view>
-      <view class="income-total"><text>累计收益</text><text class="income-total-value {{earnings.totalClass}}">¥{{earnings.total}}</text><view class="income-line"></view><text>全部结算记录</text></view>
+      <view class="income-total"><text>累计收益</text><text class="income-total-value {{earnings.totalClass}}">¥{{statisticsReady ? earnings.total : '--'}}</text><view class="income-line"></view><text>全部结算记录</text></view>
     </view>
 
     <swiper class="notice-swiper" wx:if="{{bannerList.length}}" autoplay circular interval="5000" duration="350">
       <swiper-item wx:for="{{bannerList}}" wx:key="id">
-        <view class="banner-row">
+        <view class="banner-row" bindtap="onBannerTap" data-index="{{index}}" hover-class="is-pressed">
           <image wx:if="{{item.imageUrl}}" src="{{item.imageUrl}}" mode="aspectFill"></image>
           <view class="banner-fallback" wx:else>讯</view>
           <view><text>{{item.title || '平台通知'}}</text><text>{{item.subtitle || '查看节点平台最新动态'}}</text></view>
+          <text class="banner-arrow">›</text>
         </view>
       </swiper-item>
     </swiper>

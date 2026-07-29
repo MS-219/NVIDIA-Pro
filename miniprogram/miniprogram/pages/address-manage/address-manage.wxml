@@ -17,13 +17,13 @@
                 <text class="addr-detail">{{item.province}}{{item.city}}{{item.district}}{{item.detailAddress}}</text>
             </view>
             <view class="addr-actions">
-                <text class="action-btn set-default" bindtap="setDefault" data-id="{{item.id}}" wx:if="{{item.isDefault !== 1}}">设为默认</text>
-                <text class="action-btn delete" bindtap="deleteAddress" data-id="{{item.id}}">删除</text>
+                <text class="address-action set-default" bindtap="setDefault" data-id="{{item.id}}" wx:if="{{item.isDefault !== 1}}">设为默认</text>
+                <text class="address-action delete" bindtap="deleteAddress" data-id="{{item.id}}">删除</text>
             </view>
         </view>
 
         <view class="empty-state" wx:if="{{addresses.length === 0}}">
-            <text class="empty-icon">📍</text>
+            <view class="empty-icon">LOC</view>
             <text class="empty-text">暂无收货地址</text>
         </view>
 

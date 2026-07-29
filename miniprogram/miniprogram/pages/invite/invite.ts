@@ -19,7 +19,8 @@ Page({
         inviteCount: 0,
         totalReward: '0.00',
         invitedUsers: [] as InvitedUser[],
-        loading: false,
+        loading: true,
+        inviteError: '',
         // 我的邀请人
         hasInviter: false,
         inviterNickname: '',
@@ -53,13 +54,16 @@ Page({
 
     loadInviteInfo() {
         const userId = wx.getStorageSync('userId');
-        if (!userId) return;
+        if (!userId) {
+            this.setData({ loading: false, inviteError: '' });
+            return;
+        }
 
         // 生成邀请码
         const inviteCode = 'JX' + String(userId).padStart(6, '0');
         const inviteUrl = `https://orin-api.example.invalid/invite?code=${inviteCode}`;
 
-        this.setData({ inviteCode, inviteUrl, loading: true });
+        this.setData({ inviteCode, inviteUrl, loading: true, inviteError: '' });
 
         // 获取邀请统计和邀请用户列表
         wx.request({
@@ -82,7 +86,8 @@ Page({
                             registerTime: this.formatTime(u.registerTime || u.createTime),
                             deviceCount: u.deviceCount || 0,
                             reward: u.reward || '0.00'
-                        }))
+                        })),
+                        inviteError: ''
                     });
 
                     // 计算等级进度
@@ -109,12 +114,21 @@ Page({
                             });
                         }
                     }
+                } else {
+                    this.setData({ inviteError: res.data.msg || '邀请数据暂时未同步，请稍后重试' });
                 }
+            },
+            fail: () => {
+                this.setData({ inviteError: '网络连接异常，请检查后重试' });
             },
             complete: () => {
                 this.setData({ loading: false });
             }
         });
+    },
+
+    retryInviteInfo() {
+        this.loadInviteInfo();
     },
 
     loadMyInviter() {
@@ -206,5 +220,4 @@ Page({
         };
     }
 });
-
 

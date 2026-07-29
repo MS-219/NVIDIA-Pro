@@ -28,7 +28,7 @@
         </view>
         <!-- 设备列表 -->
         <view class="devices-list" wx:if="{{devices.length > 0}}">
-            <view class="device-item" wx:for="{{devices}}" wx:key="id">
+            <view class="device-item" wx:for="{{devices}}" wx:key="id" bindtap="onDeviceTap" data-device="{{item}}" hover-class="device-item-pressed">
                 <view class="device-header">
                     <view class="device-icon">
                         <image src="/images/product.png" mode="aspectFit"></image>
@@ -46,7 +46,7 @@
                 <view class="device-owner">
                     <view class="owner-avatar">
                         <image wx:if="{{item.ownerAvatar}}" src="{{item.ownerAvatar}}" mode="aspectFill"></image>
-                        <text wx:else class="avatar-placeholder">👤</text>
+                        <text wx:else class="avatar-placeholder">JX</text>
                     </view>
                     <view class="owner-info">
                         <text class="owner-name">{{item.ownerNickname}}</text>
@@ -60,7 +60,7 @@
         </view>
         <!-- 空状态 -->
         <view class="empty-state" wx:if="{{!loading && devices.length === 0}}">
-            <text class="empty-icon">📭</text>
+            <image class="empty-icon" src="/images/home-services/devices.png" mode="aspectFit"></image>
             <text class="empty-title">
                 暂无{{filterStatus === 'online' ? '在线' : filterStatus === 'offline' ? '离线' : ''}}设备
             </text>

@@ -65,6 +65,8 @@ page {
 }
 
 .type-item {
+    min-height: 44px;
+    box-sizing: border-box;
     text-align: center;
     padding: 20rpx 0;
     font-size: 26rpx;
@@ -124,16 +126,18 @@ page {
     position: absolute;
     top: 0;
     right: 0;
-    width: 40rpx;
-    height: 40rpx;
-    background: rgba(0, 0, 0, 0.5);
+    width: 44px;
+    height: 44px;
+    background: transparent;
     color: #fff;
-    font-size: 28rpx;
+    font-size: 0;
     display: flex;
     align-items: center;
     justify-content: center;
-    border-radius: 0 12rpx 0 12rpx;
+    border-radius: 0;
 }
+
+.remove-btn::before { content: '×'; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; background: rgba(18,22,17,.82); color: #fff; font-size: 18px; border-radius: 0 6px 0 6px; }
 
 .add-image {
     width: 160rpx;

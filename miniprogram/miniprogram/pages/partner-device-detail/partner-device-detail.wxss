@@ -271,3 +271,31 @@ page {
         transform: rotate(360deg);
     }
 }
+.avatar-placeholder { color: #548600; font-family: "DIN Alternate", Menlo, monospace; font-size: 11px; font-weight: 800; }
+
+/* Precision Edge Console overrides. */
+page { background: #eef1ed; }
+.container { padding: 0 12px 40px; }
+.custom-nav { margin: 0 -12px 12px; padding: 0 12px; box-sizing: content-box; background: rgba(255,255,255,.9); border-bottom: 1px solid rgba(28,33,27,.08); }
+.nav-back { width: 44px; flex: 0 0 44px; }
+.nav-title { margin-right: 44px; color: #1c211b; font-size: 18px; font-weight: 700; }
+.device-card { padding: 0; overflow: hidden; background: #fff !important; border: 1px solid rgba(28,33,27,.075) !important; border-radius: 8px !important; box-shadow: none !important; backdrop-filter: none; -webkit-backdrop-filter: none; }
+.device-header { position: relative; min-height: 96px; margin: 0; padding: 18px; box-sizing: border-box; background: #121611; border-bottom: 0; }
+.device-header::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: #76b900; }
+.device-icon { width: 58px; height: 58px; margin-right: 13px; background: #e7e9e6; border-radius: 7px; }
+.device-name { color: #f7f9f5; font-size: 17px; }
+.device-code { margin-top: 5px; color: #9ba39a; font-family: "DIN Alternate", Menlo, monospace; font-size: 11px; }
+.device-status { min-height: 28px; padding: 0 8px; font-size: 11px; border-radius: 5px; }
+.device-status.online { background: rgba(118,185,0,.13); color: #9dda39; }
+.device-status.online .status-indicator { background: #76b900; box-shadow: none; }
+.device-status.offline { background: rgba(198,90,82,.12); color: #dfa19b; }
+.device-status.offline .status-indicator { background: #c65a52; }
+.device-owner { min-height: 62px; margin: 14px; padding: 10px 12px; box-sizing: border-box; background: #f3f6f1; border: 1px solid rgba(28,33,27,.06); border-radius: 7px; }
+.owner-avatar { width: 40px; height: 40px; background: rgba(118,185,0,.12); }
+.owner-name { color: #343a32; font-size: 13px; }
+.owner-label { margin-top: 4px; font-size: 10px; }
+.device-stats { margin: 0 14px 16px; padding-top: 14px; border-top: 1px solid rgba(28,33,27,.065); }
+.stat-label { font-size: 10px; }
+.stat-value { color: #343a32; font-family: "DIN Alternate", Menlo, monospace; font-size: 13px; }
+.stat-value.time { font-size: 11px; }
+.stat-divider { background: rgba(28,33,27,.08); }

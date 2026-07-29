@@ -1,60 +1,50 @@
 <view class="container">
-    <view class="custom-nav" style="padding-top: {{navBarTop}}px; height: {{navBarHeight}}px; line-height: {{navBarHeight}}px;">
-        <view class="nav-back" bindtap="onGoBack">‹</view>
+    <view class="custom-nav" style="padding-top: {{navBarTop}}px; height: {{navBarHeight}}px;">
+        <view class="nav-back" bindtap="onGoBack" hover-class="tap-muted" aria-role="button" aria-label="返回上一页"><text>‹</text></view>
         <text class="nav-title">兑换设备</text>
-        <view class="nav-right" bindtap="goToOrders">订单</view>
+        <view class="nav-right" bindtap="goToOrders" hover-class="tap-muted">订单</view>
     </view>
 
-    <!-- 算力值信息栏 -->
     <view class="hashrate-info">
-        <view class="hashrate-left">
-            <text class="hashrate-icon">⚡</text>
-            <text class="hashrate-label">可用算力值</text>
+        <view class="balance-copy">
+            <view class="balance-kicker"><view></view><text>COMPUTE BALANCE</text></view>
+            <text class="hashrate-label">可用节点权益</text>
+            <view class="balance-value"><image src="/images/menu/earnings.png" mode="aspectFit"></image><text>{{loaded ? availableHashrate : '--'}}</text></view>
         </view>
-        <text class="hashrate-amount">{{availableHashrate}}</text>
+        <view class="sync-state {{loading ? 'is-loading' : errorMessage ? 'is-error' : ''}}"><view></view><text>{{loading ? '同步中' : errorMessage ? '数据延迟' : '已同步'}}</text></view>
     </view>
 
-    <!-- 等级提示 -->
-    <view class="level-tip" wx:if="{{userLevel < 1}}">
-        <text class="tip-icon">💡</text>
-        <text class="tip-text">您当前为普通用户，需升级后才能兑换设备</text>
+    <view class="level-tip" wx:if="{{userLevel < 1 && loaded}}"><view class="tip-mark">L0</view><text>当前等级暂未开放设备兑换，升级后可提交订单</text></view>
+    <view class="level-badge-bar" wx:if="{{userLevel >= 1}}"><text>账户等级</text><text>{{levelNames[userLevel]}}</text></view>
+
+    <view class="section-heading"><view><text>可兑换设备</text><text>EDGE HARDWARE</text></view><text wx:if="{{products.length}}">{{products.length}} 项</text></view>
+
+    <view class="loading-state" wx:if="{{loading && !loaded}}">
+        <view class="loading-card" wx:for="{{[1,2]}}" wx:key="*this"><view class="loading-media jx-skeleton"></view><view class="loading-line wide jx-skeleton"></view><view class="loading-line jx-skeleton"></view></view>
     </view>
 
-    <view class="level-badge-bar" wx:if="{{userLevel >= 1}}">
-        <text class="current-level">当前等级：{{levelNames[userLevel]}}</text>
+    <view class="error-state" wx:elif="{{errorMessage && products.length === 0}}">
+        <view class="state-mark"><view></view><text>DATA LINK</text></view>
+        <text class="state-title">设备目录同步中断</text><text class="state-desc">{{errorMessage}}</text>
+        <button bindtap="retryFetch">重新加载</button>
     </view>
 
-    <!-- 商品列表 -->
-    <view class="product-list" wx:if="{{!loading}}">
-        <view class="product-card" wx:for="{{products}}" wx:key="id" bindtap="goToDetail" data-id="{{item.id}}">
-            <image class="product-image" src="{{item.imageUrl}}" mode="aspectFill"></image>
+    <view class="product-list" wx:elif="{{products.length}}">
+        <view class="product-card" wx:for="{{products}}" wx:key="id" bindtap="goToDetail" data-id="{{item.id}}" hover-class="card-pressed">
+            <view class="product-media"><image class="product-image" src="{{item.imageUrl || '/images/product.png'}}" mode="aspectFit"></image><view class="stock-tag" wx:if="{{item.stock !== null && item.stock !== undefined}}">库存 {{item.stock}}</view></view>
             <view class="product-info">
                 <text class="product-name">{{item.name}}</text>
-                <text class="product-desc" wx:if="{{item.description}}">{{item.description}}</text>
+                <text class="product-desc">{{item.description || 'Orin 边缘算力节点设备'}}</text>
                 <view class="product-price-row">
-                    <view class="price-main">
-                        <text class="price-icon">⚡</text>
-                        <text class="price-value">{{item.userHashratePrice}}</text>
-                        <text class="price-unit">算力值</text>
-                    </view>
-                    <text class="price-yuan">≈ ¥{{item.userPrice}}</text>
-                </view>
-                <view class="product-stock" wx:if="{{item.stock !== null && item.stock !== undefined}}">
-                    <text class="stock-text">库存: {{item.stock}}</text>
+                    <view class="price-main"><image src="/images/menu/earnings.png" mode="aspectFit"></image><text class="price-value">{{item.userHashratePrice}}</text><text class="price-unit">节点权益</text></view>
+                    <text class="price-yuan">约 ¥{{item.userPrice}}</text>
                 </view>
             </view>
         </view>
     </view>
 
-    <!-- 空状态 -->
-    <view class="empty-state" wx:if="{{!loading && products.length === 0}}">
-        <text class="empty-icon">📦</text>
-        <text class="empty-text">暂无可兑换设备</text>
-    </view>
-
-    <!-- 加载中 -->
-    <view class="loading-state" wx:if="{{loading}}">
-        <view class="loading-spinner"></view>
-        <text class="loading-text">加载中...</text>
+    <view class="empty-state" wx:else>
+        <image src="/images/menu/exchange.png" mode="aspectFit"></image>
+        <text class="state-title">暂无可兑换设备</text><text class="state-desc">设备上架后会显示在这里</text>
     </view>
 </view>

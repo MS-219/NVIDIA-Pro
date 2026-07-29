@@ -1,7 +1,7 @@
 /* Shared polish layer for every secondary mini-program workflow. */
 page {
-  background: #eef1ed !important;
-  color: #1c211b;
+  background: var(--jx-canvas, #eef1ed) !important;
+  color: var(--jx-ink, #1c211b);
 }
 
 .container {
@@ -23,19 +23,18 @@ page {
 
 .nav-back,
 .back-btn {
+  min-width: 44px;
+  min-height: 44px;
   border-radius: 8px !important;
 }
 
 /* Glass surfaces */
 .form-card,
 .section,
-.overview-card,
 .chart-card,
 .reward-card,
 .monthly-card,
 .daily-card,
-.invite-card,
-.level-status-card,
 .team-stats-card,
 .team-list-card,
 .summary-card,
@@ -64,12 +63,10 @@ page {
 .rule-card,
 .tips-card,
 .agreement-card {
-  background: rgba(255, 255, 255, .76) !important;
-  border: 1px solid rgba(255, 255, 255, .88) !important;
+  background: rgba(255, 255, 255, .94) !important;
+  border: 1px solid rgba(28, 33, 27, .075) !important;
   border-radius: 8px !important;
-  box-shadow: 0 5px 18px rgba(30, 40, 27, .055) !important;
-  backdrop-filter: blur(18px);
-  -webkit-backdrop-filter: blur(18px);
+  box-shadow: none !important;
 }
 
 .card,
@@ -94,12 +91,10 @@ page {
 .submit-section,
 .safe-footer,
 .bind-prompt {
-  background: rgba(255, 255, 255, .76) !important;
-  border: 1px solid rgba(255, 255, 255, .88) !important;
+  background: rgba(255, 255, 255, .94) !important;
+  border: 1px solid rgba(28, 33, 27, .075) !important;
   border-radius: 8px !important;
-  box-shadow: 0 5px 18px rgba(30, 40, 27, .055) !important;
-  backdrop-filter: blur(18px);
-  -webkit-backdrop-filter: blur(18px);
+  box-shadow: none !important;
 }
 
 /* Feature headers stay branded without turning the whole page dark. */
@@ -152,14 +147,16 @@ page {
 .input-field,
 .textarea,
 .address-input,
-.search-input,
 .picker-field,
 .select-field,
 .bank-input {
+  min-height: 44px;
+  box-sizing: border-box;
   background: rgba(255, 255, 255, .72) !important;
   border: 1px solid rgba(28, 33, 27, .1) !important;
   border-radius: 8px !important;
   color: #252a24 !important;
+  font-size: 13px !important;
   box-shadow: none !important;
 }
 
@@ -169,10 +166,13 @@ page {
 .picker-input,
 .code-input,
 .modal-input {
+  min-height: 44px;
+  box-sizing: border-box;
   background: rgba(255, 255, 255, .72) !important;
   border: 1px solid rgba(28, 33, 27, .1) !important;
   border-radius: 8px !important;
   color: #252a24 !important;
+  font-size: 13px !important;
   box-shadow: none !important;
 }
 
@@ -183,6 +183,7 @@ page {
 .qty-btn,
 .price-row,
 .popup-addr-item {
+  min-height: 44px;
   border-radius: 8px !important;
 }
 
@@ -190,6 +191,8 @@ page {
 .radio-item,
 .switch-item,
 .sub-tab {
+  min-height: 44px;
+  box-sizing: border-box;
   border-radius: 8px !important;
 }
 
@@ -217,12 +220,26 @@ page .confirm-btn,
 page .add-btn,
 page .bind-btn,
 page .contract-btn {
+  min-height: 44px;
   background: #76b900 !important;
   border: 0 !important;
   border-radius: 8px !important;
   color: #0b0e0a !important;
   box-shadow: none !important;
+  font-size: 13px !important;
   font-weight: 700 !important;
+}
+
+page button[disabled],
+page .btn-disabled,
+page .submit-btn.disabled,
+page .save-btn.disabled {
+  background: #d9ded6 !important;
+  border-color: #d9ded6 !important;
+  color: #737b70 !important;
+  box-shadow: none !important;
+  opacity: .82;
+  transform: none !important;
 }
 
 page .skip-btn,
@@ -232,20 +249,42 @@ page .secondary-btn,
 page .edit-card-btn,
 page .modal-btn,
 page .popup-add {
+  min-height: 44px;
   background: rgba(255, 255, 255, .7) !important;
   border: 1px solid rgba(28, 33, 27, .1) !important;
   border-radius: 8px !important;
   color: #5f675d !important;
+  font-size: 13px !important;
   box-shadow: none !important;
 }
 
 page .danger-btn,
 page .cancel-contract-btn {
+  min-height: 44px;
   background: rgba(190, 79, 68, .1) !important;
   border: 1px solid rgba(190, 79, 68, .24) !important;
   border-radius: 8px !important;
   color: #a14f47 !important;
   box-shadow: none !important;
+}
+
+page .save-btn:active,
+page .submit-btn:active,
+page .action-btn:active,
+page .primary-btn:active,
+page .contact-btn:active,
+page .share-btn:active,
+page .invite-btn:active,
+page .exchange-btn:active,
+page .confirm-btn:active,
+page .add-btn:active,
+page .bind-btn:active,
+page .contract-btn:active,
+page .secondary-btn:active,
+page .record-btn:active,
+page .modal-btn:active {
+  opacity: .78;
+  transform: scale(.985);
 }
 
 .copy-btn,
@@ -259,6 +298,9 @@ page .cancel-contract-btn {
 .device-status,
 .hero-badge,
 .fail-badge {
+  min-height: 22px;
+  box-sizing: border-box;
+  font-size: 11px !important;
   border-radius: 999px !important;
 }
 

@@ -1,21 +1,21 @@
 <view class="device-page">
   <view class="device-nav" style="padding-top: {{navBarTop}}px; height: {{navBarHeight}}px;">
-    <view><text class="navbar-title">我的设备</text><text class="navbar-subtitle">共接入 {{allDeviceList.length}} 台 Orin 节点</text></view>
+    <view><text class="navbar-title">我的设备</text><text class="navbar-subtitle">{{loading && !allDeviceList.length ? '正在同步节点数据' : '共接入 ' + allDeviceList.length + ' 台 Orin 节点'}}</text></view>
   </view>
 
   <view class="device-summary">
-    <view><text>{{allDeviceList.length}}</text><text>全部设备</text></view>
-    <view><text class="online-num">{{onlineCount}}</text><view class="summary-label"><view class="online-light"></view><text>在线运行</text></view></view>
-    <view><text class="offline-num">{{offlineCount}}</text><view class="summary-label"><view class="offline-light"></view><text>已离线</text></view></view>
+    <view><text>{{loading && !allDeviceList.length ? '--' : allDeviceList.length}}</text><text>全部设备</text></view>
+    <view><text class="online-num">{{loading && !allDeviceList.length ? '--' : onlineCount}}</text><view class="summary-label"><view class="online-light"></view><text>在线运行</text></view></view>
+    <view><text class="offline-num">{{loading && !allDeviceList.length ? '--' : offlineCount}}</text><view class="summary-label"><view class="offline-light"></view><text>已离线</text></view></view>
   </view>
 
   <view class="device-toolbar">
     <view class="search-box">
       <icon type="search" size="15" color="#8b9188" />
       <input class="search-input" placeholder="搜索设备名称或 SN" placeholder-class="placeholder" value="{{searchKeyword}}" bindinput="onSearchInput" confirm-type="search" bindconfirm="handleSearch" />
-      <view class="search-submit" bindtap="handleSearch">搜索</view>
+      <view class="search-clear" wx:if="{{searchKeyword}}" catchtap="clearSearch" aria-label="清除搜索"><icon type="clear" size="16" color="#7d8579" /></view>
     </view>
-    <view class="refresh-control {{loading ? 'loading' : ''}}" bindtap="handleRefresh">↻</view>
+    <view class="refresh-control {{loading ? 'loading' : ''}}" bindtap="handleRefresh" aria-label="刷新设备"><view class="refresh-icon"></view></view>
   </view>
 
   <view class="status-tabs">
@@ -25,13 +25,25 @@
   </view>
 
   <scroll-view class="device-scroll" scroll-y type="list">
+    <view class="loading-list" wx:if="{{loading && !allDeviceList.length}}">
+      <view class="loading-card" wx:for="{{[1,2,3]}}" wx:key="*this"><view class="loading-media jx-skeleton"></view><view><view class="loading-line wide jx-skeleton"></view><view class="loading-line jx-skeleton"></view><view class="loading-line short jx-skeleton"></view></view></view>
+    </view>
+    <view class="empty-state error-state" wx:elif="{{loadError && !allDeviceList.length}}">
+      <view class="empty-signal"><view></view><text>DATA LINK</text></view>
+      <text>{{loadError}}</text><text>{{loginRequired ? '账户登录后即可查看状态与遥测数据' : '保留现有页面数据，可随时重新同步'}}</text>
+      <button bindtap="handleLoadErrorAction">{{loginRequired ? '前往登录' : '重新同步'}}</button>
+    </view>
+    <block wx:else>
     <view class="list-title" wx:if="{{deviceList.length}}"><text>{{currentTab === 'all' ? '全部节点' : (currentTab === 'online' ? '在线节点' : '离线节点')}}</text><text>{{deviceList.length}} 台</text></view>
     <view class="device-list" wx:if="{{deviceList.length}}">
-      <view class="device-card" wx:for="{{deviceList}}" wx:key="id" bindtap="onManageDevice" data-id="{{item.id}}">
+      <view class="device-card" wx:for="{{deviceList}}" wx:key="id" bindtap="onDeviceCardTap" data-id="{{item.id}}" hover-class="device-card-pressed">
         <view class="device-main">
           <view class="product-wrap"><image src="/images/product.png" mode="aspectFit"></image></view>
           <view class="device-info">
-            <view class="device-name-line"><text>{{item.remarks || 'Orin 边缘节点'}}</text><view class="status-pill {{item.status}}"><view></view>{{item.statusText}}</view></view>
+            <view class="device-name-line">
+              <text>{{item.remarks || 'Orin 边缘节点'}}</text>
+              <view class="device-head-actions"><view class="status-pill {{item.status}}"><view></view>{{item.statusText}}</view><view class="more-control" catchtap="onManageDevice" data-id="{{item.id}}" aria-label="设备管理"><view></view><view></view><view></view></view></view>
+            </view>
             <text class="device-sn">SN {{item.bindCode || item.sn || '待分配'}}</text>
             <view class="device-location"><text>部署位置</text><text>{{item.location || '未设置'}}</text></view>
           </view>
@@ -44,10 +56,16 @@
         </view>
       </view>
     </view>
-    <view class="empty-state" wx:else>
+    <view class="empty-state" wx:elif="{{!allDeviceList.length}}">
       <view class="empty-visual"><image src="/images/product.png" mode="aspectFit"></image></view>
       <text>暂无设备</text><text>点击底部“接入”，扫描设备码完成绑定</text>
     </view>
+    <view class="empty-state search-empty" wx:else>
+      <view class="empty-search"><icon type="search" size="28" color="#697166" /></view>
+      <text>未找到匹配节点</text><text>{{searchKeyword ? '请检查设备名称或 SN，或清除当前搜索' : '当前状态筛选下暂无设备'}}</text>
+      <button bindtap="resetFilters">清除筛选</button>
+    </view>
+    </block>
     <view class="scroll-safe-space"></view>
   </scroll-view>
 </view>

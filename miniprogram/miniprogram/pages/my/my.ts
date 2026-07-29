@@ -322,6 +322,18 @@ Page({
         this.wxLogin();
     },
 
+    onProfileCardTap() {
+        if (!this.data.isLoggedIn) {
+            this.onLogin();
+            return;
+        }
+        wx.navigateTo({ url: '/pages/complete-profile/complete-profile' });
+    },
+
+    stopPropagation() {
+        // Used by nested profile controls to keep the account-card navigation explicit.
+    },
+
     // 微信登录
     wxLogin() {
         wx.showLoading({ title: '登录中...' });
@@ -621,7 +633,7 @@ Page({
     },
 
     onWithdrawRecord() {
-        wx.navigateTo({ url: '/pages/withdraw-record/withdraw-record' });
+        wx.navigateTo({ url: '/pages/withdraw-list/withdraw-list' });
     },
 
     onWalletDetail() {

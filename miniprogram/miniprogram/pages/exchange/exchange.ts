@@ -10,6 +10,8 @@ Page({
         hashrateRate: 200,
         availableHashrate: 0,
         loading: true,
+        loaded: false,
+        errorMessage: '',
         levelNames: ['普通', '会员', '社区', '县级', '市级', '联创']
     },
 
@@ -19,7 +21,6 @@ Page({
             navBarTop: menuButtonInfo.top,
             navBarHeight: menuButtonInfo.height
         });
-        this.fetchProducts();
     },
 
     onShow() {
@@ -27,15 +28,14 @@ Page({
     },
 
     onPullDownRefresh() {
-        this.fetchProducts();
-        wx.stopPullDownRefresh();
+        this.fetchProducts().finally(() => wx.stopPullDownRefresh());
     },
 
     fetchProducts() {
         const userId = wx.getStorageSync('userId') || '';
 
-        this.setData({ loading: true });
-        request({
+        this.setData({ loading: true, errorMessage: '' });
+        return request({
             url: `/api/exchange/products?userId=${userId}`,
             method: 'GET'
         }).then((res: any) => {
@@ -47,17 +47,28 @@ Page({
                     userLevel: data.userLevel || 0,
                     hashrateRate: data.hashrateRate || 200,
                     availableHashrate: data.availableHashrate || 0,
-                    loading: false
+                    loaded: true
                 });
             } else {
                 console.error('获取商品失败:', res.msg);
-                wx.showToast({ title: res.msg || '获取商品失败', icon: 'none' });
-                this.setData({ loading: false });
+                this.setData({
+                    loaded: true,
+                    errorMessage: res.msg || '商品列表加载失败'
+                });
             }
         }).catch((err: any) => {
             console.error('请求异常:', err);
+            this.setData({
+                loaded: true,
+                errorMessage: '网络连接异常，请稍后重试'
+            });
+        }).finally(() => {
             this.setData({ loading: false });
         });
+    },
+
+    retryFetch() {
+        this.fetchProducts();
     },
 
     goToDetail(e: any) {

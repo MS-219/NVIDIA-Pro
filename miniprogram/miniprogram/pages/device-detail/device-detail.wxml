@@ -1,20 +1,145 @@
 <view class="detail-page">
-  <view class="detail-nav" style="padding-top: {{navBarTop}}px; height: {{navBarHeight}}px;"><view class="back-control" bindtap="goBack">‹</view><text>设备详情</text></view>
-  <scroll-view class="detail-scroll" scroll-y type="list">
-    <view class="device-hero">
-      <view class="hero-info"><text>{{device.name || 'Orin 边缘节点'}}</text><text>SN {{device.bindCode || device.sn || '待分配'}}</text><view class="hero-status {{device.status === 1 ? 'online' : 'offline'}}"><view></view>{{device.status === 1 ? '设备运行正常' : '设备当前离线'}}</view></view>
-      <image src="/images/product.png" mode="aspectFit"></image>
+  <view class="detail-nav" style="padding-top: {{navBarTop}}px; height: {{navBarHeight}}px;">
+    <view class="nav-back" bindtap="goBack" aria-role="button" aria-label="返回上一页">
+      <view class="back-chevron"></view>
+    </view>
+    <view class="nav-heading">
+      <text>设备详情</text>
+      <text>EDGE NODE CONSOLE</text>
+    </view>
+  </view>
+
+  <scroll-view
+    class="detail-scroll"
+    scroll-y
+    type="list"
+    refresher-enabled="{{pageState === 'ready'}}"
+    refresher-triggered="{{refreshing}}"
+    bindrefresherrefresh="handleRefresh"
+  >
+    <view class="page-loading" wx:if="{{pageState === 'loading'}}">
+      <view class="skeleton hero-skeleton"></view>
+      <view class="skeleton summary-skeleton"></view>
+      <view class="loading-label"><view class="loading-pulse"></view><text>正在同步节点状态</text></view>
+      <view class="skeleton-grid">
+        <view class="skeleton" wx:for="{{[1, 2, 3, 4, 5, 6]}}" wx:key="*this"></view>
+      </view>
     </view>
 
-    <view class="metric-card"><view><text>今日收益</text><text class="earning">¥{{device.earnings || '0.00'}}</text></view><view><text>节点权益</text><text>{{device.hashrate || 0}}</text></view><view><text>运行状态</text><text>{{device.status === 1 ? '正常' : '中断'}}</text></view></view>
+    <view class="page-error" wx:elif="{{pageState === 'error'}}">
+      <view class="error-mark"><view></view><view></view></view>
+      <text class="error-title">节点数据未就绪</text>
+      <text class="error-message">{{errorMessage}}</text>
+      <button class="state-action" bindtap="retryPage">重新加载</button>
+    </view>
 
-    <view class="section-head"><text>设备信息</text></view>
-    <view class="info-card"><view><text>节点编号</text><text>{{device.businessId || '未分配'}}</text></view><view><text>设备型号</text><text>Jetson Orin Nano</text></view><view><text>部署位置</text><text>{{device.location || '未设置'}}</text></view><view><text>绑定时间</text><text>{{device.bindTime || '-'}}</text></view></view>
+    <view class="ready-content" wx:else>
+      <view class="node-hero">
+        <view class="hero-grid"></view>
+        <view class="hero-copy">
+          <view class="hero-kicker"><view></view><text>ORIN EDGE NODE</text></view>
+          <text class="hero-title">{{device.displayName}}</text>
+          <view class="identity-line">
+            <view class="identity-text">
+              <text>DEVICE ID</text>
+              <text>{{device.identity}}</text>
+            </view>
+            <button class="identity-action" bindtap="copyDeviceIdentity" disabled="{{!device.identityRaw}}">复制</button>
+          </view>
+          <view class="node-status status-{{device.statusTone}}">
+            <view class="status-light"><view></view></view>
+            <view><text>{{device.statusLabel}}</text><text>最后心跳 {{device.heartbeatText}}</text></view>
+          </view>
+        </view>
+        <image class="hero-product" src="/images/product.png" mode="aspectFit"></image>
+      </view>
 
-    <view class="section-head"><text>近 7 日收益</text><text>单位：元</text></view>
-    <view class="chart-card"><canvas type="2d" id="earningsChart" class="chart-canvas"></canvas><view class="chart-empty" wx:if="{{!chartData.dates.length}}">暂无结算数据</view></view>
+      <view class="node-summary">
+        <view class="summary-cell">
+          <text>今日收益</text>
+          <view><text class="summary-prefix">¥</text><text class="summary-value accent">{{latestEarning}}</text></view>
+        </view>
+        <view class="summary-cell">
+          <text>节点权益</text>
+          <text class="summary-value">{{device.hashrateText}}</text>
+        </view>
+        <view class="summary-cell">
+          <text>运行状态</text>
+          <view class="summary-status status-{{device.statusTone}}"><view></view><text>{{device.statusLabel}}</text></view>
+        </view>
+      </view>
 
-    <view class="unbind-card"><view><text>解除设备绑定</text><text>解除后设备将从当前账户移除</text></view><button bindtap="unbindDevice">解除绑定</button></view>
-    <view class="detail-safe-space"></view>
+      <view class="section-heading">
+        <view><text>实时遥测</text><text>TELEMETRY</text></view>
+        <text>节点实时快照</text>
+      </view>
+      <view class="telemetry-board">
+        <view class="telemetry-cell tone-{{item.tone}}" wx:for="{{telemetry}}" wx:key="code">
+          <view class="telemetry-top"><text>{{item.label}}</text><text>{{item.code}}</text></view>
+          <view class="telemetry-reading {{item.compact ? 'compact' : ''}}">
+            <text>{{item.value}}</text><text wx:if="{{item.value !== '--' && item.unit}}">{{item.unit}}</text>
+          </view>
+          <view class="metric-track" wx:if="{{item.hasProgress}}"><view style="width: {{item.progress}}%;"></view></view>
+          <view class="metric-baseline" wx:else><view></view></view>
+        </view>
+      </view>
+
+      <view class="section-heading stack-heading">
+        <view><text>运行环境</text><text>SOFTWARE STACK</text></view>
+        <text>节点上报版本</text>
+      </view>
+      <view class="software-panel">
+        <view class="software-tag" wx:for="{{softwareTags}}" wx:key="label">
+          <text>{{item.label}}</text>
+          <text>{{item.value}}</text>
+        </view>
+      </view>
+
+      <view class="section-heading">
+        <view><text>节点档案</text><text>IDENTITY</text></view>
+      </view>
+      <view class="identity-panel">
+        <view><text>节点编号</text><text selectable>{{device.businessIdText}}</text></view>
+        <view><text>设备型号</text><text>{{device.modelText}}</text></view>
+        <view><text>部署位置</text><text>{{device.locationText}}</text></view>
+        <view><text>绑定时间</text><text>{{device.bindTimeText}}</text></view>
+      </view>
+
+      <view class="section-heading chart-heading">
+        <view><text>收益趋势</text><text>7 DAY SETTLEMENT</text></view>
+        <view class="chart-total"><text>7日累计</text><text>¥{{chartSummary.total}}</text></view>
+      </view>
+      <view class="earnings-panel">
+        <view class="chart-meta">
+          <view><text>所选结算日</text><text>{{chartFocus.date}}</text></view>
+          <view><text>当日收益</text><text>¥{{chartFocus.value}}</text></view>
+          <view><text>日均收益</text><text>¥{{chartSummary.average}}</text></view>
+        </view>
+
+        <view class="chart-loading" wx:if="{{chartState === 'loading'}}">
+          <view class="chart-loading-line"></view><text>收益数据同步中</text>
+        </view>
+        <view class="chart-state" wx:elif="{{chartState === 'error'}}">
+          <text>收益趋势加载失败</text><button bindtap="retryChart">重试</button>
+        </view>
+        <view class="chart-state" wx:elif="{{chartState === 'empty'}}">
+          <text>暂无结算数据</text>
+        </view>
+        <canvas
+          wx:else
+          type="2d"
+          id="earningsChart"
+          class="earnings-canvas"
+          bindtouchstart="onChartTouch"
+          aria-label="近七日收益趋势"
+        ></canvas>
+      </view>
+
+      <view class="danger-zone">
+        <view class="danger-copy"><text>解除设备绑定</text><text>设备将从当前账户移除，历史结算记录保留</text></view>
+        <button class="danger-action" bindtap="unbindDevice" loading="{{unbinding}}" disabled="{{unbinding}}">解除绑定</button>
+      </view>
+      <view class="detail-safe-space"></view>
+    </view>
   </scroll-view>
 </view>

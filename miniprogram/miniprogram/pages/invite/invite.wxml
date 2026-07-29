@@ -1,76 +1,50 @@
 <view class="container">
-    <!-- 自定义导航栏 -->
     <view class="custom-nav" style="padding-top: {{navBarTop}}px;">
-        <view class="nav-back" bindtap="goBack">
+        <view class="nav-back" bindtap="goBack" hover-class="tap-muted" hover-stay-time="80" aria-role="button" aria-label="返回">
             <text class="back-icon">‹</text>
         </view>
         <text class="nav-title">邀请好友</text>
     </view>
-    <!-- 邀请卡片 -->
+
     <view class="invite-card">
-        <view class="card-header">
-            <text class="card-title">🎁 邀请好友 共享收益</text>
-            <text class="card-subtitle">每成功邀请一位好友，获得丰厚奖励</text>
-        </view>
-        <!-- 邀请码 -->
-        <view class="invite-code-section">
-            <text class="code-label">我的邀请码</text>
-            <view class="code-box">
-                <text class="code-text">{{inviteCode}}</text>
-                <button class="copy-btn" bindtap="copyInviteCode">复制</button>
+        <view class="console-head">
+            <view class="console-identity">
+                <view class="anchor-icon"><image src="/images/menu/invite.png" mode="aspectFit"></image></view>
+                <view class="console-copy">
+                    <text class="console-kicker">TEAM NETWORK</text>
+                    <text class="console-caption">邀请网络</text>
+                </view>
+            </view>
+            <view class="sync-state {{loading ? 'is-loading' : inviteError ? 'is-error' : ''}}">
+                <view class="sync-dot"></view>
+                <text>{{loading ? '同步中' : inviteError ? '数据延迟' : '已激活'}}</text>
             </view>
         </view>
-        <!-- 分享按钮 -->
-        <button class="share-btn" open-type="share">
-            <text class="share-icon">📤</text>
-            <text>立即分享给好友</text>
+
+        <view class="card-header">
+            <text class="card-title">共享算力收益</text>
+            <text class="card-subtitle">邀请好友绑定设备，持续积累团队奖励</text>
+        </view>
+
+        <view class="invite-code-section">
+            <text class="code-label">专属邀请码</text>
+            <view class="code-box">
+                <text class="code-text">{{inviteCode || '------'}}</text>
+                <button class="copy-btn" bindtap="copyInviteCode" hover-class="tap-strong" hover-stay-time="80">复制</button>
+            </view>
+        </view>
+
+        <button class="share-btn" open-type="share" hover-class="tap-strong" hover-stay-time="80">
+            <image class="share-icon" src="/images/menu/invite.png" mode="aspectFit"></image>
+            <text>分享邀请链接</text>
         </button>
     </view>
-    <!-- 等级与进度 -->
-    <view class="level-status-card">
-        <view class="level-header">
-            <view class="current-level">
-                <text class="level-tag">当前等级</text>
-                <text class="level-name">{{currentLevelName}}</text>
-            </view>
-        </view>
-        <view class="progress-section">
-            <view class="progress-info">
-                <text class="next-tip">{{nextLevelDesc}}</text>
-            </view>
-            <view class="progress-bar-bg" wx:if="{{nextLevelConfig}}">
-                <view class="progress-bar-fill" style="width: {{ (totalDeviceCount / nextLevelConfig.threshold) * 100 > 100 ? 100 : (totalDeviceCount / nextLevelConfig.threshold) * 100 }}%"></view>
-            </view>
-        </view>
-    </view>
-    <!-- 我的邀请人 -->
-    <view class="inviter-card">
-        <view class="inviter-title">我的邀请人</view>
-        <!-- 已绑定邀请人 -->
-        <view class="inviter-bound" wx:if="{{hasInviter}}">
-            <view class="inviter-avatar">
-                <image src="{{inviterAvatar}}" mode="aspectFill" wx:if="{{inviterAvatar}}"></image>
-                <text class="avatar-placeholder" wx:else>👤</text>
-            </view>
-            <text class="inviter-name">{{inviterNickname}}</text>
-            <text class="bound-tag">已绑定</text>
-        </view>
-        <!-- 未绑定邀请人 -->
-        <view class="inviter-unbound" wx:else>
-            <view class="bind-input-row" wx:if="{{showBindInput}}">
-                <input class="code-input" placeholder="请输入邀请码" value="{{inputCode}}" bindinput="onInputCode" maxlength="20" />
-                <button class="bind-btn" bindtap="submitBindCode">绑定</button>
-                <button class="cancel-btn" bindtap="cancelBind">取消</button>
-            </view>
-            <view class="bind-prompt" wx:else bindtap="showBindInput">
-                <text class="prompt-text">还没有邀请人？</text>
-                <text class="prompt-link">点击填写邀请码</text>
-            </view>
-        </view>
-    </view>
-    <!-- 邀请统计 -->
+
     <view class="stats-card">
-        <view class="stats-title">我的邀请成果</view>
+        <view class="section-heading">
+            <text class="section-title">团队遥测</text>
+            <text class="section-code">LIVE TOTALS</text>
+        </view>
         <view class="stats-row">
             <view class="stat-item">
                 <text class="stat-num">{{inviteCount}}</text>
@@ -88,50 +62,112 @@
             </view>
         </view>
     </view>
-    <!-- 邀请用户列表 -->
-    <view class="users-card" wx:if="{{invitedUsers.length > 0}}">
-        <view class="users-title">已邀请用户</view>
-        <view class="user-list">
+
+    <view class="level-status-card">
+        <view class="section-heading">
+            <view class="current-level">
+                <text class="level-tag">当前等级</text>
+                <text class="level-name">{{currentLevelName}}</text>
+            </view>
+            <text class="device-total">{{totalDeviceCount}} 台团队设备</text>
+        </view>
+        <view class="progress-section">
+            <text class="next-tip">{{nextLevelDesc || '等级数据同步中'}}</text>
+            <view class="progress-bar-bg" wx:if="{{nextLevelConfig}}">
+                <view class="progress-bar-fill" style="width: {{(totalDeviceCount / nextLevelConfig.threshold) * 100 > 100 ? 100 : (totalDeviceCount / nextLevelConfig.threshold) * 100}}%"></view>
+            </view>
+        </view>
+    </view>
+
+    <view class="inviter-card">
+        <view class="section-heading">
+            <text class="section-title">我的邀请人</text>
+            <text class="section-code">UPLINK</text>
+        </view>
+        <view class="inviter-bound" wx:if="{{hasInviter}}">
+            <view class="inviter-avatar">
+                <image src="{{inviterAvatar}}" mode="aspectFill" wx:if="{{inviterAvatar}}"></image>
+                <image class="avatar-fallback" src="/images/menu/invite.png" mode="aspectFit" wx:else></image>
+            </view>
+            <text class="inviter-name">{{inviterNickname}}</text>
+            <text class="bound-tag">已绑定</text>
+        </view>
+        <view class="inviter-unbound" wx:else>
+            <view class="bind-input-row" wx:if="{{showBindInput}}">
+                <input class="code-input" placeholder="请输入邀请码" value="{{inputCode}}" bindinput="onInputCode" maxlength="20" />
+                <button class="bind-btn" bindtap="submitBindCode" hover-class="tap-strong" hover-stay-time="80">绑定</button>
+                <button class="cancel-btn" bindtap="cancelBind" hover-class="tap-muted" hover-stay-time="80">取消</button>
+            </view>
+            <view class="bind-prompt" wx:else bindtap="showBindInput" hover-class="tap-muted" hover-stay-time="80" aria-role="button">
+                <text class="prompt-text">还没有邀请人</text>
+                <text class="prompt-link">填写邀请码</text>
+            </view>
+        </view>
+    </view>
+
+    <view class="users-card">
+        <view class="section-heading">
+            <view>
+                <text class="section-title">已邀请用户</text>
+                <text class="section-subtitle">按注册时间排列</text>
+            </view>
+            <text class="section-count">{{invitedUsers.length}} 人</text>
+        </view>
+
+        <view class="user-list" wx:if="{{!loading && !inviteError && invitedUsers.length > 0}}">
             <view class="user-item" wx:for="{{invitedUsers}}" wx:key="id">
                 <view class="user-avatar">
                     <image src="{{item.avatarUrl}}" mode="aspectFill" wx:if="{{item.avatarUrl}}"></image>
-                    <text class="avatar-placeholder" wx:else>👤</text>
+                    <image class="avatar-fallback" src="/images/menu/invite.png" mode="aspectFit" wx:else></image>
                 </view>
                 <view class="user-info">
                     <text class="user-name">{{item.nickname}}</text>
-                    <text class="user-time">{{item.registerTime}} 注册</text>
+                    <text class="user-time">{{item.registerTime || '--'}} 注册</text>
                 </view>
                 <view class="user-reward">
-                    <text class="reward-amount {{item.deviceCount > 0 ? '' : 'zero'}}">
-                        {{item.deviceCount || 0}}台
-                    </text>
+                    <text class="reward-amount {{item.deviceCount > 0 ? '' : 'zero'}}">{{item.deviceCount || 0}} 台</text>
                     <text class="reward-label">设备</text>
-                    <view class="reward-divider" style="height: 12rpx;"></view>
-                    <text class="reward-amount highlight">+{{item.reward || '0.00'}}元</text>
+                    <text class="reward-amount highlight">+¥{{item.reward || '0.00'}}</text>
                     <text class="reward-label">贡献收益</text>
                 </view>
             </view>
         </view>
+
+        <view class="users-state" wx:if="{{loading}}">
+            <view class="loading-spinner"></view>
+            <text class="state-title">正在同步团队数据</text>
+            <text class="state-desc">正在读取最新邀请关系</text>
+        </view>
+
+        <view class="users-state" wx:if="{{!loading && inviteError}}">
+            <view class="error-glyph">!</view>
+            <text class="state-title">团队数据同步中断</text>
+            <text class="state-desc">{{inviteError}}</text>
+            <view class="retry-btn" bindtap="retryInviteInfo" hover-class="tap-strong" hover-stay-time="80" aria-role="button">重新加载</view>
+        </view>
+
+        <view class="users-state" wx:if="{{!loading && !inviteError && invitedUsers.length === 0}}">
+            <image class="empty-image" src="/images/menu/invite.png" mode="aspectFit"></image>
+            <text class="state-title">暂无邀请用户</text>
+            <text class="state-desc">分享邀请码后，成功加入的好友会显示在这里</text>
+        </view>
     </view>
-    <!-- 暂无邀请 -->
-    <view class="empty-users" wx:if="{{invitedUsers.length === 0 && !loading}}">
-        <text class="empty-icon">👥</text>
-        <text class="empty-text">暂无邀请用户</text>
-        <text class="empty-tip">分享邀请码给好友，邀请成功后将显示在这里</text>
-    </view>
-    <!-- 邀请规则 -->
+
     <view class="rules-card">
-        <view class="rules-title">邀请规则</view>
+        <view class="section-heading">
+            <text class="section-title">邀请规则</text>
+            <text class="section-code">3 STEPS</text>
+        </view>
         <view class="rule-item">
-            <text class="rule-num">1</text>
+            <text class="rule-num">01</text>
             <text class="rule-text">分享专属邀请链接给好友</text>
         </view>
         <view class="rule-item">
-            <text class="rule-num">2</text>
+            <text class="rule-num">02</text>
             <text class="rule-text">好友通过链接注册并绑定设备</text>
         </view>
         <view class="rule-item">
-            <text class="rule-num">3</text>
+            <text class="rule-num">03</text>
             <text class="rule-text">好友产生收益，您获得相应奖励</text>
         </view>
     </view>

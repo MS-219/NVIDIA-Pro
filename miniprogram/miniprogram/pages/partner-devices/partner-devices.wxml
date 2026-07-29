@@ -52,7 +52,7 @@
                     <view class="member-left">
                         <view class="member-avatar">
                             <image wx:if="{{item.avatarUrl}}" src="{{item.avatarUrl}}" mode="aspectFill"></image>
-                            <text wx:else class="avatar-placeholder">👤</text>
+                            <text wx:else class="avatar-placeholder">JX</text>
                         </view>
                         <view class="member-info">
                             <view class="member-name-row">
@@ -88,7 +88,7 @@
         </view>
         <!-- 空状态 -->
         <view class="empty-state" wx:if="{{!loading && members.length === 0}}">
-            <text class="empty-icon">👥</text>
+            <image class="empty-icon" src="/images/menu/invite.png" mode="aspectFit"></image>
             <text class="empty-title">暂无伙伴设备</text>
             <text class="empty-desc">邀请好友加入，一起赚收益</text>
             <navigator url="/pages/invite/invite" class="invite-btn">

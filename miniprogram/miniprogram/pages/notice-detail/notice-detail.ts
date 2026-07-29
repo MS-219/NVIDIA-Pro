@@ -5,8 +5,10 @@ Page({
     data: {
         navBarTop: 0,
         navBarHeight: 44,
+        noticeId: '',
         notice: null as any,
-        loading: true
+        loading: true,
+        errorMessage: ''
     },
 
     onLoad(options: any) {
@@ -18,14 +20,15 @@ Page({
 
         const id = options.id;
         if (id) {
+            this.setData({ noticeId: id });
             this.fetchNoticeDetail(id);
         } else {
-            wx.showToast({ title: '公告不存在', icon: 'none' });
-            setTimeout(() => wx.navigateBack(), 1500);
+            this.setData({ loading: false, errorMessage: '公告参数缺失' });
         }
     },
 
     fetchNoticeDetail(id: string) {
+        this.setData({ loading: true, errorMessage: '' });
         wx.request({
             url: `${API_BASE}/api/notice/detail/${id}`,
             method: 'GET',
@@ -43,15 +46,20 @@ Page({
                         loading: false
                     });
                 } else {
-                    wx.showToast({ title: res.data.msg || '获取公告失败', icon: 'none' });
-                    setTimeout(() => wx.navigateBack(), 1500);
+                    this.setData({
+                        loading: false,
+                        errorMessage: res.data.msg || '公告内容同步失败'
+                    });
                 }
             },
             fail: () => {
-                wx.showToast({ title: '网络错误', icon: 'none' });
-                setTimeout(() => wx.navigateBack(), 1500);
+                this.setData({ loading: false, errorMessage: '网络连接异常，请重新同步' });
             }
         });
+    },
+
+    retryNotice() {
+        if (this.data.noticeId) this.fetchNoticeDetail(this.data.noticeId);
     },
 
     formatTime(timeStr: string) {

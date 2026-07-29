@@ -11,7 +11,10 @@ Page({
     searchKeyword: '',
     onlineCount: 0,
     offlineCount: 0,
-    loading: false
+    loading: false,
+    loadError: '',
+    loginRequired: false,
+    firstShowHandled: false
   },
 
   onLoad() {
@@ -29,7 +32,12 @@ Page({
         selected: 1
       })
     }
-    // 每次显示时刷新设备列表
+    if (!this.data.firstShowHandled) {
+      this.setData({ firstShowHandled: true });
+      return;
+    }
+
+    // 从详情页返回时刷新设备列表
     this.fetchDeviceList();
   },
 
@@ -42,8 +50,10 @@ Page({
   handleRefresh() {
     if (this.data.loading) return;
     wx.showLoading({ title: '刷新中...', mask: true });
-    this.fetchDeviceList().then(() => {
-      wx.showToast({ title: '已刷新', icon: 'success' });
+    this.fetchDeviceList().then((res: any) => {
+      if (res && res.code === 200) {
+        wx.showToast({ title: '已刷新', icon: 'success' });
+      }
     }).finally(() => {
       wx.hideLoading();
     });
@@ -51,12 +61,13 @@ Page({
 
   // 获取设备列表
   fetchDeviceList() {
-    this.setData({ loading: true });
+    if (this.data.loading) return Promise.resolve(null);
+
+    this.setData({ loading: true, loadError: '', loginRequired: false });
     const userId = wx.getStorageSync('userId');
     if (!userId) {
-      wx.showToast({ title: '请先登录', icon: 'none' });
-      this.setData({ loading: false });
-      return Promise.reject('not logged in');
+      this.setData({ loading: false, loadError: '登录后可管理您的 Orin 节点', loginRequired: true });
+      return Promise.resolve(null);
     }
 
     return request({
@@ -82,12 +93,14 @@ Page({
         this.setData({ allDeviceList: list, onlineCount, offlineCount });
         this.filterDeviceList();
       } else {
+        this.setData({ loadError: res.msg || '设备数据同步异常' });
         wx.showToast({ title: res.msg || '获取列表失败', icon: 'none' });
       }
       return res;
     }).catch(err => {
       console.error('fetchDeviceList error:', err);
-      return err;
+      this.setData({ loadError: '设备数据同步异常，请稍后重试' });
+      return null;
     }).finally(() => {
       this.setData({ loading: false });
     });
@@ -133,19 +146,41 @@ Page({
   },
 
   onSearchInput(e: any) {
-    this.setData({ searchKeyword: e.detail.value || '' });
+    this.setData({ searchKeyword: e.detail.value || '' }, () => {
+      this.filterDeviceList();
+    });
   },
 
   handleSearch() {
     const keyword = (this.data.searchKeyword || '').trim();
-    if (!keyword) {
-      wx.showToast({ title: '请输入设备号', icon: 'none' });
-      return;
-    }
     this.filterDeviceList();
-    if (this.data.deviceList.length === 0) {
+    if (keyword && this.data.deviceList.length === 0) {
       wx.showToast({ title: '没有匹配设备', icon: 'none' });
     }
+  },
+
+  clearSearch() {
+    this.setData({ searchKeyword: '' }, () => {
+      this.filterDeviceList();
+    });
+  },
+
+  resetFilters() {
+    this.setData({ searchKeyword: '', currentTab: 'all' }, () => {
+      this.filterDeviceList();
+    });
+  },
+
+  handleLoadErrorAction() {
+    if (this.data.loginRequired) {
+      wx.switchTab({ url: '/pages/my/my' });
+      return;
+    }
+    this.fetchDeviceList();
+  },
+
+  onDeviceCardTap(e: any) {
+    this.viewDeviceDetail(Number(e.currentTarget.dataset.id));
   },
 
   openFilterSheet() {
@@ -160,15 +195,13 @@ Page({
   },
 
   onManageDevice(e: any) {
-    const id = e.currentTarget.dataset.id;
+    const id = Number(e.currentTarget.dataset.id);
     wx.showActionSheet({
-      itemList: ['查看详情', '编辑备注', '解绑设备'],
+      itemList: ['编辑备注', '解绑设备'],
       success: (res) => {
         if (res.tapIndex === 0) {
-          this.viewDeviceDetail(id);
-        } else if (res.tapIndex === 1) {
           this.editDeviceName(id);
-        } else if (res.tapIndex === 2) {
+        } else if (res.tapIndex === 1) {
           this.unbindDevice(id);
         }
       }

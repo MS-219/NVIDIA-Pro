@@ -8,6 +8,7 @@
     "pages/withdraw/withdraw",
     "pages/bosskg-contract/bosskg-contract",
     "pages/withdraw-record/withdraw-record",
+    "pages/withdraw-list/withdraw-list",
     "pages/earnings-detail/earnings-detail",
     "pages/invite/invite",
     "pages/partner-devices/partner-devices",

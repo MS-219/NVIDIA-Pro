@@ -55,3 +55,27 @@ page { background: #eef1ed; color: #1c211b; }.page-scroll { height: 100vh; }.hom
 .income-value.is-compact text:last-child { font-size: 20px; }
 .income-total > .income-total-value.is-medium { font-size: 15px; }
 .income-total > .income-total-value.is-compact { font-size: 13px; }
+
+/* Interaction and telemetry state refinements. */
+.service-state { min-height: 44px; font-size: 11px; font-family: "DIN Alternate", Menlo, monospace; }
+.service-state.is-syncing view { background: #c08a2f; animation: status-pulse 1.2s ease-in-out infinite; }
+.service-state.is-error view { background: #c65a52; }
+.service-state.is-error text { color: #a7524a; }
+.navbar-subtitle,.overview-title > view:first-child > text:last-child,.metric-label,.income-label,.income-note,.income-total > text:first-child,.income-total > text:last-child,.banner-row view text:last-child,.service-grid > navigator > text:last-child,.service-grid > view > text:last-child,.news-row view text:last-child { font-size: 11px; }
+.hero-action navigator { min-height: 44px; padding: 0 15px; box-sizing: border-box; font-size: 12px; }
+.hero-live { min-height: 32px; font-size: 11px; }
+.overview-badge { min-height: 32px; font-size: 11px; }
+.overview-metric.is-action { min-height: 44px; }
+.section-head navigator { min-height: 44px; display: flex; align-items: flex-end; padding-bottom: 1px; box-sizing: border-box; font-size: 12px; }
+.media-status.is-syncing { border-color: rgba(192,138,47,.32); color: #d8ad63; }
+.media-status.is-syncing view { background: #c08a2f; animation: status-pulse 1.2s ease-in-out infinite; }
+.media-status.is-error { border-color: rgba(198,90,82,.36); color: #dfa19b; }
+.media-status.is-error view,.hero-live.is-error > view { background: #c65a52; }
+.banner-row { padding-right: 4px; }
+.banner-arrow { flex: 0 0 auto; width: 32px; height: 44px; display: flex; align-items: center; justify-content: center; color: #899185; font-size: 20px; }
+.is-pressed { opacity: .72; }
+
+@keyframes status-pulse {
+  0%, 100% { opacity: .45; }
+  50% { opacity: 1; }
+}

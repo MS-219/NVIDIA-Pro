@@ -123,3 +123,4 @@ page {
 .contact-icon {
     font-size: 36rpx;
 }
+.contact-icon { width: 19px; height: 19px; }

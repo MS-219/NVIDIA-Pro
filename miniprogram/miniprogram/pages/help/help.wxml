@@ -22,7 +22,7 @@
     <view class="contact-section">
         <view class="contact-title">没有找到答案？</view>
         <button class="contact-btn" bindtap="contactService">
-            <text class="contact-icon">💬</text>
+            <image class="contact-icon" src="/images/menu/feedback.png" mode="aspectFit"></image>
             <text>联系客服</text>
         </button>
     </view>

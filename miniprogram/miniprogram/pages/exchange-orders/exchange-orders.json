@@ -2,5 +2,7 @@
     "usingComponents": {},
     "navigationStyle": "custom",
     "enablePullDownRefresh": true,
-    "onReachBottomDistance": 100
+    "onReachBottomDistance": 100,
+    "backgroundColor": "#EEF1ED",
+    "backgroundTextStyle": "dark"
 }
