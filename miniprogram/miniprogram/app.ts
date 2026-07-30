@@ -56,15 +56,15 @@ function isTokenExpired(res: any): boolean {
   const originalSuccess = options.success;
 
   options.success = function (res: any) {
-    // 检查是否 token 过期
-    if (isTokenExpired(res)) {
-      handleTokenExpired();
-      return;
-    }
-
-    // 调用原始的 success 回调
-    if (originalSuccess) {
-      originalSuccess(res);
+    try {
+      if (isTokenExpired(res)) {
+        handleTokenExpired();
+      }
+    } finally {
+      // Token 过期也必须交还响应，确保调用方的 Promise 能正常 reject。
+      if (originalSuccess) {
+        originalSuccess(res);
+      }
     }
   };
 
@@ -83,13 +83,6 @@ App<IAppOption>({
     logs.unshift(Date.now())
     wx.setStorageSync('logs', logs)
 
-    // 登录
-    wx.login({
-      success: res => {
-        console.log(res.code)
-        // 发送 res.code 到后台换取 openId, sessionKey, unionId
-      },
-    })
   },
 
   // 检查小程序更新

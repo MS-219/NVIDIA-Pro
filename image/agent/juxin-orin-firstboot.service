@@ -1,7 +1,7 @@
 [Unit]
 Description=Juxin Orin first-boot identity provisioning
 After=local-fs.target
-Before=network-online.target ssh.service juxin-orin-agent.service
+Before=network-online.target ssh.service juxin-orin-agent.service juxin-orin-display.service
 ConditionPathExists=!/var/lib/juxin-orin/provisioned
 
 [Service]

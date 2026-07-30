@@ -40,10 +40,11 @@ with open(sys.argv[2], encoding="utf-8") as handle:
 data = capabilities.get("data") or {}
 required = {
     "protocolVersion": "2",
-    "minimumAgentVersion": "0.4.0-orin",
+    "minimumAgentVersion": "0.5.0-orin",
     "directEnrollment": True,
     "imageLicenseRequired": False,
     "deviceTokenAuthentication": True,
+    "fullscreenStatusDisplay": True,
     "atomicTaskClaim": True,
     "persistentResultOutbox": True,
 }
@@ -52,7 +53,12 @@ for key, expected in required.items():
         raise SystemExit(f"backend readiness: capability {key} is not {expected!r}")
 PY
 
-for asset in orin_agent.py install-agent.sh juxin-orin-agent.service; do
+for asset in \
+  orin_agent.py \
+  orin_display.py \
+  install-agent.sh \
+  juxin-orin-agent.service \
+  juxin-orin-display.service; do
   curl -fsS --proto '=https' --tlsv1.2 --connect-timeout 8 --max-time 20 \
     "$BASE_URL/api/agent/$asset" >"$TEMP_DIR/$asset"
   if ! cmp -s "$IMAGE_DIR/agent/$asset" "$TEMP_DIR/$asset"; then
@@ -61,4 +67,4 @@ for asset in orin_agent.py install-agent.sh juxin-orin-agent.service; do
   fi
 done
 
-echo "backend readiness: PASS ($BASE_URL, protocol 2, agent 0.4.0-orin)"
+echo "backend readiness: PASS ($BASE_URL, protocol 2, agent 0.5.0-orin)"

@@ -42,9 +42,25 @@ Page({
         }
     },
 
-    // 昵称输入
+    syncNickname(e: any) {
+        const value = e && e.detail && typeof e.detail.value === 'string'
+            ? e.detail.value
+            : this.data.nickname;
+
+        if (value !== this.data.nickname) {
+            this.setData({ nickname: value });
+        }
+        return value;
+    },
+
+    // 键盘输入时同步，并把最终值返回给原生输入框。
     onNicknameInput(e: any) {
-        this.setData({ nickname: e.detail.value });
+        return this.syncNickname(e);
+    },
+
+    // 微信昵称候选在不同客户端可能以 change、blur 或 confirm 收口。
+    onNicknameCommit(e: any) {
+        this.syncNickname(e);
     },
 
     // 跳过
@@ -57,10 +73,14 @@ Page({
     },
 
     // 保存
-    async onSave() {
-        const { nickname, tempAvatarPath, avatarUrl, forceMode } = this.data;
+    async onSave(e?: any) {
+        const { tempAvatarPath, avatarUrl, forceMode } = this.data;
+        const submittedNickname = e && e.detail && e.detail.value && typeof e.detail.value.nickname === 'string'
+            ? e.detail.value.nickname
+            : this.data.nickname;
+        const nickname = submittedNickname.trim();
 
-        if (!nickname || nickname.trim() === '') {
+        if (!nickname) {
             wx.showToast({ title: '请输入昵称', icon: 'none' });
             return;
         }
@@ -112,7 +132,7 @@ Page({
                 method: 'POST',
                 data: {
                     userId,
-                    nickname: nickname.trim(),
+                    nickname,
                     avatarUrl: finalAvatarUrl
                 }
             });
@@ -122,12 +142,14 @@ Page({
             if (res.code === 200) {
                 // 更新本地存储
                 const userInfo = wx.getStorageSync('userInfo') || {};
-                userInfo.nickname = nickname.trim();
+                userInfo.nickname = nickname;
                 userInfo.avatarUrl = finalAvatarUrl;
                 wx.setStorageSync('userInfo', userInfo);
 
-                // 关键点：记录完成时间，防止返回后重复拉起
-                wx.setStorageSync('last_complete_profile_time', Date.now());
+                // 记录资料更新时间，供“我的”页丢弃保存前发出的旧资料响应。
+                const profileUpdatedAt = Date.now();
+                wx.setStorageSync('last_complete_profile_time', profileUpdatedAt);
+                wx.setStorageSync('last_profile_update_time', profileUpdatedAt);
 
                 // 关键点：设置永久完成标记，后续不再强制弹窗
                 wx.setStorageSync('profile_completed_once', true);

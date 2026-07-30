@@ -15,6 +15,11 @@ public interface IAppUserService extends IService<AppUser> {
     String wxLogin(String openid);
 
     /**
+     * 微信登录/注册，并返回本次登录使用的用户快照。
+     */
+    WxLoginResult wxLoginWithUser(String openid);
+
+    /**
      * 根据 OpenID 获取用户
      */
     AppUser getByOpenid(String openid);
@@ -23,6 +28,11 @@ public interface IAppUserService extends IService<AppUser> {
      * 自动更新所有用户的分润等级
      */
     void updateAllUserLevels();
+
+    /**
+     * 将超出当前配置范围的用户等级收敛到最高有效等级。
+     */
+    void clampUserLevels(int maxLevel);
 
     /**
      * 更新指定用户的等级
@@ -45,4 +55,7 @@ public interface IAppUserService extends IService<AppUser> {
 
     /** 永久删除回收站全部用户及其关联数据。 */
     int clearRecycleBin();
+
+    record WxLoginResult(String token, AppUser user, boolean isNewUser) {
+    }
 }

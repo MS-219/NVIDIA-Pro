@@ -104,7 +104,9 @@ chroot "$ROOTFS" /usr/bin/qemu-aarch64-static /usr/bin/env \
     apt-get install -y --no-install-recommends \
       "nvidia-jetpack-runtime='"$JETPACK_VERSION"'" \
       "nvidia-l4t-core='"$L4T_VERSION"'" \
-      docker.io
+      docker.io \
+      fonts-noto-cjk \
+      python3-pil
     command -v nvidia-ctk >/dev/null
     install -d -m 0755 /etc/docker
     nvidia-ctk runtime configure --runtime=docker
@@ -115,7 +117,8 @@ chroot "$ROOTFS" /usr/bin/qemu-aarch64-static /usr/bin/env \
 
 chroot "$ROOTFS" /usr/bin/qemu-aarch64-static dpkg-query \
   -W -f='${Package} ${Version}\n' \
-  nvidia-jetpack-runtime nvidia-l4t-core docker.io nvidia-container-toolkit
+  nvidia-jetpack-runtime nvidia-l4t-core docker.io nvidia-container-toolkit \
+  fonts-noto-cjk python3-pil
 
 installed_l4t="$(chroot "$ROOTFS" /usr/bin/qemu-aarch64-static \
   dpkg-query -W -f='${Version}' nvidia-l4t-core)"

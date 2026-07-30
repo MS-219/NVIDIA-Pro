@@ -60,10 +60,11 @@ class EdgeDeviceControllerAuthorizationTest {
         Map<String, Object> capabilities = controller.capabilities().getData();
 
         assertEquals("2", capabilities.get("protocolVersion"));
-        assertEquals("0.4.0-orin", capabilities.get("minimumAgentVersion"));
+        assertEquals("0.5.0-orin", capabilities.get("minimumAgentVersion"));
         assertEquals(true, capabilities.get("directEnrollment"));
         assertEquals(false, capabilities.get("imageLicenseRequired"));
         assertEquals(true, capabilities.get("deviceTokenAuthentication"));
+        assertEquals(true, capabilities.get("fullscreenStatusDisplay"));
         assertEquals(true, capabilities.get("atomicTaskClaim"));
         assertEquals(true, capabilities.get("persistentResultOutbox"));
     }

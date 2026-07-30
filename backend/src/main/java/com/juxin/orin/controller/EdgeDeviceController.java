@@ -33,7 +33,7 @@ import java.util.Map;
 public class EdgeDeviceController {
 
     private static final String EDGE_PROTOCOL_VERSION = "2";
-    private static final String MINIMUM_AGENT_VERSION = "0.4.0-orin";
+    private static final String MINIMUM_AGENT_VERSION = "0.5.0-orin";
 
     @Autowired
     private IDeviceService deviceService;
@@ -64,6 +64,7 @@ public class EdgeDeviceController {
         response.put("directEnrollment", true);
         response.put("imageLicenseRequired", false);
         response.put("deviceTokenAuthentication", true);
+        response.put("fullscreenStatusDisplay", true);
         response.put("atomicTaskClaim", true);
         response.put("persistentResultOutbox", true);
         response.put("taskHandlers", List.of("ollama", "external-runner"));

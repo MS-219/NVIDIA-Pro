@@ -15,7 +15,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import com.juxin.orin.entity.Device;
 import com.juxin.orin.service.IDeviceService;
-import com.juxin.orin.service.ISystemConfigService;
+import com.juxin.orin.service.InviteLevelConfigService;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -27,7 +27,7 @@ import java.util.StringJoiner;
 public class AppUserServiceImpl extends ServiceImpl<AppUserMapper, AppUser> implements IAppUserService {
 
     @Autowired
-    private ISystemConfigService configService;
+    private InviteLevelConfigService inviteLevelConfigService;
 
     @Autowired
     @Lazy
@@ -38,12 +38,18 @@ public class AppUserServiceImpl extends ServiceImpl<AppUserMapper, AppUser> impl
 
     @Override
     public String wxLogin(String openid) {
-        AppUser user = getByOpenid(openid);
+        return wxLoginWithUser(openid).token();
+    }
 
-        if (user == null) {
-            if (baseMapper.countDeletedByOpenid(openid) > 0) {
-                throw new IllegalStateException("账号已删除，请联系管理员从回收站恢复");
-            }
+    @Override
+    public IAppUserService.WxLoginResult wxLoginWithUser(String openid) {
+        AppUser user = baseMapper.selectByOpenidIncludingDeleted(openid);
+        if (user != null && Integer.valueOf(1).equals(user.getDeleted())) {
+            throw new IllegalStateException("账号已删除，请联系管理员从回收站恢复");
+        }
+        boolean isNewUser = user == null;
+
+        if (isNewUser) {
             // 新用户自动注册
             user = new AppUser();
             user.setId(generateUniqueId()); // 生成 6 位唯一随机 ID
@@ -56,7 +62,8 @@ public class AppUserServiceImpl extends ServiceImpl<AppUserMapper, AppUser> impl
         }
 
         // 生成 JWT Token
-        return JwtUtil.generateToken(user.getId(), user.getOpenid(), "app");
+        String token = JwtUtil.generateToken(user.getId(), user.getOpenid(), "app");
+        return new IAppUserService.WxLoginResult(token, user, isNewUser);
     }
 
     @Override
@@ -93,11 +100,7 @@ public class AppUserServiceImpl extends ServiceImpl<AppUserMapper, AppUser> impl
         }
 
         // 2. 获取等级配置阈值
-        int[] thresholds = new int[6];
-        for (int i = 1; i <= 5; i++) {
-            String val = configService.getConfig("invite.level" + i + ".threshold", null);
-            thresholds[i] = (val != null) ? Integer.parseInt(val) : (new int[] { 0, 1, 100, 300, 1000, 3000 })[i];
-        }
+        int[] thresholds = loadLevelThresholds();
 
         // 3. 统计该用户【名下全团队】总设备数 (递归下级)
         List<Device> allDevices = deviceService.lambdaQuery().isNotNull(Device::getUserId).list();
@@ -123,7 +126,7 @@ public class AppUserServiceImpl extends ServiceImpl<AppUserMapper, AppUser> impl
 
         // 4. 计算新等级
         int newLevel = 0;
-        for (int i = 5; i >= 1; i--) {
+        for (int i = thresholds.length - 1; i >= 1; i--) {
             if (teamTotal >= thresholds[i]) {
                 newLevel = i;
                 break;
@@ -142,11 +145,7 @@ public class AppUserServiceImpl extends ServiceImpl<AppUserMapper, AppUser> impl
     @Override
     public void updateAllUserLevels() {
         // 1. 获取等级配置阈值
-        int[] thresholds = new int[6];
-        for (int i = 1; i <= 5; i++) {
-            String val = configService.getConfig("invite.level" + i + ".threshold", null);
-            thresholds[i] = (val != null) ? Integer.parseInt(val) : (new int[] { 0, 1, 100, 300, 1000, 3000 })[i];
-        }
+        int[] thresholds = loadLevelThresholds();
 
         // 2. 获取所有用户
         List<AppUser> allUsers = this.list();
@@ -191,7 +190,7 @@ public class AppUserServiceImpl extends ServiceImpl<AppUserMapper, AppUser> impl
             }
             int totalDevices = teamDeviceCount.getOrDefault(user.getId(), 0);
             int newLevel = 0;
-            for (int i = 5; i >= 1; i--) {
+            for (int i = thresholds.length - 1; i >= 1; i--) {
                 if (totalDevices >= thresholds[i]) {
                     newLevel = i;
                     break;
@@ -204,6 +203,24 @@ public class AppUserServiceImpl extends ServiceImpl<AppUserMapper, AppUser> impl
                         .update();
             }
         }
+    }
+
+    @Override
+    public void clampUserLevels(int maxLevel) {
+        int normalizedMaxLevel = Math.max(maxLevel, 0);
+        this.lambdaUpdate()
+                .set(AppUser::getLevel, normalizedMaxLevel)
+                .gt(AppUser::getLevel, normalizedMaxLevel)
+                .update();
+    }
+
+    private int[] loadLevelThresholds() {
+        int levelCount = inviteLevelConfigService.getLevelCount();
+        int[] thresholds = new int[levelCount + 1];
+        for (int level = 1; level <= levelCount; level++) {
+            thresholds[level] = inviteLevelConfigService.getLevelThreshold(level);
+        }
+        return thresholds;
     }
 
     @Autowired

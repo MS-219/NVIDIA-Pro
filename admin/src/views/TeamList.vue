@@ -211,11 +211,25 @@ const leaderPage = ref(1)
 const leaderTotal = ref(0)
 
 // 等级相关
-const levelNames = ['普通', '会员', '社区', '县级', '市级', '联创']
-const getLevelName = (level) => levelNames[level] || '普通'
+const inviteLevelOptions = ref([])
+const getLevelName = (level) => {
+  if (!level) return '普通'
+  return inviteLevelOptions.value.find(item => item.index === level)?.name || `等级 ${level}`
+}
 const getLevelType = (level) => {
   const types = ['info', 'success', 'warning', 'danger', 'primary', '']
   return types[level] || 'info'
+}
+
+const loadInviteLevelOptions = async () => {
+  try {
+    const res = await axios.get('/api/settings/all')
+    if (res.data.code === 200) {
+      inviteLevelOptions.value = res.data.data.inviteLevels || []
+    }
+  } catch (e) {
+    console.error('加载代理等级失败:', e)
+  }
 }
 
 const maskPhone = (value) => {
@@ -352,6 +366,7 @@ const formatTime = (timeStr) => {
 }
 
 onMounted(() => {
+  loadInviteLevelOptions()
   loadInitialUsers()
 })
 </script>

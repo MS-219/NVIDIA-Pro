@@ -62,6 +62,7 @@ Page({
                     product: data.product || null,
                     allPrices: data.allPrices || [],
                     userLevel: data.userLevel || 0,
+                    levelNames: data.levelNames || this.data.levelNames,
                     hashrateRate: data.hashrateRate || 200,
                     availableHashrate: data.availableHashrate || 0,
                     loaded: true

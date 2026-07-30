@@ -5,6 +5,7 @@ INSERT INTO system_config (config_key, config_value, description) VALUES
     ('earnings.withdrawFee', '1', '提现手续费百分比'),
     ('earnings.cycle', '60', '收益结算周期，单位分钟'),
     ('invite.earningsRate', '0.10', '邀请收益分成比例'),
+    ('invite.level.count', '5', '代理等级数量'),
     ('invite.level1.name', 'A', '一级名称'),
     ('invite.level1.rate', '0.70', '一级结算比例'),
     ('invite.level1.threshold', '1', '一级团队设备门槛'),

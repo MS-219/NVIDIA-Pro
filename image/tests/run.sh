@@ -20,8 +20,14 @@ grep -q 'jetson-orin-nano-devkit-super-maxn external' \
   "$IMAGE_DIR/build/flash-nvme.sh"
 grep -q 'nvidia-ctk runtime configure --runtime=docker' \
   "$IMAGE_DIR/build/install-jetpack-runtime.sh"
+grep -q 'fonts-noto-cjk' "$IMAGE_DIR/build/install-jetpack-runtime.sh"
+grep -q 'python3-pil' "$IMAGE_DIR/build/install-jetpack-runtime.sh"
+grep -q 'juxin-orin-display.service' "$IMAGE_DIR/build/inject-rootfs.sh"
+grep -q 'getty@tty1.service' "$IMAGE_DIR/build/inject-rootfs.sh"
 
-python3 -m py_compile "$IMAGE_DIR/agent/orin_agent.py"
+python3 -m py_compile \
+  "$IMAGE_DIR/agent/orin_agent.py" \
+  "$IMAGE_DIR/agent/orin_display.py"
 python3 -m unittest discover -v -s "$IMAGE_DIR/tests" -p 'test_*.py'
 "$IMAGE_DIR/tests/test-firstboot.sh"
 

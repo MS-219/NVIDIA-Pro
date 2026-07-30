@@ -20,6 +20,7 @@ NVIDIA UEFI logo
   -> generate machine-id and SSH host keys
   -> enroll with the device SN and hardware fingerprint
   -> persist the per-device token
+  -> juxin-orin-display.service takes over tty1
   -> juxin-orin-agent.service heartbeat and task polling
   -> device appears online at nvidia.juxinsuanli.cn
 ```
@@ -38,11 +39,12 @@ All later edge requests use that token.
 - Node directory: `/opt/juxin-orin`
 - Model directory: `/opt/juxin-orin/models`
 - State directory: `/var/lib/juxin-orin`
+- Display status: `/var/lib/juxin-orin/display-status.json`
 - Result outbox: `/var/lib/juxin-orin/outbox`
 - Configuration: `/etc/juxin-orin`
 - Performance: MAXN_SUPER mode with the `cool` fan profile
 - Containers: Docker with NVIDIA Container Toolkit
-- Services: `juxin-orin-firstboot.service`, `juxin-orin-performance.service`, `juxin-orin-agent.service`
+- Services: `juxin-orin-firstboot.service`, `juxin-orin-performance.service`, `juxin-orin-display.service`, `juxin-orin-agent.service`
 - Network for first enrollment: wired DHCP
 
 The built-in compute handler accepts `ollama` tasks and calls the local Ollama
@@ -52,6 +54,14 @@ output. Without that explicit runner, unknown task types are reported as failed
 and are never executed as shell commands. Command and task results are written
 to the local outbox before delivery, then retried after transient network or
 server errors.
+
+The fullscreen status display renders directly to the Linux framebuffer and does
+not require GNOME, X11, Wayland or a browser. It shows the node SN, connection
+state, animated compute field and live telemetry. During a real task it switches
+to the task state and may show the task type, model and elapsed time; prompts,
+tokens and command contents are never written to the display status file. `tty1`
+is reserved for the display. Use SSH for routine maintenance or `Ctrl+Alt+F2`
+for a local text console.
 
 Do not use a generic Ubuntu ARM64 ISO or the old R35.3.1 package. Do not clone a
 configured device with `dd`: that duplicates secrets, machine IDs and SSH keys.
@@ -111,11 +121,13 @@ The script performs these steps:
 4. applies NVIDIA BSP binaries;
 5. upgrades L4T packages to R36.4.7 and installs the JetPack 6.2.1 runtime;
 6. installs Docker and configures NVIDIA Container Toolkit;
-7. injects the agent, MAXN_SUPER/cooling policy, wired DHCP and maintenance SSH key;
-8. clears machine-id, SSH host keys, device identity and device token.
+7. installs the CJK framebuffer renderer and its fonts;
+8. injects the agent, MAXN_SUPER/cooling policy, wired DHCP and maintenance SSH key;
+9. clears machine-id, SSH host keys, device identity, display state and device token.
 
-Add `--quiet-boot` to the build command only for the black-screen variant. The
-default variant shows the NVIDIA logo followed by the `juxin-orin login:` prompt.
+The default variant shows the NVIDIA logo, normal Linux boot output and then the
+fullscreen Juxin node display. Add `--quiet-boot` to suppress the Linux boot
+messages between the NVIDIA logo and the node display.
 
 The output is a prepared `Linux_for_Tegra` tree. No device-specific state is
 created until the flashed Orin boots.
@@ -131,9 +143,9 @@ read-only gate:
 ```
 
 The gate requires the application and database to be healthy, edge protocol
-version `2`, minimum Agent version `0.4.0-orin`, and byte-for-byte matches for
-the three public Agent upgrade files. It does not enroll a device, claim a task,
-or write any production data.
+version `2`, minimum Agent version `0.5.0-orin`, and byte-for-byte matches for
+the five public Agent/display upgrade files. It does not enroll a device, claim
+a task, or write any production data.
 
 ## 5. Flash one pilot node
 
@@ -161,7 +173,9 @@ cat /var/lib/juxin-orin/device-sn
 cat /etc/juxin-orin/image-release
 systemctl status juxin-orin-firstboot.service --no-pager
 systemctl status juxin-orin-performance.service --no-pager
+systemctl status juxin-orin-display.service --no-pager
 systemctl status juxin-orin-agent.service --no-pager
+journalctl -u juxin-orin-display.service -n 100 --no-pager
 journalctl -u juxin-orin-agent.service -n 100 --no-pager
 nvpmodel -q
 nvfancontrol -q
@@ -170,7 +184,9 @@ docker info
 
 The expected result is one `ORIN-...` device in the admin console with L4T,
 CUDA, GPU, memory, temperature and power telemetry. A device token must exist at
-`/var/lib/juxin-orin/device-token` with mode `0600`; never print its value.
+`/var/lib/juxin-orin/device-token` with mode `0600`; never print its value. The
+connected display should show the same SN and transition from initialization to
+the online compute animation.
 
 ## Tests
 

@@ -34,6 +34,9 @@ public class ExchangeController {
     @Autowired
     private ISystemConfigService configService;
 
+    @Autowired
+    private InviteLevelConfigService inviteLevelConfigService;
+
     /**
      * 获取上架商品列表（含当前用户等级对应的算力值价格）
      */
@@ -71,6 +74,7 @@ public class ExchangeController {
             Map<String, Object> data = new HashMap<>();
             data.put("products", products);
             data.put("userLevel", userLevel);
+            data.put("levelNames", getLevelNames());
             data.put("hashrateRate", hashrateRate);
             data.put("availableHashrate", availableHashrate);
             result.put("data", data);
@@ -108,11 +112,11 @@ public class ExchangeController {
 
             // 构建所有等级价格列表
             List<Map<String, Object>> allPrices = new ArrayList<>();
-            String[] levelNames = {"", "会员", "社区", "县级", "市级", "联创"};
-            for (int i = 1; i <= 5; i++) {
+            int levelCount = inviteLevelConfigService.getLevelCount();
+            for (int i = 1; i <= levelCount; i++) {
                 Map<String, Object> priceInfo = new HashMap<>();
                 priceInfo.put("level", i);
-                priceInfo.put("levelName", levelNames[i]);
+                priceInfo.put("levelName", inviteLevelConfigService.getLevelName(i));
                 BigDecimal price = product.getPriceByLevel(i);
                 priceInfo.put("price", price);
                 priceInfo.put("hashratePrice", price.longValue() * hashrateRate);
@@ -127,6 +131,7 @@ public class ExchangeController {
             data.put("product", product);
             data.put("allPrices", allPrices);
             data.put("userLevel", userLevel);
+            data.put("levelNames", getLevelNames());
             data.put("hashrateRate", hashrateRate);
             data.put("availableHashrate", availableHashrate);
 
@@ -137,6 +142,15 @@ public class ExchangeController {
             result.put("msg", "获取商品详情失败: " + e.getMessage());
         }
         return result;
+    }
+
+    private List<String> getLevelNames() {
+        List<String> names = new ArrayList<>();
+        names.add(inviteLevelConfigService.getLevelName(0));
+        for (int level = 1; level <= inviteLevelConfigService.getLevelCount(); level++) {
+            names.add(inviteLevelConfigService.getLevelName(level));
+        }
+        return names;
     }
 
     /**

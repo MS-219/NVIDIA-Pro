@@ -1,42 +1,63 @@
 <view class="container">
-    <!-- 自定义导航栏 -->
     <view class="nav-bar" style="padding-top: {{navBarTop}}px; height: {{navBarHeight}}px;">
+        <button class="nav-back" bindtap="onSkip" hover-class="nav-back-pressed" aria-label="返回" wx:if="{{!forceMode}}"><text>‹</text></button>
         <text class="nav-title">完善个人资料</text>
     </view>
-    <!-- 主内容区 -->
-    <view class="content">
-        <!-- 头部提示 -->
-        <view class="header-tip">
-            <view class="tip-emoji">ID</view>
-            <text class="tip-title">欢迎加入聚芯 Orin！</text>
-            <text class="tip-desc">请完善您的头像和昵称</text>
+
+    <form class="content" bindsubmit="onSave">
+        <view class="identity-panel">
+            <view class="identity-accent"></view>
+            <text class="identity-kicker">PROFILE SETUP</text>
+            <text class="identity-title">建立你的 Orin 身份</text>
+            <text class="identity-desc">头像与昵称将作为您的账户标识</text>
         </view>
-        <!-- 头像选择 -->
-        <view class="avatar-section">
-            <view class="avatar-wrapper">
-                <button class="avatar-btn" open-type="chooseAvatar" bindchooseavatar="onChooseAvatar">
+
+        <view class="profile-form">
+            <button class="avatar-row" open-type="chooseAvatar" bindchooseavatar="onChooseAvatar" hover-class="row-pressed">
+                <view class="avatar-frame">
                     <image class="avatar-img" src="{{avatarUrl}}" mode="aspectFill" wx:if="{{avatarUrl}}"></image>
                     <view class="avatar-placeholder" wx:else>
-                        <text class="placeholder-icon">+</text>
-                        <text class="placeholder-text">上传头像</text>
+                        <text>JX</text>
                     </view>
-                </button>
-                <view class="avatar-edit-badge">编辑</view>
-            </view>
-        </view>
-        <!-- 表单区域 -->
-        <view class="form-card">
+                </view>
+                <view class="avatar-copy">
+                    <text>头像</text>
+                    <text>{{avatarUrl ? '已设置账户头像' : '尚未设置账户头像'}}</text>
+                </view>
+                <text class="avatar-action">更换</text>
+            </button>
+
+            <view class="form-divider"></view>
+
             <view class="nickname-section">
-                <text class="input-label">您的昵称</text>
-                <input class="nickname-input" type="nickname" placeholder="输入昵称" placeholder-class="placeholder-style" value="{{nickname}}" bindinput="onNicknameInput" maxlength="20" />
-            </view>
-            <!-- 操作按钮 -->
-            <view class="action-buttons">
-                <button class="save-btn {{saving ? 'disabled' : ''}}" bindtap="onSave" disabled="{{saving}}">
-                    {{saving ? '保存中...' : '保存并继续'}}
-                </button>
-                <button class="skip-btn" bindtap="onSkip" wx:if="{{!forceMode}}">稍后再说</button>
+                <view class="field-head">
+                    <text class="input-label">昵称</text>
+                    <text class="field-state" wx:if="{{nickname}}">已填写</text>
+                </view>
+                <input
+                    class="nickname-field"
+                    name="nickname"
+                    type="nickname"
+                    placeholder="请输入昵称"
+                    placeholder-class="placeholder-style"
+                    value="{{nickname}}"
+                    bindinput="onNicknameInput"
+                    bindblur="onNicknameCommit"
+                    bindconfirm="onNicknameCommit"
+                    bindchange="onNicknameCommit"
+                    confirm-type="done"
+                    cursor-spacing="24"
+                    maxlength="20"
+                />
+                <text class="field-helper">支持微信昵称或自定义昵称</text>
             </view>
         </view>
-    </view>
+
+        <view class="action-buttons">
+            <button class="primary-action {{saving ? 'disabled' : ''}}" form-type="submit" loading="{{saving}}" disabled="{{saving}}">
+                {{saving ? '正在保存' : '保存并继续'}}
+            </button>
+            <button class="secondary-action" form-type="button" bindtap="onSkip" wx:if="{{!forceMode}}">稍后再说</button>
+        </view>
+    </form>
 </view>

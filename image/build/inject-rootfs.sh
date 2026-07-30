@@ -7,7 +7,7 @@ ROOTFS=""
 SSH_PUBLIC_KEY_FILE=""
 API_URL="https://nvidia.juxinsuanli.cn"
 IMAGE_VERSION="orin-l4t-36.4.7-v1"
-AGENT_VERSION="0.4.0-orin"
+AGENT_VERSION="0.5.0-orin"
 MAINTENANCE_USER="juxin"
 QUIET_BOOT=0
 
@@ -20,7 +20,7 @@ Options:
   --image-version VERSION   Image version stored in every heartbeat
   --agent-version VERSION   Agent version stored in every heartbeat
   --maintenance-user USER   Locked SSH maintenance account (default: juxin)
-  --quiet-boot              Hide Linux console output and tty1 login prompt
+  --quiet-boot              Hide Linux boot output before the status display
 EOF
 }
 
@@ -60,6 +60,7 @@ SSH_PUBLIC_KEY="$(head -n 1 "$SSH_PUBLIC_KEY_FILE" | tr -d '\r\n')"
 
 install -d -m 0755 \
   "$ROOTFS/opt/juxin-orin/agent" \
+  "$ROOTFS/opt/juxin-orin/display" \
   "$ROOTFS/opt/juxin-orin/models" \
   "$ROOTFS/opt/juxin-orin/runtime" \
   "$ROOTFS/usr/lib/juxin-orin" \
@@ -71,9 +72,11 @@ install -d -m 0755 \
   "$ROOTFS/etc/ssh/sshd_config.d"
 
 install -m 0755 "$IMAGE_DIR/agent/orin_agent.py" "$ROOTFS/opt/juxin-orin/agent/orin_agent.py"
+install -m 0755 "$IMAGE_DIR/agent/orin_display.py" "$ROOTFS/opt/juxin-orin/display/orin_display.py"
 install -m 0755 "$IMAGE_DIR/agent/orin-firstboot.sh" "$ROOTFS/usr/lib/juxin-orin/orin-firstboot.sh"
 install -m 0755 "$IMAGE_DIR/agent/orin-performance.sh" "$ROOTFS/usr/lib/juxin-orin/orin-performance.sh"
 install -m 0644 "$IMAGE_DIR/agent/juxin-orin-agent.service" "$ROOTFS/etc/systemd/system/juxin-orin-agent.service"
+install -m 0644 "$IMAGE_DIR/agent/juxin-orin-display.service" "$ROOTFS/etc/systemd/system/juxin-orin-display.service"
 install -m 0644 "$IMAGE_DIR/agent/juxin-orin-firstboot.service" "$ROOTFS/etc/systemd/system/juxin-orin-firstboot.service"
 install -m 0644 "$IMAGE_DIR/agent/juxin-orin-performance.service" "$ROOTFS/etc/systemd/system/juxin-orin-performance.service"
 
@@ -141,6 +144,8 @@ ln -sfn /etc/systemd/system/juxin-orin-firstboot.service \
   "$ROOTFS/etc/systemd/system/multi-user.target.wants/juxin-orin-firstboot.service"
 ln -sfn /etc/systemd/system/juxin-orin-agent.service \
   "$ROOTFS/etc/systemd/system/multi-user.target.wants/juxin-orin-agent.service"
+ln -sfn /etc/systemd/system/juxin-orin-display.service \
+  "$ROOTFS/etc/systemd/system/multi-user.target.wants/juxin-orin-display.service"
 ln -sfn /etc/systemd/system/juxin-orin-performance.service \
   "$ROOTFS/etc/systemd/system/multi-user.target.wants/juxin-orin-performance.service"
 ln -sfn /lib/systemd/system/systemd-networkd.service \
@@ -153,6 +158,8 @@ rm -f "$ROOTFS/etc/systemd/system/default.target"
 ln -s /lib/systemd/system/multi-user.target "$ROOTFS/etc/systemd/system/default.target"
 
 rm -f "$ROOTFS/etc/systemd/system/display-manager.service"
+rm -f "$ROOTFS/etc/systemd/system/getty.target.wants/getty@tty1.service"
+ln -sfn /dev/null "$ROOTFS/etc/systemd/system/getty@tty1.service"
 
 if [[ "$QUIET_BOOT" == "1" ]]; then
   shopt -s nullglob
@@ -161,7 +168,6 @@ if [[ "$QUIET_BOOT" == "1" ]]; then
   for boot_config in "${boot_configs[@]}"; do
     sed -i -E '/^[[:space:]]*APPEND[[:space:]]/ { /(^|[[:space:]])quiet([[:space:]]|$)/! s/[[:space:]]*$/ quiet loglevel=0 systemd.show_status=false vt.global_cursor_default=0/; }' "$boot_config"
   done
-  rm -f "$ROOTFS/etc/systemd/system/getty.target.wants/getty@tty1.service"
 fi
 
 rm -f "$ROOTFS/etc/ssh/ssh_host_"*
@@ -170,6 +176,7 @@ rm -f \
   "$ROOTFS/var/lib/juxin-orin/device-sn" \
   "$ROOTFS/var/lib/juxin-orin/hardware-fingerprint" \
   "$ROOTFS/var/lib/juxin-orin/device-token" \
+  "$ROOTFS/var/lib/juxin-orin/display-status.json" \
   "$ROOTFS/var/lib/juxin-orin/device-seed" \
   "$ROOTFS/var/lib/juxin-orin/provisioned"
 

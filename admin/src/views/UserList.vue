@@ -598,11 +598,12 @@
             <el-form-item label="用户等级">
               <el-select v-model="editForm.level" placeholder="请选择等级" :disabled="!editForm.levelManual" style="width: 100%">
                 <el-option label="普通用户" :value="0" />
-                <el-option label="白银会员" :value="1" />
-                <el-option label="社区领袖" :value="2" />
-                <el-option label="县级代理" :value="3" />
-                <el-option label="市级代理" :value="4" />
-                <el-option label="联合创始人" :value="5" />
+                <el-option
+                  v-for="level in inviteLevelOptions"
+                  :key="level.index"
+                  :label="level.name"
+                  :value="level.index"
+                />
               </el-select>
             </el-form-item>
             <el-form-item label="自动升级">
@@ -783,6 +784,19 @@ const editForm = reactive({
   userType: 'personal',
   remark: ''
 })
+
+const inviteLevelOptions = ref([])
+
+const loadInviteLevelOptions = async () => {
+  try {
+    const res = await axios.get('/api/settings/all')
+    if (res.data.code === 200) {
+      inviteLevelOptions.value = res.data.data.inviteLevels || []
+    }
+  } catch (e) {
+    console.error('加载代理等级失败:', e)
+  }
+}
 
 const rechargeForm = reactive({
   userId: null,
@@ -1331,16 +1345,8 @@ const saveUser = async () => {
 }
 
 const getLevelText = (level) => {
-  // 使用后台配置的等级名称
-  const map = {
-    0: '普通',
-    1: '会员',
-    2: '社区',
-    3: '县级',
-    4: '市级',
-    5: '联创'
-  }
-  return map[level] || '普通'
+  if (!level) return '普通'
+  return inviteLevelOptions.value.find(item => item.index === level)?.name || `等级 ${level}`
 }
 
 const getLevelTag = (level) => {
@@ -1480,6 +1486,7 @@ const toggleWithdraw = async (row) => {
 }
 
 onMounted(() => {
+  loadInviteLevelOptions()
   fetchStats()
   fetchUsers()
 })

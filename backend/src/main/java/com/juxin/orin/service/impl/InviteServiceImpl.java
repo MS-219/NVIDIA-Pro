@@ -9,6 +9,7 @@ import com.juxin.orin.service.IAppUserService;
 import com.juxin.orin.service.IInviteService;
 import com.juxin.orin.service.IDeviceService;
 import com.juxin.orin.service.ISystemConfigService;
+import com.juxin.orin.service.InviteLevelConfigService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -41,6 +42,9 @@ public class InviteServiceImpl implements IInviteService {
 
     @Autowired
     private ISystemConfigService configService;
+
+    @Autowired
+    private InviteLevelConfigService inviteLevelConfigService;
 
     @Override
     public Long getInviterIdByCode(String inviteCode) {
@@ -215,22 +219,18 @@ public class InviteServiceImpl implements IInviteService {
 
         // 3. 获取等级配置（名称、阈值、比例）
         List<Map<String, Object>> levels = new ArrayList<>();
-        String[] defaults = { "普通", "会员", "社区", "县级", "市级", "联创" };
-        String[] defaultRates = { "0.0", "0.7", "0.8", "0.85", "0.9", "0.95" };
-        String[] defaultThresholds = { "0", "1", "100", "300", "1000", "3000" };
-
-        for (int i = 0; i <= 5; i++) {
+        int levelCount = inviteLevelConfigService.getLevelCount();
+        for (int i = 0; i <= levelCount; i++) {
             Map<String, Object> lv = new HashMap<>();
             lv.put("index", i);
             if (i == 0) {
-                lv.put("name", defaults[0]);
-                lv.put("rate", "0.1"); // 普通用户默认 10%
+                lv.put("name", inviteLevelConfigService.getLevelName(0));
+                lv.put("rate", inviteLevelConfigService.getLevelRate(0));
                 lv.put("threshold", 0);
             } else {
-                lv.put("name", configService.getConfig("invite.level" + i + ".name", defaults[i]));
-                lv.put("rate", configService.getConfig("invite.level" + i + ".rate", defaultRates[i]));
-                lv.put("threshold", Integer
-                        .parseInt(configService.getConfig("invite.level" + i + ".threshold", defaultThresholds[i])));
+                lv.put("name", inviteLevelConfigService.getLevelName(i));
+                lv.put("rate", inviteLevelConfigService.getLevelRate(i));
+                lv.put("threshold", inviteLevelConfigService.getLevelThreshold(i));
             }
             levels.add(lv);
         }

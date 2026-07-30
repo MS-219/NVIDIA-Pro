@@ -49,6 +49,9 @@ public class AppUserController {
     private com.juxin.orin.service.ISystemConfigService configService;
 
     @Autowired
+    private com.juxin.orin.service.InviteLevelConfigService inviteLevelConfigService;
+
+    @Autowired
     private com.juxin.orin.service.IBossKgService bossKgService;
 
     @Autowired
@@ -87,18 +90,16 @@ public class AppUserController {
             return Result.error("微信登录失败，请重试");
         }
 
-        // 检查是否是新用户
-        AppUser existingUser = appUserService.getByOpenid(openid);
-        boolean isNewUser = (existingUser == null);
-
         // 登录或注册用户
-        String token;
+        IAppUserService.WxLoginResult loginResult;
         try {
-            token = appUserService.wxLogin(openid);
+            loginResult = appUserService.wxLoginWithUser(openid);
         } catch (IllegalStateException e) {
             return Result.error(e.getMessage());
         }
-        AppUser user = appUserService.getByOpenid(openid);
+        String token = loginResult.token();
+        AppUser user = loginResult.user();
+        boolean isNewUser = loginResult.isNewUser();
 
         // 如果是新用户且有邀请码，处理邀请关系
         if (isNewUser && inviteCode != null && !inviteCode.isEmpty()) {
@@ -369,8 +370,9 @@ public class AppUserController {
             return Result.error("用户不存在");
         }
 
-        if (level < 0 || level > 5) {
-            return Result.error("等级必须在 0-5 之间");
+        int maxLevel = inviteLevelConfigService.getLevelCount();
+        if (level < 0 || level > maxLevel) {
+            return Result.error("等级必须在 0-" + maxLevel + " 之间");
         }
 
         user.setLevel(level);

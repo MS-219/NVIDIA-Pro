@@ -1,11 +1,19 @@
 package com.juxin.orin.controller;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.juxin.orin.common.Result;
+import com.juxin.orin.entity.SystemConfig;
+import com.juxin.orin.service.IAppUserService;
 import com.juxin.orin.service.ISystemConfigService;
+import com.juxin.orin.service.InviteLevelConfigService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
+import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -17,6 +25,12 @@ public class SettingsController {
 
     @Autowired
     private ISystemConfigService configService;
+
+    @Autowired
+    private InviteLevelConfigService inviteLevelConfigService;
+
+    @Autowired
+    private IAppUserService appUserService;
 
     // 配置键常量
     private static final String KEY_HOURLY_RATE = "earnings.hourlyRate";
@@ -42,8 +56,6 @@ public class SettingsController {
     private static final String KEY_BANNER_LIST = "system.bannerList";
     private static final String KEY_WITHDRAW_ALLOWED_DAYS = "withdraw.allowedDays"; // 允许提现的星期几,如"1,4"表示周一和周四
 
-    // 邀请等级设置 (1-5级)
-    private static final String LEVEL_PREFIX = "invite.level";
     private static final String SUFFIX_NAME = ".name";
     private static final String SUFFIX_RATE = ".rate";
     private static final String SUFFIX_THRESHOLD = ".threshold";
@@ -95,20 +107,14 @@ public class SettingsController {
         earnings.put("cycle", Integer.parseInt(configService.getConfig(KEY_EARNINGS_CYCLE, "60")));
         earnings.put("earningsRate", Double.parseDouble(configService.getConfig(KEY_EARNINGS_RATE, "0.1")));
 
-        // 分润等级 A-E
-        java.util.List<Map<String, Object>> levels = new java.util.ArrayList<>();
-        String[] defaults = { "A", "B", "C", "D", "E" };
-        String[] defaultRates = { "0.7", "0.8", "0.85", "0.9", "0.95" };
-        String[] defaultThresholds = { "1", "100", "300", "1000", "3000" };
-
-        for (int i = 1; i <= 5; i++) {
-            Map<String, Object> lv = new java.util.HashMap<>();
+        // 分润等级由管理员配置的数量决定；旧数据未设置数量时默认读取 5 级。
+        List<Map<String, Object>> levels = new ArrayList<>();
+        for (int i = 1; i <= inviteLevelConfigService.getLevelCount(); i++) {
+            Map<String, Object> lv = new HashMap<>();
             lv.put("index", i);
-            lv.put("name", configService.getConfig(LEVEL_PREFIX + i + SUFFIX_NAME, defaults[i - 1]));
-            lv.put("rate",
-                    Double.parseDouble(configService.getConfig(LEVEL_PREFIX + i + SUFFIX_RATE, defaultRates[i - 1])));
-            lv.put("threshold", Integer
-                    .parseInt(configService.getConfig(LEVEL_PREFIX + i + SUFFIX_THRESHOLD, defaultThresholds[i - 1])));
+            lv.put("name", inviteLevelConfigService.getLevelName(i));
+            lv.put("rate", inviteLevelConfigService.getLevelRate(i));
+            lv.put("threshold", inviteLevelConfigService.getLevelThreshold(i));
             levels.add(lv);
         }
         settings.put("inviteLevels", levels);
@@ -156,7 +162,7 @@ public class SettingsController {
      * 保存收益设置（管理员专用）
      * 安全修复：需要管理员权限
      */
-    @SuppressWarnings("unchecked")
+    @Transactional
     @PostMapping("/earnings")
     public Result<Object> saveEarningsSettings(
             @RequestBody Map<String, Object> params,
@@ -165,6 +171,15 @@ public class SettingsController {
         String error = validateAdminToken(token);
         if (error != null) {
             return Result.error(error);
+        }
+
+        List<InviteLevelInput> levels = null;
+        if (params.get("inviteLevels") != null) {
+            try {
+                levels = parseInviteLevels(params.get("inviteLevels"));
+            } catch (IllegalArgumentException e) {
+                return Result.error(e.getMessage());
+            }
         }
 
         if (params.get("hourlyRate") != null) {
@@ -186,18 +201,86 @@ public class SettingsController {
             configService.setConfig(KEY_EARNINGS_RATE, params.get("earningsRate").toString());
         }
 
-        // 保存等级设置
-        if (params.get("inviteLevels") != null) {
-            java.util.List<Map<String, Object>> levels = (java.util.List<Map<String, Object>>) params
-                    .get("inviteLevels");
-            for (Map<String, Object> lv : levels) {
-                int i = (Integer) lv.get("index");
-                configService.setConfig(LEVEL_PREFIX + i + SUFFIX_NAME, lv.get("name").toString());
-                configService.setConfig(LEVEL_PREFIX + i + SUFFIX_RATE, lv.get("rate").toString());
-                configService.setConfig(LEVEL_PREFIX + i + SUFFIX_THRESHOLD, lv.get("threshold").toString());
+        // 保存等级设置。数组顺序就是等级顺序，索引由后端连续生成。
+        if (levels != null) {
+            int previousCount = inviteLevelConfigService.getLevelCount();
+            for (int index = 0; index < levels.size(); index++) {
+                int level = index + 1;
+                InviteLevelInput input = levels.get(index);
+                configService.setConfig(InviteLevelConfigService.levelKey(level, SUFFIX_NAME), input.name());
+                configService.setConfig(InviteLevelConfigService.levelKey(level, SUFFIX_RATE), input.rate().toPlainString());
+                configService.setConfig(InviteLevelConfigService.levelKey(level, SUFFIX_THRESHOLD),
+                        String.valueOf(input.threshold()));
             }
+
+            removeObsoleteLevels(levels.size(), previousCount);
+            configService.setConfig(InviteLevelConfigService.LEVEL_COUNT_KEY, String.valueOf(levels.size()));
+            appUserService.clampUserLevels(levels.size());
+            appUserService.updateAllUserLevels();
         }
         return Result.success("收益及等级设置保存成功");
+    }
+
+    private List<InviteLevelInput> parseInviteLevels(Object rawLevels) {
+        if (!(rawLevels instanceof List<?> list)) {
+            throw new IllegalArgumentException("等级配置格式不正确");
+        }
+        if (list.size() > InviteLevelConfigService.MAX_LEVEL_COUNT) {
+            throw new IllegalArgumentException("代理等级不能超过 " + InviteLevelConfigService.MAX_LEVEL_COUNT + " 个");
+        }
+
+        List<InviteLevelInput> levels = new ArrayList<>();
+        int previousThreshold = -1;
+        for (int index = 0; index < list.size(); index++) {
+            if (!(list.get(index) instanceof Map<?, ?> level)) {
+                throw new IllegalArgumentException("第 " + (index + 1) + " 个等级格式不正确");
+            }
+
+            String name = level.get("name") == null ? "" : level.get("name").toString().trim();
+            if (name.isEmpty()) {
+                throw new IllegalArgumentException("第 " + (index + 1) + " 个等级名称不能为空");
+            }
+            if (name.length() > 50) {
+                throw new IllegalArgumentException("第 " + (index + 1) + " 个等级名称不能超过 50 个字符");
+            }
+
+            int threshold;
+            BigDecimal rate;
+            try {
+                threshold = new BigDecimal(String.valueOf(level.get("threshold"))).intValueExact();
+                rate = new BigDecimal(String.valueOf(level.get("rate")));
+            } catch (Exception e) {
+                throw new IllegalArgumentException("第 " + (index + 1) + " 个等级的门槛或分润比例格式不正确");
+            }
+            if (threshold < 0) {
+                throw new IllegalArgumentException("等级门槛不能小于 0");
+            }
+            if (threshold <= previousThreshold) {
+                throw new IllegalArgumentException("等级门槛必须按等级严格递增");
+            }
+            if (rate.compareTo(BigDecimal.ZERO) < 0 || rate.compareTo(BigDecimal.ONE) > 0) {
+                throw new IllegalArgumentException("分润比例必须在 0% 到 100% 之间");
+            }
+            levels.add(new InviteLevelInput(name, threshold, rate));
+            previousThreshold = threshold;
+        }
+        return levels;
+    }
+
+    private void removeObsoleteLevels(int currentCount, int previousCount) {
+        if (currentCount >= previousCount) {
+            return;
+        }
+        List<String> obsoleteKeys = new ArrayList<>();
+        for (int level = currentCount + 1; level <= previousCount; level++) {
+            obsoleteKeys.add(InviteLevelConfigService.levelKey(level, SUFFIX_NAME));
+            obsoleteKeys.add(InviteLevelConfigService.levelKey(level, SUFFIX_RATE));
+            obsoleteKeys.add(InviteLevelConfigService.levelKey(level, SUFFIX_THRESHOLD));
+        }
+        configService.remove(new LambdaQueryWrapper<SystemConfig>().in(SystemConfig::getConfigKey, obsoleteKeys));
+    }
+
+    private record InviteLevelInput(String name, int threshold, BigDecimal rate) {
     }
 
     /**

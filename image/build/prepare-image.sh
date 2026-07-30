@@ -7,7 +7,7 @@ WORK_DIR=""
 SSH_PUBLIC_KEY_FILE=""
 API_URL="https://nvidia.juxinsuanli.cn"
 IMAGE_VERSION="orin-l4t-36.4.7-v1"
-AGENT_VERSION="0.4.0-orin"
+AGENT_VERSION="0.5.0-orin"
 QUIET_BOOT=0
 
 BSP_NAME="Jetson_Linux_R36.4.4_aarch64.tbz2"

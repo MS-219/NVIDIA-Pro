@@ -19,7 +19,7 @@ from typing import Any
 
 
 API_BASE = os.getenv("ORIN_API_BASE_URL", "https://nvidia.juxinsuanli.cn").rstrip("/")
-AGENT_VERSION = os.getenv("ORIN_AGENT_VERSION", "0.4.0-orin")
+AGENT_VERSION = os.getenv("ORIN_AGENT_VERSION", "0.5.0-orin")
 IMAGE_VERSION = os.getenv("ORIN_IMAGE_VERSION", "orin-l4t-36.4.7-v1")
 STATE_DIR = Path(os.getenv("ORIN_STATE_DIR", "/var/lib/juxin-orin"))
 SN_FILE = Path(os.getenv("ORIN_DEVICE_SN_FILE", str(STATE_DIR / "device-sn")))
@@ -27,6 +27,9 @@ FINGERPRINT_FILE = Path(
     os.getenv("ORIN_HARDWARE_FINGERPRINT_FILE", str(STATE_DIR / "hardware-fingerprint"))
 )
 TOKEN_FILE = Path(os.getenv("ORIN_DEVICE_TOKEN_FILE", str(STATE_DIR / "device-token")))
+DISPLAY_STATUS_FILE = Path(
+    os.getenv("ORIN_DISPLAY_STATUS_FILE", str(STATE_DIR / "display-status.json"))
+)
 DEFAULT_INTERVAL = max(10, int(os.getenv("ORIN_HEARTBEAT_INTERVAL", "60")))
 DEFAULT_TASK_POLL_INTERVAL = max(10, int(os.getenv("ORIN_TASK_POLL_INTERVAL", "60")))
 COMMAND_TIMEOUT = max(30, int(os.getenv("ORIN_COMMAND_TIMEOUT", "90")))
@@ -41,6 +44,28 @@ TASK_RUNNER = Path(os.getenv("ORIN_TASK_RUNNER", str(RUNTIME_DIR / "task-runner"
 OLLAMA_API_BASE = os.getenv("ORIN_OLLAMA_API_BASE_URL", "http://127.0.0.1:11434").rstrip("/")
 MAX_RESULT_TEXT = 1_000_000
 MAX_ERROR_TEXT = 4000
+DISPLAY_TELEMETRY_KEYS = {
+    "cpu_load",
+    "mem_load",
+    "memory_total_mb",
+    "gpu_usage",
+    "gpu_temperature",
+    "power_watts",
+    "ip",
+    "cuda_version",
+    "l4t_version",
+}
+DISPLAY_UNSET = object()
+DISPLAY_STATE: dict[str, Any] = {
+    "schemaVersion": 1,
+    "phase": "initializing",
+    "connected": False,
+    "agentVersion": AGENT_VERSION,
+    "imageVersion": IMAGE_VERSION,
+    "telemetry": {},
+    "task": None,
+    "error": "",
+}
 
 
 class ApiError(RuntimeError):
@@ -295,6 +320,48 @@ def atomic_write_json(path: Path, value: dict[str, Any]) -> None:
             pass
 
 
+def display_task(task: dict[str, Any], started_at: int | None = None, status: str = "running") -> dict[str, Any]:
+    return {
+        "id": task.get("id"),
+        "taskId": str(task.get("taskId") or "")[:64],
+        "taskType": str(task.get("taskType") or "")[:32],
+        "modelName": str(task.get("modelName") or "")[:64],
+        "startedAt": started_at or int(time.time()),
+        "status": status,
+    }
+
+
+def publish_display_status(
+    *,
+    phase: str | None = None,
+    connected: bool | None = None,
+    telemetry: dict[str, Any] | None = None,
+    task: dict[str, Any] | None | object = DISPLAY_UNSET,
+    error: str | None | object = DISPLAY_UNSET,
+) -> None:
+    if phase is not None:
+        DISPLAY_STATE["phase"] = str(phase)[:32]
+    if connected is not None:
+        DISPLAY_STATE["connected"] = bool(connected)
+    if telemetry is not None:
+        DISPLAY_STATE["telemetry"] = {
+            key: value for key, value in telemetry.items() if key in DISPLAY_TELEMETRY_KEYS
+        }
+    if task is not DISPLAY_UNSET:
+        DISPLAY_STATE["task"] = task
+    if error is not DISPLAY_UNSET:
+        DISPLAY_STATE["error"] = str(error or "")[-240:]
+    try:
+        DISPLAY_STATE["sn"] = device_sn()
+    except RuntimeError:
+        DISPLAY_STATE["sn"] = ""
+    DISPLAY_STATE["updatedAt"] = int(time.time())
+    try:
+        atomic_write_json(DISPLAY_STATUS_FILE, DISPLAY_STATE)
+    except OSError as status_error:
+        print(f"display status update failed: {status_error}", flush=True)
+
+
 def queue_outbox(kind: str, key: str, payload: dict[str, Any]) -> Path:
     if kind not in {"command", "task"}:
         raise ValueError(f"unsupported outbox kind: {kind}")
@@ -358,6 +425,9 @@ def submit_command(command: dict[str, Any]) -> None:
     if not command_no:
         print("ignored untracked legacy command without commandNo", flush=True)
         return
+    command_type = str(command.get("commandType") or "").strip().upper()
+    command_phase = "upgrading" if command_type == "UPGRADE_AGENT" else "maintenance"
+    publish_display_status(phase=command_phase, connected=True, task=None, error=None)
     result: dict[str, Any] = {
         "sn": device_sn(),
         "commandNo": command_no,
@@ -382,6 +452,8 @@ def submit_command(command: dict[str, Any]) -> None:
         result["resultText"] = str(error)
     queue_outbox("command", command_no, result)
     flush_outbox()
+    if command_phase != "upgrading":
+        publish_display_status(phase="idle", connected=True, task=None, error=None)
 
 
 def task_parameters(task: dict[str, Any]) -> dict[str, Any]:
@@ -520,9 +592,21 @@ def poll_task_once() -> bool:
     task = fetch_task()
     if task is None:
         return False
+    started_at = int(time.time())
+    current_task = display_task(task, started_at)
+    publish_display_status(phase="task", connected=True, task=current_task, error=None)
     result = execute_task(task)
     queue_outbox("task", str(result.get("id")), result)
     flush_outbox()
+    current_task["status"] = str(result.get("status") or "failed")
+    current_task["durationMs"] = max(0, int(result.get("durationMs") or 0))
+    phase = "completed" if result.get("status") == "completed" else "task_failed"
+    publish_display_status(
+        phase=phase,
+        connected=True,
+        task=current_task,
+        error=result.get("errorMsg") or None,
+    )
     return True
 
 
@@ -548,6 +632,7 @@ def loop() -> None:
     next_heartbeat = 0.0
     next_task_poll = 0.0
     next_outbox_retry = 0.0
+    publish_display_status(phase="initializing", connected=False, task=None, error=None)
     while True:
         now = time.monotonic()
         if now >= next_outbox_retry:
@@ -561,15 +646,23 @@ def loop() -> None:
         if now >= next_heartbeat:
             try:
                 payload = report_payload()
+                if not device_token():
+                    publish_display_status(
+                        phase="enrolling", connected=False, telemetry=payload, task=None, error=None
+                    )
                 ensure_enrolled(payload)
                 response = request("/api/edge/report", "POST", payload)
                 heartbeat_interval = next_interval(response, heartbeat_interval)
                 task_poll_interval = next_task_interval(response, task_poll_interval)
+                publish_display_status(
+                    phase="idle", connected=True, telemetry=payload, task=None, error=None
+                )
                 data = response.get("data") or {}
                 if data.get("action") == "execute_command":
                     submit_command(data)
             except (ApiError, OSError, RuntimeError, ValueError) as error:
                 print(f"report failed: {error}", flush=True)
+                publish_display_status(phase="offline", connected=False, error=error)
             next_heartbeat = time.monotonic() + heartbeat_interval
 
         now = time.monotonic()
@@ -578,6 +671,8 @@ def loop() -> None:
                 poll_task_once()
             except (ApiError, OSError, RuntimeError, ValueError) as error:
                 print(f"task poll failed: {error}", flush=True)
+                if isinstance(error, ApiError):
+                    publish_display_status(phase="offline", connected=False, error=error)
             next_task_poll = time.monotonic() + task_poll_interval
 
         next_event = min(next_heartbeat, next_outbox_retry, next_task_poll)

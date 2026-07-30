@@ -53,19 +53,36 @@
             </el-form-item>
 
             <!-- 动态邀请等级设置 -->
-            <el-divider content-position="left"><span class="card-title"><el-icon><UserFilled /></el-icon> 代理等级及分润配置</span></el-divider>
-            <div v-for="(lv, index) in inviteLevels" :key="index" class="level-config-item">
+            <el-divider content-position="left">
+              <div class="level-section-header">
+                <span class="card-title"><el-icon><UserFilled /></el-icon> 代理等级及分润配置</span>
+                <el-button type="success" size="small" :icon="Plus" @click="addInviteLevel">新增等级</el-button>
+              </div>
+            </el-divider>
+            <div v-for="(lv, index) in inviteLevels" :key="lv._key" class="level-config-item">
               <el-form-item :label="'等级 ' + (index + 1)">
                 <div class="level-inputs">
-                  <el-input v-model="lv.name" placeholder="名称" style="width: 100px" />
+                  <el-input v-model="lv.name" maxlength="50" placeholder="名称" style="width: 120px" />
                   <span class="range-text">，达标</span>
-                  <el-input-number v-model="lv.threshold" :min="0" placeholder="台数" style="width: 110px" />
+                  <el-input-number v-model="lv.threshold" :min="0" :precision="0" placeholder="台数" style="width: 110px" />
                   <span class="range-text">台，分润</span>
-                  <el-input-number v-model="lv.ratePercent" :min="0" :max="100" :precision="0" :step="5" style="width: 100px" />
+                  <el-input-number v-model="lv.ratePercent" :min="0" :max="100" :precision="2" :step="1" style="width: 110px" />
                   <span class="unit">%</span>
+                  <el-tooltip content="删除该等级" placement="top">
+                    <el-button
+                      class="remove-level-button"
+                      type="danger"
+                      plain
+                      circle
+                      :icon="Delete"
+                      :aria-label="`删除等级 ${index + 1}`"
+                      @click="removeInviteLevel(index)"
+                    />
+                  </el-tooltip>
                 </div>
               </el-form-item>
             </div>
+            <el-empty v-if="inviteLevels.length === 0" description="暂无代理等级" :image-size="72" />
 
             <el-form-item style="margin-top: 20px;">
               <el-button type="primary" @click="saveEarningsSettings" size="large">保存所有收益与等级设置</el-button>
@@ -201,8 +218,8 @@
 import { reactive, ref, onMounted, nextTick } from 'vue'
 import { useRoute } from 'vue-router'
 import axios from '../utils/request'
-import { Calendar, Coin, Lock, Picture, Plus, Setting, User, UserFilled } from '@element-plus/icons-vue'
-import { ElMessage } from 'element-plus'
+import { Calendar, Coin, Delete, Lock, Picture, Plus, Setting, User, UserFilled } from '@element-plus/icons-vue'
+import { ElMessage, ElMessageBox } from 'element-plus'
 
 const route = useRoute()
 const adminInfo = ref({})
@@ -218,12 +235,13 @@ const earningsSettings = reactive({
 })
 
 const inviteLevels = reactive([
-  { index: 1, name: '初级代理', threshold: 0, ratePercent: 10 },
-  { index: 2, name: '中级代理', threshold: 10, ratePercent: 15 },
-  { index: 3, name: '高级代理', threshold: 50, ratePercent: 20 },
-  { index: 4, name: '金牌代理', threshold: 100, ratePercent: 30 },
-  { index: 5, name: '核心合伙人', threshold: 500, ratePercent: 50 }
+  { _key: 1, index: 1, name: '初级代理', threshold: 0, ratePercent: 10 },
+  { _key: 2, index: 2, name: '中级代理', threshold: 10, ratePercent: 15 },
+  { _key: 3, index: 3, name: '高级代理', threshold: 50, ratePercent: 20 },
+  { _key: 4, index: 4, name: '金牌代理', threshold: 100, ratePercent: 30 },
+  { _key: 5, index: 5, name: '核心合伙人', threshold: 500, ratePercent: 50 }
 ])
+let nextInviteLevelKey = 6
 
 const systemSettings = reactive({
   siteName: '聚芯算力',
@@ -268,7 +286,8 @@ const loadSettings = async () => {
       if (data.inviteLevels) {
         const converted = data.inviteLevels.map(lv => ({
           ...lv,
-          ratePercent: Math.round((lv.rate || 0) * 100)
+          _key: nextInviteLevelKey++,
+          ratePercent: Number(((lv.rate || 0) * 100).toFixed(2))
         }))
         inviteLevels.splice(0, inviteLevels.length, ...converted)
       }
@@ -290,11 +309,17 @@ const loadSettings = async () => {
 }
 
 const saveEarningsSettings = async () => {
+  const validationError = validateInviteLevels()
+  if (validationError) {
+    ElMessage.error(validationError)
+    return
+  }
+
   try {
     // 将百分比转换回小数再发送给后端
-    const levelsForBackend = inviteLevels.map(lv => ({
-      index: lv.index,
-      name: lv.name,
+    const levelsForBackend = inviteLevels.map((lv, index) => ({
+      index: index + 1,
+      name: lv.name.trim(),
       threshold: lv.threshold,
       rate: (lv.ratePercent || 0) / 100
     }))
@@ -304,6 +329,10 @@ const saveEarningsSettings = async () => {
     }
     const res = await axios.post('/api/settings/earnings', payload)
     if (res.data.code === 200) {
+      inviteLevels.forEach((lv, index) => {
+        lv.index = index + 1
+        lv.name = lv.name.trim()
+      })
       ElMessage.success('收益及等级设置已保存')
     } else {
       ElMessage.error(res.data.msg || '保存失败')
@@ -311,6 +340,47 @@ const saveEarningsSettings = async () => {
   } catch (e) {
     ElMessage.error('网络请求失败')
   }
+}
+
+const addInviteLevel = () => {
+  const previous = inviteLevels[inviteLevels.length - 1]
+  inviteLevels.push({
+    _key: nextInviteLevelKey++,
+    index: inviteLevels.length + 1,
+    name: `等级${inviteLevels.length + 1}`,
+    threshold: previous ? Number(previous.threshold || 0) + 1 : 0,
+    ratePercent: previous ? Number(previous.ratePercent || 0) : 0
+  })
+}
+
+const removeInviteLevel = async (index) => {
+  try {
+    await ElMessageBox.confirm(
+      `确定删除“${inviteLevels[index].name || `等级 ${index + 1}`}”吗？保存后后续等级会自动重新编号。`,
+      '删除代理等级',
+      { type: 'warning', confirmButtonText: '删除', cancelButtonText: '取消' }
+    )
+    inviteLevels.splice(index, 1)
+  } catch (e) {
+    if (e !== 'cancel' && e !== 'close') {
+      ElMessage.error('删除操作失败')
+    }
+  }
+}
+
+const validateInviteLevels = () => {
+  let previousThreshold = -1
+  for (let index = 0; index < inviteLevels.length; index += 1) {
+    const level = inviteLevels[index]
+    if (!level.name || !level.name.trim()) return `等级 ${index + 1} 的名称不能为空`
+    if (!Number.isInteger(level.threshold) || level.threshold < 0) return `等级 ${index + 1} 的设备门槛必须是非负整数`
+    if (level.threshold <= previousThreshold) return '等级设备门槛必须按顺序严格递增'
+    if (!Number.isFinite(level.ratePercent) || level.ratePercent < 0 || level.ratePercent > 100) {
+      return `等级 ${index + 1} 的分润比例必须在 0% 到 100% 之间`
+    }
+    previousThreshold = level.threshold
+  }
+  return ''
 }
 
 const saveSystemSettings = async () => {
@@ -533,6 +603,14 @@ onMounted(async () => {
 }
 
 /* 代理等级条目 */
+.level-section-header {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
 .level-config-item {
   background: #f8fafc;
   padding: 16px;
@@ -557,6 +635,11 @@ onMounted(async () => {
 .range-text {
   color: #64748b;
   font-size: 13px;
+}
+
+.remove-level-button {
+  flex: 0 0 auto;
+  margin-left: auto;
 }
 
 /* 轮播图管理 */

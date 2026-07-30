@@ -75,12 +75,14 @@ public class ExchangeProduct {
      * 根据用户等级获取对应价格
      */
     public BigDecimal getPriceByLevel(int level) {
+        if (level >= 5) {
+            return priceLevel5 != null ? priceLevel5 : basePrice;
+        }
         switch (level) {
             case 1: return priceLevel1 != null ? priceLevel1 : basePrice;
             case 2: return priceLevel2 != null ? priceLevel2 : basePrice;
             case 3: return priceLevel3 != null ? priceLevel3 : basePrice;
             case 4: return priceLevel4 != null ? priceLevel4 : basePrice;
-            case 5: return priceLevel5 != null ? priceLevel5 : basePrice;
             default: return basePrice;
         }
     }

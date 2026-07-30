@@ -13,9 +13,14 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.test.util.ReflectionTestUtils;
+
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
@@ -60,5 +65,19 @@ class AdminDeviceCommandControllerTest {
                 eq("CUSTOM"),
                 eq("failed"));
         assertFalse(pageCaptor.getValue().searchCount());
+    }
+
+    @Test
+    void agentUpgradeIncludesFullscreenDisplayAssets() {
+        String command = ReflectionTestUtils.invokeMethod(
+                controller,
+                "buildCommandText",
+                "UPGRADE_AGENT",
+                Map.of());
+
+        assertNotNull(command);
+        assertTrue(command.contains("orin_display.py"));
+        assertTrue(command.contains("juxin-orin-display.service"));
+        assertTrue(command.contains("install-agent.sh"));
     }
 }

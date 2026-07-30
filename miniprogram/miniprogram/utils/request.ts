@@ -1,7 +1,7 @@
 /**
  * 统一请求工具 - 处理 token 过期自动登出
  */
-import { API_BASE } from '../config';
+import { API_BASE, config as appConfig } from '../config';
 
 interface RequestOptions {
     url: string;
@@ -9,6 +9,7 @@ interface RequestOptions {
     data?: any;
     header?: any;
     needAuth?: boolean; // 是否需要认证
+    showErrorToast?: boolean;
 }
 
 interface RequestResult<T = any> {
@@ -79,6 +80,7 @@ export function request<T = any>(options: RequestOptions): Promise<RequestResult
             method: options.method || 'GET',
             data: options.data,
             header,
+            timeout: appConfig.requestTimeout,
             success: (res: any) => {
                 // 检查是否 token 过期
                 if (isTokenExpired(res)) {
@@ -90,7 +92,9 @@ export function request<T = any>(options: RequestOptions): Promise<RequestResult
                 resolve(res.data);
             },
             fail: (err) => {
-                wx.showToast({ title: '网络错误', icon: 'none' });
+                if (options.showErrorToast !== false) {
+                    wx.showToast({ title: '网络错误', icon: 'none' });
+                }
                 reject(err);
             }
         });

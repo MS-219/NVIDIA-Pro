@@ -87,6 +87,30 @@ class OrinAgentTest(unittest.TestCase):
         self.assertEqual({"cpu_load": "12.5", "gpu_temperature": 42.0}, args[2]["telemetry"])
         self.assertFalse(kwargs["authenticated"])
 
+    def test_display_status_filters_secrets_and_prompts(self):
+        task = {
+            "id": 8,
+            "taskId": "task-8",
+            "taskType": "ollama",
+            "modelName": "qwen2.5:3b",
+            "prompt": "secret prompt",
+            "deviceToken": "secret token",
+        }
+
+        self.agent.publish_display_status(
+            phase="task",
+            connected=True,
+            telemetry={"gpu_usage": 72, "hardware_fingerprint": VALID_FINGERPRINT},
+            task=self.agent.display_task(task, 1000),
+        )
+
+        status = json.loads(self.agent.DISPLAY_STATUS_FILE.read_text())
+        self.assertEqual("task", status["phase"])
+        self.assertEqual(72, status["telemetry"]["gpu_usage"])
+        self.assertNotIn("hardware_fingerprint", status["telemetry"])
+        self.assertNotIn("prompt", status["task"])
+        self.assertNotIn("deviceToken", status["task"])
+
     def test_authenticated_request_sends_device_token(self):
         self.agent.atomic_write_secret(self.agent.TOKEN_FILE, "secret-device-token")
         captured = {}
@@ -197,6 +221,9 @@ class OrinAgentTest(unittest.TestCase):
 
         self.agent.request.assert_called_once_with("/api/edge/tasks/submit", "POST", result)
         self.assertEqual([], list(self.agent.OUTBOX_DIR.glob("*.json")))
+        status = json.loads(self.agent.DISPLAY_STATUS_FILE.read_text())
+        self.assertEqual("completed", status["phase"])
+        self.assertEqual("completed", status["task"]["status"])
 
     def test_retryable_submission_remains_in_outbox(self):
         payload = {"id": 11, "deviceSn": VALID_SN, "status": "failed"}

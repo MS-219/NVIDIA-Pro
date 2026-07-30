@@ -8,6 +8,7 @@ import com.juxin.orin.entity.ApiMerchant;
 import com.juxin.orin.mapper.DeviceEarningsMapper;
 import com.juxin.orin.service.IDeviceEarningsService;
 import com.juxin.orin.service.IDeviceService;
+import com.juxin.orin.service.InviteLevelConfigService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import lombok.extern.slf4j.Slf4j;
@@ -32,6 +33,9 @@ public class DeviceEarningsServiceImpl extends ServiceImpl<DeviceEarningsMapper,
 
     @Autowired
     private com.juxin.orin.service.ISystemConfigService configService;
+
+    @Autowired
+    private InviteLevelConfigService inviteLevelConfigService;
 
     @Autowired
     private com.juxin.orin.service.IInviteService inviteService;
@@ -169,14 +173,7 @@ public class DeviceEarningsServiceImpl extends ServiceImpl<DeviceEarningsMapper,
                 }
             }
 
-            String configKey;
-            if (level >= 1 && level <= 5) {
-                configKey = "invite.level" + level + ".rate";
-            } else {
-                configKey = "invite.earningsRate";
-            }
-            String rateStr = configService.getConfig(configKey, "0.1");
-            rate = new BigDecimal(rateStr);
+            rate = inviteLevelConfigService.getLevelRate(level);
 
             earnings = baseEarnings.multiply(rate).setScale(2, java.math.RoundingMode.HALF_UP);
         }
@@ -221,14 +218,7 @@ public class DeviceEarningsServiceImpl extends ServiceImpl<DeviceEarningsMapper,
                     loopCount++;
 
                     int inviterLevel = inviter.getLevel() != null ? inviter.getLevel() : 0;
-                    String inviterConfigKey;
-                    if (inviterLevel >= 1 && inviterLevel <= 5) {
-                        inviterConfigKey = "invite.level" + inviterLevel + ".rate";
-                    } else {
-                        inviterConfigKey = "invite.earningsRate";
-                    }
-                    String inviterRateStr = configService.getConfig(inviterConfigKey, "0.1");
-                    BigDecimal inviterRate = new BigDecimal(inviterRateStr);
+                    BigDecimal inviterRate = inviteLevelConfigService.getLevelRate(inviterLevel);
 
                     if (inviterRate.compareTo(currentRateAllocated) > 0) {
                         BigDecimal diffRate = inviterRate.subtract(currentRateAllocated);
@@ -255,11 +245,7 @@ public class DeviceEarningsServiceImpl extends ServiceImpl<DeviceEarningsMapper,
                     ApiMerchant merchant = apiMerchantService.getById(user.getMerchantId());
                     if (merchant != null && merchant.getLevel() != null) {
                         int merchantLevel = merchant.getLevel();
-                        String merchantConfigKey = merchantLevel >= 1 && merchantLevel <= 5
-                                ? "invite.level" + merchantLevel + ".rate"
-                                : "invite.earningsRate";
-
-                        BigDecimal merchantRate = new BigDecimal(configService.getConfig(merchantConfigKey, "0.1"));
+                        BigDecimal merchantRate = inviteLevelConfigService.getLevelRate(merchantLevel);
 
                         // 如果商户等级比目前已分配出的最高等级还要高，则商户拿走剩余级差
                         if (merchantRate.compareTo(currentRateAllocated) > 0) {
@@ -354,11 +340,7 @@ public class DeviceEarningsServiceImpl extends ServiceImpl<DeviceEarningsMapper,
                         continue;
                     }
                     int level = user.getLevel() != null ? user.getLevel() : 0;
-                    String configKey = (level >= 1 && level <= 5)
-                            ? "invite.level" + level + ".rate"
-                            : "invite.earningsRate";
-                    String rateStr = configService.getConfig(configKey, "0.1");
-                    BigDecimal rate = new BigDecimal(rateStr);
+                    BigDecimal rate = inviteLevelConfigService.getLevelRate(level);
                     deviceEarningsPerHour = baseEarnings.multiply(rate)
                             .setScale(2, java.math.RoundingMode.HALF_UP);
 

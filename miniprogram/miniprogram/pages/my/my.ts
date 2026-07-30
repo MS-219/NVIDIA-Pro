@@ -6,6 +6,7 @@ Page({
         navBarTop: 0,
         navBarHeight: 44,
         isLoggedIn: false,
+        isLoggingIn: false,
         needCompleteInfo: false,
         userInfo: {
             id: '000000',
@@ -50,7 +51,7 @@ Page({
             navBarHeight: menuButtonInfo.height
         });
 
-        // 检查登录状态
+        // 首屏只读取本地登录态，网络刷新统一由 onShow 发起。
         this.checkLoginStatus();
     },
 
@@ -65,6 +66,64 @@ Page({
         this.verifyLoginStatus();
     },
 
+    // 页面返回时先展示完善资料页刚写入的缓存，再进行网络校验。
+    hydrateUserInfoFromStorage(userId: any) {
+        const cachedUserInfo = wx.getStorageSync('userInfo');
+        const displayId = String(userId).padStart(6, '0');
+
+        if (!cachedUserInfo) {
+            if (!this.data.isLoggedIn) {
+                this.setData({
+                    isLoggedIn: true,
+                    userInfo: { id: displayId, nickname: '', avatarUrl: '', phone: '', quota: 0, level: 0 }
+                });
+            }
+            return;
+        }
+
+        const currentUserInfo = this.data.userInfo;
+        this.setData({
+            isLoggedIn: true,
+            userInfo: {
+                ...currentUserInfo,
+                ...cachedUserInfo,
+                id: displayId,
+                nickname: cachedUserInfo.nickname || currentUserInfo.nickname || '',
+                avatarUrl: this.formatUrl(cachedUserInfo.avatarUrl || currentUserInfo.avatarUrl || '')
+            }
+        });
+        this.checkNeedCompleteInfo();
+    },
+
+    getLastProfileUpdateTime() {
+        return Math.max(
+            Number(wx.getStorageSync('last_profile_update_time')) || 0,
+            Number(wx.getStorageSync('last_complete_profile_time')) || 0
+        );
+    },
+
+    mergeServerUserInfo(data: any, preserveLocalProfile: boolean) {
+        const cachedUserInfo = wx.getStorageSync('userInfo') || {};
+        const serverNickname = data.nickname || '';
+        const serverAvatarUrl = this.formatUrl(data.avatarUrl || '');
+        const cachedNickname = cachedUserInfo.nickname || '';
+        const cachedAvatarUrl = this.formatUrl(cachedUserInfo.avatarUrl || '');
+        const hasRecentNickname = cachedNickname && cachedNickname !== '微信用户';
+
+        return {
+            id: String(data.id).padStart(6, '0'),
+            nickname: preserveLocalProfile && hasRecentNickname
+                ? cachedNickname
+                : serverNickname,
+            avatarUrl: preserveLocalProfile && cachedAvatarUrl
+                ? cachedAvatarUrl
+                : serverAvatarUrl,
+            phone: data.phone || '',
+            quota: data.quota || 0,
+            level: data.level || 0
+        };
+    },
+
     // 验证 token 有效性（发请求验证，失败则自动清除登录态）
     verifyLoginStatus() {
         const token = wx.getStorageSync('token');
@@ -76,17 +135,11 @@ Page({
             return;
         }
 
-        // 先用本地缓存显示（避免白屏）
-        const userInfo = wx.getStorageSync('userInfo');
-        if (!this.data.isLoggedIn) {
-            const displayId = String(userId).padStart(6, '0');
-            this.setData({
-                isLoggedIn: true,
-                userInfo: userInfo ? { ...userInfo, id: displayId } : { id: displayId, nickname: '', avatarUrl: '', phone: '', quota: 0, level: 0 }
-            });
-        }
+        // 始终先水合缓存，确保从完善资料页返回时立刻显示新头像和昵称。
+        this.hydrateUserInfoFromStorage(userId);
 
         // 发请求验证 token 是否真的有效
+        const requestStartedAt = Date.now();
         request({
             url: `/api/user/info/${userId}`,
             method: 'GET'
@@ -94,22 +147,12 @@ Page({
             if (res.code === 200) {
                 // token 有效，正常刷新数据
                 const data = res.data;
-                const lastCompleteTime = wx.getStorageSync('last_complete_profile_time');
-                const shouldSkipStorageUpdate = lastCompleteTime && (Date.now() - lastCompleteTime < 5000);
-
-                const newUserInfo = {
-                    id: String(data.id).padStart(6, '0'),
-                    nickname: data.nickname || '',
-                    avatarUrl: this.formatUrl(data.avatarUrl || ''),
-                    phone: data.phone || '',
-                    quota: data.quota || 0,
-                    level: data.level || 0
-                };
+                const profileUpdatedAt = this.getLastProfileUpdateTime();
+                const preserveLocalProfile = profileUpdatedAt > 0 && profileUpdatedAt >= requestStartedAt;
+                const newUserInfo = this.mergeServerUserInfo(data, preserveLocalProfile);
 
                 this.setData({ isLoggedIn: true, userInfo: newUserInfo });
-                if (!shouldSkipStorageUpdate) {
-                    wx.setStorageSync('userInfo', newUserInfo);
-                }
+                wx.setStorageSync('userInfo', newUserInfo);
                 this.checkNeedCompleteInfo();
                 this.fetchSettings();
                 // 获取钱包和设备统计数据
@@ -189,18 +232,9 @@ Page({
     checkLoginStatus() {
         const token = wx.getStorageSync('token');
         const userId = wx.getStorageSync('userId');
-        const userInfo = wx.getStorageSync('userInfo');
 
         if (token && userId) {
-            const displayId = String(userId).padStart(6, '0');
-            this.setData({
-                isLoggedIn: true,
-                userInfo: userInfo ? { ...userInfo, id: displayId } : { id: displayId, nickname: '', avatarUrl: '', phone: '', quota: 0, level: 0 }
-            });
-            this.fetchSettings();
-            this.fetchUserData();
-            this.checkNeedCompleteInfo();
-            // 注意：这里不再立即调用跳转，统一由 onShow 处理
+            this.hydrateUserInfoFromStorage(userId);
         }
     },
 
@@ -236,29 +270,19 @@ Page({
         if (!userId) return;
 
         // 获取用户完整信息
+        const requestStartedAt = Date.now();
         request({
             url: `/api/user/info/${userId}`,
             method: 'GET'
         }).then(res => {
             if (res.code === 200) {
                 const data = res.data;
-                // 关键防御：如果本地刚刚更新过（带了标志），则不让服务器老数据覆盖本地 storage
-                const lastCompleteTime = wx.getStorageSync('last_complete_profile_time');
-                const shouldSkipStorageUpdate = lastCompleteTime && (Date.now() - lastCompleteTime < 5000);
-
-                const newUserInfo = {
-                    id: String(data.id).padStart(6, '0'),
-                    nickname: data.nickname || '',
-                    avatarUrl: this.formatUrl(data.avatarUrl || ''),
-                    phone: data.phone || '',
-                    quota: data.quota || 0,
-                    level: data.level || 0
-                };
+                const profileUpdatedAt = this.getLastProfileUpdateTime();
+                const preserveLocalProfile = profileUpdatedAt > 0 && profileUpdatedAt >= requestStartedAt;
+                const newUserInfo = this.mergeServerUserInfo(data, preserveLocalProfile);
 
                 this.setData({ userInfo: newUserInfo });
-                if (!shouldSkipStorageUpdate) {
-                    wx.setStorageSync('userInfo', newUserInfo);
-                }
+                wx.setStorageSync('userInfo', newUserInfo);
                 this.checkNeedCompleteInfo();
             }
         });
@@ -335,30 +359,46 @@ Page({
     },
 
     // 微信登录
-    wxLogin() {
-        wx.showLoading({ title: '登录中...' });
+    async wxLogin() {
+        if (this.data.isLoggingIn) return;
 
-        wx.login({
-            success: (loginRes) => {
-                if (loginRes.code) {
-                    this.doLogin(loginRes.code, null);
-                } else {
-                    wx.hideLoading();
-                    wx.showToast({ title: '登录失败', icon: 'none' });
-                }
-            },
-            fail: () => {
-                wx.hideLoading();
-                wx.showToast({ title: '登录失败', icon: 'none' });
+        this.setData({ isLoggingIn: true });
+        wx.showLoading({ title: '登录中...', mask: true });
+
+        let loginRequestStarted = false;
+        let loginToast: { title: string; icon: 'success' | 'none' } | null = null;
+        try {
+            const loginRes: any = await new Promise((resolve, reject) => {
+                wx.login({ success: resolve, fail: reject });
+            });
+
+            if (!loginRes.code) {
+                throw new Error('微信未返回登录凭证');
             }
-        });
+
+            loginRequestStarted = true;
+            loginToast = await this.doLogin(loginRes.code, null);
+        } catch (err) {
+            console.error('wxLogin error:', err);
+            loginToast = {
+                title: loginRequestStarted ? '网络错误，请稍后重试' : '登录失败',
+                icon: 'none'
+            };
+        } finally {
+            wx.hideLoading();
+            this.setData({ isLoggingIn: false });
+        }
+
+        if (loginToast) {
+            wx.showToast(loginToast);
+        }
     },
 
     // 执行登录请求
-    doLogin(code: string, userInfo: any) {
+    async doLogin(code: string, userInfo: any): Promise<{ title: string; icon: 'success' | 'none' }> {
         const pendingInviteCode = wx.getStorageSync('pendingInviteCode') || '';
 
-        request({
+        const res = await request({
             url: '/api/user/wxLogin',
             method: 'POST',
             data: {
@@ -366,45 +406,42 @@ Page({
                 nickname: userInfo?.nickName || '',
                 avatarUrl: userInfo?.avatarUrl || '',
                 inviteCode: pendingInviteCode
-            }
-        }).then(res => {
-            wx.hideLoading();
-            if (res.code === 200) {
-                const data = res.data;
-                wx.removeStorageSync('pendingInviteCode');
-
-                // 保存登录状态
-                wx.setStorageSync('token', data.token);
-                wx.setStorageSync('userId', data.userId);
-                const savedUserInfo = {
-                    id: data.userId,
-                    nickname: data.nickname || '',
-                    avatarUrl: data.avatarUrl || '',
-                    phone: data.phone || '',
-                    quota: data.quota || 0,
-                    level: data.level || 0
-                };
-                wx.setStorageSync('userInfo', savedUserInfo);
-
-                this.setData({
-                    isLoggedIn: true,
-                    userInfo: { ...savedUserInfo, id: String(data.userId).padStart(6, '0') }
-                });
-
-                wx.showToast({ title: '登录成功', icon: 'success' });
-
-                // 登录成功后直接触发数据和跳转检测
-                this.fetchUserData();
-                setTimeout(() => {
-                    this.checkAndRedirectToCompleteProfile();
-                }, 500);
-            } else {
-                wx.showToast({ title: res.msg || '登录失败', icon: 'none' });
-            }
-        }).catch(err => {
-            wx.hideLoading();
-            console.error('doLogin error:', err);
+            },
+            showErrorToast: false
         });
+
+        if (res.code === 200) {
+            const data = res.data;
+            wx.removeStorageSync('pendingInviteCode');
+
+            // 保存登录状态
+            wx.setStorageSync('token', data.token);
+            wx.setStorageSync('userId', data.userId);
+            const savedUserInfo = {
+                id: data.userId,
+                nickname: data.nickname || '',
+                avatarUrl: data.avatarUrl || '',
+                phone: data.phone || '',
+                quota: data.quota || 0,
+                level: data.level || 0
+            };
+            wx.setStorageSync('userInfo', savedUserInfo);
+
+            this.setData({
+                isLoggedIn: true,
+                userInfo: { ...savedUserInfo, id: String(data.userId).padStart(6, '0') }
+            });
+
+            // 登录成功后直接触发数据和跳转检测
+            this.fetchUserData();
+            setTimeout(() => {
+                this.checkAndRedirectToCompleteProfile();
+            }, 500);
+
+            return { title: '登录成功', icon: 'success' };
+        }
+
+        return { title: res.msg || '登录失败', icon: 'none' };
     },
 
     // ========== 用户信息完善功能 ==========
@@ -570,6 +607,7 @@ Page({
                 const newUserInfo = { ...currentInfo, ...updatedData };
                 this.setData({ userInfo: newUserInfo });
                 wx.setStorageSync('userInfo', newUserInfo);
+                wx.setStorageSync('last_profile_update_time', Date.now());
 
                 // 设置永久完成标记，防止再次弹出完善资料弹窗
                 if (data.avatarUrl || (data.nickname && data.nickname !== '微信用户')) {

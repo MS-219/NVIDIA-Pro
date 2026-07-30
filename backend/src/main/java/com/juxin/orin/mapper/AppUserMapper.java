@@ -16,6 +16,9 @@ import java.util.List;
 @Mapper
 public interface AppUserMapper extends BaseMapper<AppUser> {
 
+    @Select("SELECT * FROM app_user WHERE openid = #{openid} LIMIT 1")
+    AppUser selectByOpenidIncludingDeleted(@Param("openid") String openid);
+
     @Update("UPDATE app_user SET balance = COALESCE(balance, 0) + #{amount} "
             + "WHERE id = #{userId} AND deleted = 0")
     int addBalance(@Param("userId") Long userId, @Param("amount") BigDecimal amount);

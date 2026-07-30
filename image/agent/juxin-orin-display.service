@@ -1,0 +1,25 @@
+[Unit]
+Description=Juxin Orin fullscreen node status display
+Requires=juxin-orin-firstboot.service
+After=juxin-orin-firstboot.service local-fs.target
+Conflicts=getty@tty1.service
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/python3 /opt/juxin-orin/display/orin_display.py
+Restart=always
+RestartSec=3
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+ReadOnlyPaths=/var/lib/juxin-orin
+Environment=PYTHONUNBUFFERED=1
+Environment=ORIN_DISPLAY_TTY=/dev/tty1
+Environment=ORIN_DISPLAY_FRAMEBUFFER=/dev/fb0
+
+[Install]
+WantedBy=multi-user.target
