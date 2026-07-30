@@ -1,10 +1,10 @@
 <template>
   <div class="app-shell">
-    <button v-if="mobileMenuOpen" class="sidebar-scrim" aria-label="关闭导航" @click="mobileMenuOpen = false" />
+    <button v-if="mobileMenuOpen" type="button" class="sidebar-scrim" aria-label="关闭导航" @click="mobileMenuOpen = false" />
 
-    <aside class="sidebar" :class="{ open: mobileMenuOpen }">
+    <aside id="admin-navigation" class="sidebar" :class="{ open: mobileMenuOpen }" aria-label="主导航">
       <div class="brand">
-        <div class="brand-mark"><el-icon><Cpu /></el-icon></div>
+        <div class="brand-mark"><img src="/favicon.svg" alt="" /></div>
         <div class="brand-copy">
           <strong>ORIN GRID</strong>
           <span>聚芯边缘算力平台</span>
@@ -117,20 +117,28 @@
     <main class="main-content">
       <header class="topbar">
         <div class="topbar-left">
-          <el-button class="mobile-menu" :icon="Menu" circle aria-label="打开导航" @click="mobileMenuOpen = true" />
+          <el-button
+            class="mobile-menu"
+            :icon="Menu"
+            circle
+            aria-label="打开导航"
+            aria-controls="admin-navigation"
+            :aria-expanded="mobileMenuOpen"
+            @click="mobileMenuOpen = true"
+          />
           <div>
-            <span class="page-kicker">ORIN CONTROL</span>
+            <span class="page-kicker">ORIN CONTROL PLANE</span>
             <h1>{{ route.meta.title || '运行总览' }}</h1>
           </div>
         </div>
         <div class="topbar-right">
           <div class="sync-state">
             <el-icon><CircleCheck /></el-icon>
-            <span>独立环境</span>
+            <span>PRODUCTION · SYNCED</span>
           </div>
           <el-divider direction="vertical" />
           <el-dropdown @command="handleCommand">
-            <button class="account-button">
+            <button type="button" class="account-button" aria-label="打开管理员菜单">
               <span class="avatar">A</span>
               <span class="account-copy"><strong>管理员</strong><small>平台运维</small></span>
               <el-icon><ArrowDown /></el-icon>
@@ -161,7 +169,6 @@ import {
   ChatDotRound,
   CircleCheck,
   Connection,
-  Cpu,
   DataAnalysis,
   DocumentChecked,
   List,
@@ -201,17 +208,19 @@ const handleCommand = (command) => {
   width: 100vw;
   height: 100vh;
   overflow: hidden;
-  background: #f4f5f2;
+  color: var(--orin-text);
+  background: var(--orin-canvas);
 }
 
 .sidebar {
-  width: 248px;
-  flex: 0 0 248px;
+  width: 252px;
+  flex: 0 0 252px;
   display: flex;
   flex-direction: column;
   color: #f7f8f5;
-  background: #111310;
-  border-right: 1px solid #292c27;
+  background: var(--orin-sidebar);
+  border-right: 1px solid var(--orin-border-soft);
+  box-shadow: 12px 0 32px rgba(0, 0, 0, 0.18);
   z-index: 20;
 }
 
@@ -221,19 +230,19 @@ const handleCommand = (command) => {
   display: flex;
   align-items: center;
   gap: 12px;
-  border-bottom: 1px solid #292c27;
+  border-bottom: 1px solid var(--orin-border-soft);
 }
 
 .brand-mark {
   width: 38px;
   height: 38px;
-  display: grid;
-  place-items: center;
-  color: #10130e;
-  background: #76b900;
-  border-radius: 6px;
-  font-size: 21px;
+  overflow: hidden;
+  border: 1px solid rgba(118, 185, 0, 0.42);
+  border-radius: 5px;
+  box-shadow: 0 0 18px rgba(118, 185, 0, 0.14);
 }
+
+.brand-mark img { width: 100%; height: 100%; display: block; }
 
 .brand-copy {
   min-width: 0;
@@ -241,8 +250,8 @@ const handleCommand = (command) => {
   flex-direction: column;
 }
 
-.brand-copy strong { font-size: 15px; line-height: 1.3; }
-.brand-copy span { color: #93998d; font-size: 11px; line-height: 1.5; }
+.brand-copy strong { color: var(--orin-text); font-size: 15px; line-height: 1.3; }
+.brand-copy span { color: var(--orin-muted); font-size: 10px; line-height: 1.5; }
 
 .platform-state {
   margin: 16px 14px 10px;
@@ -250,9 +259,9 @@ const handleCommand = (command) => {
   display: flex;
   align-items: center;
   gap: 10px;
-  background: #1a1d18;
-  border: 1px solid #2c3029;
-  border-radius: 6px;
+  background: var(--orin-surface-soft);
+  border: 1px solid var(--orin-border-soft);
+  border-radius: 5px;
 }
 
 .state-dot {
@@ -260,21 +269,21 @@ const handleCommand = (command) => {
   height: 8px;
   flex: 0 0 auto;
   border-radius: 50%;
-  background: #76b900;
+  background: var(--orin-green);
   box-shadow: 0 0 0 4px rgba(118, 185, 0, 0.12);
 }
 
 .platform-state div { display: flex; min-width: 0; flex-direction: column; }
-.platform-state strong { font-size: 12px; font-weight: 600; }
-.platform-state span:last-child { margin-top: 2px; color: #858b80; font-size: 10px; }
+.platform-state strong { color: var(--orin-text-soft); font-size: 11px; font-weight: 600; }
+.platform-state span:last-child { margin-top: 3px; color: var(--orin-dim); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 9px; }
 
 .nav-menu {
   flex: 1;
   overflow-y: auto;
   border-right: 0;
   background: transparent;
-  --el-menu-text-color: #aeb3aa;
-  --el-menu-hover-bg-color: #20231e;
+  --el-menu-text-color: #a5aca1;
+  --el-menu-hover-bg-color: #191d18;
   --el-menu-active-color: #ffffff;
   --el-menu-bg-color: transparent;
 }
@@ -283,19 +292,20 @@ const handleCommand = (command) => {
   height: 42px;
   margin: 2px 10px;
   padding: 0 12px !important;
-  border-radius: 5px;
+  border-radius: 4px;
 }
 
 .nav-menu :deep(.el-menu-item.is-active) {
-  color: #fff;
-  background: #28301f;
-  box-shadow: inset 3px 0 #76b900;
+  color: var(--orin-text) !important;
+  background: #20281c;
+  box-shadow: inset 3px 0 var(--orin-green);
 }
 
 .nav-label {
   padding: 17px 22px 6px;
-  color: #656b61;
-  font-size: 10px;
+  color: var(--orin-muted);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 9px;
   font-weight: 700;
   text-transform: uppercase;
 }
@@ -306,12 +316,12 @@ const handleCommand = (command) => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  border-top: 1px solid #292c27;
+  border-top: 1px solid var(--orin-border-soft);
   color: #777d73;
   font-size: 10px;
 }
 
-.sidebar-foot strong { color: #b4baaf; font-size: 10px; }
+.sidebar-foot strong { color: var(--orin-green); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 9px; }
 
 .main-content {
   min-width: 0;
@@ -327,8 +337,18 @@ const handleCommand = (command) => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: #fff;
-  border-bottom: 1px solid #e3e5e0;
+  position: relative;
+  background: #111411;
+  border-bottom: 1px solid var(--orin-border-soft);
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.14);
+}
+
+.topbar::before {
+  content: '';
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 3px;
+  background: var(--orin-green);
 }
 
 .topbar-left,
@@ -336,19 +356,24 @@ const handleCommand = (command) => {
 .sync-state,
 .account-button { display: flex; align-items: center; }
 .topbar-left { gap: 12px; }
-.page-kicker { display: block; color: #76a900; font-size: 9px; font-weight: 800; }
-.topbar h1 { margin: 2px 0 0; color: #171a16; font-size: 19px; line-height: 1.2; }
+.page-kicker { display: block; color: var(--orin-green); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 9px; font-weight: 800; }
+.topbar h1 { margin: 3px 0 0; color: var(--orin-text); font-size: 19px; line-height: 1.2; }
 .topbar-right { gap: 12px; }
-.sync-state { gap: 6px; color: #4d5448; font-size: 12px; }
-.sync-state .el-icon { color: #659f00; }
+.sync-state { gap: 7px; color: var(--orin-muted); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 9px; }
+.sync-state .el-icon { color: var(--orin-green); }
 
 .account-button {
   gap: 9px;
   padding: 4px 0;
   border: 0;
-  color: #252923;
+  color: var(--orin-text-soft);
   background: transparent;
   cursor: pointer;
+}
+
+.account-button:focus-visible {
+  outline: 2px solid var(--orin-green);
+  outline-offset: 3px;
 }
 
 .avatar {
@@ -356,16 +381,16 @@ const handleCommand = (command) => {
   height: 32px;
   display: grid;
   place-items: center;
-  border-radius: 50%;
-  color: #fff;
-  background: #252923;
+  border-radius: 4px;
+  color: #0a0c09;
+  background: var(--orin-green);
   font-size: 12px;
   font-weight: 700;
 }
 
 .account-copy { display: flex; flex-direction: column; align-items: flex-start; }
 .account-copy strong { font-size: 12px; }
-.account-copy small { color: #8a9085; font-size: 10px; }
+.account-copy small { color: var(--orin-muted); font-size: 10px; }
 .mobile-menu { display: none; }
 
 .page-body {
@@ -373,6 +398,11 @@ const handleCommand = (command) => {
   flex: 1;
   padding: 22px 24px 32px;
   overflow: auto;
+  background-color: var(--orin-canvas);
+  background-image:
+    linear-gradient(rgba(118, 185, 0, 0.018) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(118, 185, 0, 0.018) 1px, transparent 1px);
+  background-size: 36px 36px;
 }
 
 .sidebar-scrim { display: none; }
@@ -391,7 +421,8 @@ const handleCommand = (command) => {
     z-index: 15;
     display: block;
     border: 0;
-    background: rgba(10, 12, 9, 0.52);
+    background: rgba(2, 4, 2, 0.72);
+    backdrop-filter: blur(2px);
   }
   .mobile-menu { display: inline-flex; }
   .sync-state, .account-copy, .topbar-right .el-divider { display: none; }

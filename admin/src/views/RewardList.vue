@@ -103,8 +103,9 @@ const fetchRewards = async () => {
       }
     })
     if (res.data.code === 200) {
-      rewardList.value = res.data.data.records
-      total.value = res.data.data.total
+      const pageData = res.data.data || {}
+      rewardList.value = Array.isArray(pageData.records) ? pageData.records : []
+      total.value = Number(pageData.total) || 0
     }
   } catch (e) {
     ElMessage.error('获取列表失败')

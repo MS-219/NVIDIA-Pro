@@ -15,8 +15,8 @@
           <span class="pulse-dot"></span>
           {{ isConnected ? 'TUNNEL ACTIVE' : 'TUNNEL CLOSED' }}
         </div>
-        <el-button color="#222" @click="clearTerminal" style="color: #666">清空屏幕</el-button>
-        <el-button type="danger" plain @click="reconnect" v-if="!isConnected">重新连接</el-button>
+        <el-button v-if="sn" :icon="Delete" @click="clearTerminal">清空屏幕</el-button>
+        <el-button v-if="sn && !isConnected" :icon="Refresh" type="danger" plain @click="reconnect">重新连接</el-button>
       </div>
     </div>
     
@@ -43,7 +43,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { Terminal } from 'xterm'
 import { FitAddon } from 'xterm-addon-fit'
 import 'xterm/css/xterm.css'
-import { ArrowLeft, Connection } from '@element-plus/icons-vue'
+import { ArrowLeft, Connection, Delete, Refresh } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 
 const route = useRoute()
@@ -99,18 +99,18 @@ const initTerminal = () => {
     fontFamily: '"Fira Code", Menlo, Monaco, "Courier New", monospace',
     fontSize: 14,
     theme: {
-      background: '#0d1117',
-      foreground: '#c9d1d9',
-      cursor: '#58a6ff',
-      selection: '#264f78',
-      black: '#484f58',
-      red: '#ff7b72',
-      green: '#3fb950',
-      yellow: '#d29922',
-      blue: '#58a6ff',
-      magenta: '#bc8cff',
-      cyan: '#39c5cf',
-      white: '#b1bac4',
+      background: '#0b0d0c',
+      foreground: '#c2c8bd',
+      cursor: '#76b900',
+      selection: '#34441f',
+      black: '#30352f',
+      red: '#e06269',
+      green: '#76b900',
+      yellow: '#d6a33a',
+      blue: '#5f94d8',
+      magenta: '#a887c6',
+      cyan: '#38a9a5',
+      white: '#f2f5ef',
     }
   })
   
@@ -166,7 +166,7 @@ const reconnect = () => {
   connectWebSocket()
 }
 
-const clearTerminal = () => term.clear()
+const clearTerminal = () => term?.clear()
 const goBack = () => router.push('/monitor')
 
 const handleResize = () => {
@@ -191,79 +191,92 @@ onBeforeUnmount(() => {
 
 <style scoped>
 .terminal-page {
-  height: calc(100vh - 40px);
+  height: calc(100vh - 128px);
+  min-height: 520px;
   display: flex;
   flex-direction: column;
-  background-color: #0d1117;
-  border-radius: 12px;
+  color: var(--orin-text-soft);
+  background: var(--orin-canvas);
+  border: 1px solid var(--orin-border);
+  border-radius: 6px;
   overflow: hidden;
-  box-shadow: 0 10px 40px rgba(0,0,0,0.5);
-  border: 1px solid #30363d;
+  box-shadow: none;
 }
 
 .terminal-header {
   padding: 12px 20px;
-  background-color: #161b22;
-  border-bottom: 1px solid #30363d;
+  background: var(--orin-surface);
+  border-bottom: 1px solid var(--orin-border);
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 14px;
 }
 
 .header-left {
+  min-width: 0;
   display: flex;
   align-items: center;
   gap: 15px;
+}
+
+.terminal-info {
+  min-width: 0;
 }
 
 .terminal-info h3 {
   margin: 0;
   font-size: 16px;
-  color: #f0f6fc;
+  color: var(--orin-text);
   font-weight: 600;
 }
 
 .terminal-info h3 small {
-  color: #8b949e;
+  color: var(--orin-muted);
   font-size: 10px;
-  letter-spacing: 1px;
+  letter-spacing: 0;
 }
 
 .terminal-info p {
   margin: 2px 0 0;
   font-size: 12px;
-  color: #8b949e;
+  color: var(--orin-muted);
 }
 
 .sn-badge {
-  background: #23863622;
-  color: #3fb950;
+  color: var(--orin-green-bright);
+  background: var(--orin-green-soft);
+  border: 1px solid var(--orin-green-dark);
   padding: 1px 6px;
-  border-radius: 4px;
-  font-family: monospace;
+  border-radius: 3px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
 }
 
 .header-right {
   display: flex;
   align-items: center;
-  gap: 15px;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 
 .status-indicator {
   font-size: 11px;
-  color: #f85149;
-  font-family: monospace;
+  color: var(--orin-danger);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   display: flex;
   align-items: center;
   gap: 6px;
   padding: 4px 10px;
-  background: #f8514911;
-  border-radius: 20px;
+  background: rgba(224, 98, 105, 0.1);
+  border: 1px solid rgba(224, 98, 105, 0.3);
+  border-radius: 3px;
 }
 
 .status-indicator.connected {
-  color: #3fb950;
-  background: #3fb95011;
+  color: var(--orin-green-bright);
+  background: var(--orin-green-soft);
+  border-color: var(--orin-green-dark);
 }
 
 .pulse-dot {
@@ -278,15 +291,15 @@ onBeforeUnmount(() => {
 }
 
 @keyframes pulse {
-  0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(63, 185, 80, 0.7); }
-  70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(63, 185, 80, 0); }
-  100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(63, 185, 80, 0); }
+  0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(118, 185, 0, 0.62); }
+  70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(118, 185, 0, 0); }
+  100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(118, 185, 0, 0); }
 }
 
 .terminal-body {
   flex: 1;
   padding: 15px;
-  background-color: #0d1117;
+  background: var(--orin-canvas);
   overflow: hidden;
 }
 
@@ -296,32 +309,85 @@ onBeforeUnmount(() => {
 
 .terminal-footer {
   padding: 8px 20px;
-  background-color: #161b22;
-  border-top: 1px solid #30363d;
+  background: var(--orin-surface);
+  border-top: 1px solid var(--orin-border);
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 12px;
 }
 
 .shortcuts {
   display: flex;
+  flex-wrap: wrap;
   gap: 10px;
 }
 
 .latency-info {
   font-size: 11px;
-  color: #8b949e;
-  font-family: monospace;
+  color: var(--orin-muted);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   display: flex;
   align-items: center;
   gap: 5px;
 }
 
 :deep(.xterm-viewport) {
-  background-color: #0d1117 !important;
+  background: var(--orin-canvas) !important;
 }
 
 :deep(.xterm-rows) {
-  color: #c9d1d9;
+  color: var(--orin-text-soft);
+}
+
+@media (max-width: 760px) {
+  .terminal-page {
+    height: calc(100vh - 98px);
+    min-height: 0;
+  }
+
+  .terminal-header {
+    padding: 11px 12px;
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .terminal-info h3 small {
+    display: none;
+  }
+
+  .header-right {
+    justify-content: flex-start;
+  }
+
+  .status-indicator {
+    min-height: 32px;
+  }
+
+  .terminal-body {
+    padding: 10px;
+  }
+
+  .terminal-footer {
+    padding: 8px 12px;
+  }
+
+  .latency-info {
+    display: none;
+  }
+}
+
+@media (max-width: 420px) {
+  .header-left {
+    gap: 10px;
+  }
+
+  .header-right .el-button {
+    margin-left: 0;
+  }
+
+  .shortcuts {
+    gap: 5px;
+  }
 }
 </style>

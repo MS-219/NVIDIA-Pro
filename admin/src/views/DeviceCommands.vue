@@ -20,10 +20,10 @@
           <el-col :span="8">
             <el-form-item label="目标范围">
               <el-radio-group v-model="commandForm.targetScope" class="target-scope">
-                <el-radio-button label="SINGLE">单台</el-radio-button>
-                <el-radio-button label="ALL_ONLINE">全部可远程</el-radio-button>
-                <el-radio-button label="LOCATION">按地区</el-radio-button>
-                <el-radio-button label="CARRIER">按运营商</el-radio-button>
+                <el-radio-button value="SINGLE">单台</el-radio-button>
+                <el-radio-button value="ALL_ONLINE">全部可远程</el-radio-button>
+                <el-radio-button value="LOCATION">按地区</el-radio-button>
+                <el-radio-button value="CARRIER">按运营商</el-radio-button>
               </el-radio-group>
             </el-form-item>
           </el-col>
@@ -678,74 +678,86 @@ onMounted(() => {
 <style scoped>
 .commands-page {
   width: 100%;
+  color: var(--orin-text);
 }
 
 .stat-grid {
-  margin-bottom: 20px;
+  margin-bottom: 14px;
 }
 
 .stat-card,
 .dispatch-panel,
 .filter-bar,
 .task-container {
-  background: white;
-  border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+  background: var(--orin-surface);
+  border: 1px solid var(--orin-border);
+  border-radius: 6px;
+  box-shadow: none;
 }
 
 .stat-card {
-  height: 112px;
-  padding: 20px;
   position: relative;
+  height: 104px;
   overflow: hidden;
+  padding: 17px 18px;
+  border-left-width: 3px;
 }
 
-.stat-card.warning { border-left: 4px solid #faad14; }
-.stat-card.primary { border-left: 4px solid #1890ff; }
-.stat-card.success { border-left: 4px solid #52c41a; }
-.stat-card.info { border-left: 4px solid #909399; }
-.stat-card.danger { border-left: 4px solid #f56c6c; }
+.stat-card.warning { border-left-color: var(--orin-amber); }
+.stat-card.primary { border-left-color: var(--orin-green); }
+.stat-card.success { border-left-color: var(--orin-green-bright); }
+.stat-card.info { border-left-color: var(--orin-border-strong); }
+.stat-card.danger { border-left-color: var(--orin-danger); }
 
 .card-label {
-  font-size: 14px;
-  color: #909399;
   margin-bottom: 8px;
+  color: var(--orin-muted);
+  font-size: 12px;
 }
 
 .card-val {
-  font-size: 32px;
+  color: var(--orin-text);
+  font-size: 29px;
   font-weight: 800;
-  color: #303133;
+  line-height: 1.1;
 }
 
 .card-icon {
   position: absolute;
-  right: 20px;
-  bottom: 20px;
-  font-size: 46px;
-  opacity: 0.1;
+  right: 16px;
+  bottom: 15px;
+  color: var(--orin-green);
+  font-size: 38px;
+  opacity: 0.26;
 }
 
+.stat-card.warning .card-icon { color: var(--orin-amber); }
+.stat-card.info .card-icon { color: var(--orin-text-soft); }
+.stat-card.danger .card-icon { color: var(--orin-danger); }
+
 .dispatch-panel {
-  padding: 22px;
-  margin-bottom: 20px;
+  margin-bottom: 14px;
+  padding: 18px;
 }
 
 .panel-title {
   display: flex;
   align-items: center;
   gap: 8px;
+  margin-bottom: 16px;
+  color: var(--orin-text);
   font-weight: 800;
-  color: #303133;
-  margin-bottom: 18px;
+}
+
+.panel-title :deep(.el-icon) {
+  color: var(--orin-green);
 }
 
 .dispatch-actions {
-  height: 100%;
-  min-height: 76px;
   display: flex;
   align-items: center;
   gap: 10px;
+  min-height: 68px;
 }
 
 .target-scope {
@@ -761,35 +773,48 @@ onMounted(() => {
   width: 100%;
   padding-left: 10px;
   padding-right: 10px;
+  color: var(--orin-text-soft);
+  background: var(--orin-surface-raised);
+  border-color: var(--orin-border);
+  box-shadow: none;
+}
+
+.target-scope :deep(.el-radio-button.is-active .el-radio-button__inner) {
+  color: var(--orin-canvas);
+  background: var(--orin-green);
+  border-color: var(--orin-green);
+  box-shadow: -1px 0 0 0 var(--orin-green);
 }
 
 .target-hint {
   margin: -4px 0 16px;
-  color: #606266;
+  color: var(--orin-muted);
   font-size: 13px;
 }
 
 .template-note {
   margin: -4px 0 16px;
   padding: 10px 12px;
+  color: var(--orin-text-soft);
+  background: var(--orin-surface-soft);
+  border: 1px solid var(--orin-border-soft);
+  border-left: 3px solid var(--orin-green-dark);
   border-radius: 6px;
-  background: #f6f8fa;
-  color: #606266;
   font-size: 13px;
   line-height: 1.5;
 }
 
 .filter-bar {
-  padding: 18px 20px;
-  margin-bottom: 20px;
   display: flex;
-  gap: 16px;
   align-items: center;
   flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 14px;
+  padding: 14px 16px;
 }
 
 .task-container {
-  padding: 22px;
+  padding: 16px;
 }
 
 .task-head {
@@ -797,19 +822,19 @@ onMounted(() => {
   justify-content: space-between;
   align-items: flex-start;
   gap: 20px;
-  margin-bottom: 16px;
+  margin-bottom: 14px;
 }
 
 .task-title {
-  color: #303133;
-  font-size: 18px;
+  color: var(--orin-text);
+  font-size: 16px;
   font-weight: 800;
 }
 
 .task-subtitle,
 .task-count {
   margin-top: 4px;
-  color: #909399;
+  color: var(--orin-muted);
   font-size: 13px;
 }
 
@@ -817,11 +842,12 @@ onMounted(() => {
   display: flex;
   justify-content: space-between;
   gap: 18px;
-  padding: 18px;
-  border: 1px solid #ebeef5;
-  border-radius: 8px;
+  padding: 15px 16px;
+  background: var(--orin-surface-soft);
+  border: 1px solid var(--orin-border-soft);
+  border-radius: 6px;
   cursor: pointer;
-  transition: border-color 0.18s ease, box-shadow 0.18s ease;
+  transition: background-color 0.16s ease, border-color 0.16s ease;
 }
 
 .task-card + .task-card {
@@ -829,8 +855,8 @@ onMounted(() => {
 }
 
 .task-card:hover {
-  border-color: #409eff;
-  box-shadow: 0 6px 18px rgba(64, 158, 255, 0.12);
+  background: var(--orin-surface-hover);
+  border-color: var(--orin-green-dark);
 }
 
 .task-main {
@@ -846,7 +872,7 @@ onMounted(() => {
 }
 
 .task-name {
-  color: #303133;
+  color: var(--orin-text);
   font-weight: 800;
 }
 
@@ -867,9 +893,17 @@ onMounted(() => {
 }
 
 .progress-text {
-  color: #606266;
+  color: var(--orin-muted);
   font-size: 12px;
   text-align: right;
+}
+
+.progress-row :deep(.el-progress-bar__outer) {
+  background: var(--orin-surface-raised);
+}
+
+.progress-row :deep(.el-progress-bar__inner) {
+  background-color: var(--orin-green);
 }
 
 .status-pills {
@@ -882,9 +916,10 @@ onMounted(() => {
 .status-pills span,
 .drawer-stats span {
   padding: 4px 8px;
-  border-radius: 6px;
-  background: #f6f8fa;
-  color: #606266;
+  color: var(--orin-text-soft);
+  background: var(--orin-surface-raised);
+  border: 1px solid var(--orin-border-soft);
+  border-radius: 4px;
   font-size: 12px;
 }
 
@@ -892,14 +927,16 @@ onMounted(() => {
   display: flex;
   justify-content: space-between;
   gap: 18px;
-  padding: 14px 16px;
   margin-bottom: 16px;
-  border: 1px solid #ebeef5;
-  border-radius: 8px;
+  padding: 14px 16px;
+  background: var(--orin-surface-soft);
+  border: 1px solid var(--orin-border);
+  border-left: 3px solid var(--orin-green);
+  border-radius: 6px;
 }
 
 .drawer-command {
-  color: #303133;
+  color: var(--orin-text);
   font-size: 15px;
   font-weight: 800;
 }
@@ -928,14 +965,14 @@ onMounted(() => {
 }
 
 .summary-main {
-  color: #303133;
+  color: var(--orin-text-soft);
   font-size: 13px;
   line-height: 1.4;
   word-break: break-word;
 }
 
 .muted {
-  color: #909399;
+  color: var(--orin-muted);
   font-size: 12px;
 }
 
@@ -944,23 +981,24 @@ onMounted(() => {
 }
 
 .pagination {
-  margin-top: 24px;
   display: flex;
   justify-content: flex-end;
+  margin-top: 18px;
 }
 
 .result-title {
   margin: 18px 0 8px;
-  color: #303133;
+  color: var(--orin-text);
   font-weight: 800;
 }
 
 .result-box {
   margin: 0;
   padding: 14px;
-  border-radius: 8px;
-  background: #f6f8fa;
-  color: #303133;
+  color: var(--orin-text-soft);
+  background: var(--orin-surface-soft);
+  border: 1px solid var(--orin-border);
+  border-radius: 6px;
   white-space: pre-wrap;
   word-break: break-all;
   max-height: 260px;
@@ -968,7 +1006,120 @@ onMounted(() => {
 }
 
 .result-box.output {
-  background: #1f2933;
-  color: #d7dde5;
+  color: var(--orin-text);
+  background: #0d100d;
+  border-left: 3px solid var(--orin-green-dark);
+}
+
+@media (max-width: 900px) {
+  .stat-grid {
+    row-gap: 12px;
+  }
+
+  .stat-grid > :deep(.el-col) {
+    flex: 0 0 33.3333%;
+    max-width: 33.3333%;
+  }
+
+  .dispatch-panel,
+  .task-container {
+    padding: 14px;
+  }
+
+  .dispatch-panel :deep(.el-col) {
+    flex: 0 0 100%;
+    max-width: 100%;
+  }
+
+  .target-scope {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .dispatch-actions {
+    min-height: 0;
+    padding-top: 4px;
+  }
+
+  .drawer-summary {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .detail-filter {
+    align-items: stretch;
+  }
+}
+
+@media (max-width: 520px) {
+  .stat-grid > :deep(.el-col) {
+    flex: 0 0 50%;
+    max-width: 50%;
+  }
+
+  .stat-card {
+    height: 92px;
+    padding: 14px;
+  }
+
+  .card-val {
+    font-size: 25px;
+  }
+
+  .card-icon {
+    right: 12px;
+    bottom: 12px;
+    font-size: 32px;
+  }
+
+  .dispatch-panel,
+  .filter-bar,
+  .task-container {
+    padding: 10px;
+  }
+
+  .filter-bar :deep(.el-input),
+  .filter-bar :deep(.el-select),
+  .detail-filter :deep(.el-input),
+  .detail-filter :deep(.el-select),
+  .detail-filter :deep(.el-button) {
+    width: 100% !important;
+  }
+
+  .task-head,
+  .task-card {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .task-topline {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .task-actions {
+    width: 100%;
+    align-items: center;
+    flex-direction: row;
+    justify-content: flex-start;
+  }
+
+  .status-pills,
+  .drawer-stats {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    width: 100%;
+  }
+
+  .pagination {
+    justify-content: flex-start;
+    overflow-x: auto;
+    padding-bottom: 4px;
+  }
+
+  .result-box {
+    padding: 10px;
+    font-size: 12px;
+  }
 }
 </style>

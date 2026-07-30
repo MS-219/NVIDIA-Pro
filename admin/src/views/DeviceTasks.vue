@@ -96,7 +96,7 @@
         </el-table-column>
         <el-table-column label="奖励算力" width="120" align="right">
           <template #default="{ row }">
-            <span style="color: #67c23a; font-weight: bold;">+{{ row.rewardHashrate }}⚡</span>
+            <span style="color: #67c23a; font-weight: bold;">+{{ row.rewardHashrate }} <el-icon><Lightning /></el-icon></span>
           </template>
         </el-table-column>
         <el-table-column prop="createTime" label="执行时间" min-width="180">
@@ -157,7 +157,7 @@
 
 <script setup>
 import { ref, onMounted, reactive } from 'vue'
-import { VideoPlay } from '@element-plus/icons-vue'
+import { Lightning, VideoPlay } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import request from '../utils/request'
 
@@ -218,8 +218,9 @@ const fetchData = async () => {
       params: { page: page.value, size: size.value }
     })
     if (res.data.code === 200) {
-      taskList.value = res.data.data.records
-      total.value = res.data.data.total
+      const pageData = res.data.data || {}
+      taskList.value = Array.isArray(pageData.records) ? pageData.records : []
+      total.value = Number(pageData.total) || 0
     }
   } finally { 
     loading.value = false 
@@ -280,82 +281,170 @@ onMounted(fetchData)
 </script>
 
 <style scoped>
-.task-page { width: 100%; }
+.task-page {
+  width: 100%;
+  color: var(--orin-text);
+}
 
 .command-hub {
-  background: white;
-  padding: 24px;
-  border-radius: 12px;
-  margin-bottom: 24px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-  border-left: 4px solid #1890ff;
+  margin-bottom: 14px;
+  padding: 18px;
+  background: var(--orin-surface);
+  border: 1px solid var(--orin-border);
+  border-left: 3px solid var(--orin-green);
+  border-radius: 6px;
+  box-shadow: none;
 }
 
 .hub-header {
-  font-size: 16px;
-  font-weight: bold;
-  margin-bottom: 20px;
-  color: #333;
   display: flex;
   align-items: center;
   gap: 8px;
+  margin-bottom: 16px;
+  color: var(--orin-text);
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.hub-header :deep(.el-icon) {
+  color: var(--orin-green);
 }
 
 .mini-card {
-  background: white;
-  padding: 16px;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+  min-height: 78px;
+  padding: 14px 16px;
+  background: var(--orin-surface);
+  border: 1px solid var(--orin-border);
+  border-left: 3px solid var(--orin-green-dark);
+  border-radius: 6px;
+  box-shadow: none;
 }
 
-.mini-card .label { font-size: 12px; color: #999; margin-bottom: 4px; }
-.mini-card .val { font-size: 20px; font-weight: 800; color: #333; }
+.mini-card .label {
+  margin-bottom: 5px;
+  color: var(--orin-muted);
+  font-size: 11px;
+}
+
+.mini-card .val {
+  color: var(--orin-text);
+  font-size: 21px;
+  font-weight: 800;
+}
 
 .table-container {
-  background: white;
-  padding: 24px;
-  border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+  padding: 16px;
+  background: var(--orin-surface);
+  border: 1px solid var(--orin-border);
+  border-radius: 6px;
+  box-shadow: none;
 }
 
 .table-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px;
+  gap: 12px;
+  margin-bottom: 14px;
 }
 
-.table-header .title { font-size: 15px; font-weight: bold; }
+.table-header .title {
+  color: var(--orin-text);
+  font-size: 14px;
+  font-weight: 800;
+}
 
 .code-id {
-  background: #f4f4f5;
-  color: #909399;
   padding: 2px 6px;
+  color: var(--orin-green-bright);
+  background: var(--orin-green-soft);
+  border: 1px solid var(--orin-green-dark);
   border-radius: 4px;
   font-size: 12px;
 }
 
 .code-box {
-  background: #282c34;
-  color: #abb2bf;
-  padding: 16px;
+  max-height: 300px;
+  overflow-y: auto;
+  padding: 14px;
+  color: var(--orin-text-soft);
+  background: var(--orin-surface-soft);
+  border: 1px solid var(--orin-border);
   border-radius: 6px;
-  font-family: 'Fira Code', monospace;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-size: 13px;
   white-space: pre-wrap;
   word-break: break-all;
-  max-height: 300px;
-  overflow-y: auto;
-}
-.code-box.success {
-  border-left: 4px solid #67c23a;
-  color: #e8f5e9;
-}
-.code-box.error {
-  border-left: 4px solid #f56c6c;
-  background: #fff5f5;
-  color: #c0392b;
 }
 
-.pagination { margin-top: 24px; display: flex; justify-content: flex-end; }
+.code-box.success {
+  color: var(--orin-text);
+  border-left: 3px solid var(--orin-green);
+}
+
+.code-box.error {
+  color: var(--orin-danger);
+  background: rgba(224, 98, 105, 0.08);
+  border-left: 3px solid var(--orin-danger);
+}
+
+.pagination {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 18px;
+}
+
+@media (max-width: 900px) {
+  .command-hub :deep(.el-col) {
+    flex: 0 0 100%;
+    max-width: 100%;
+  }
+
+  .task-page > :deep(.el-row) > .el-col {
+    flex: 0 0 50%;
+    max-width: 50%;
+    margin-bottom: 12px;
+  }
+
+  .command-hub,
+  .table-container {
+    padding: 14px;
+  }
+
+  .table-container {
+    overflow-x: auto;
+  }
+}
+
+@media (max-width: 520px) {
+  .task-page > :deep(.el-row) > .el-col {
+    flex: 0 0 100%;
+    max-width: 100%;
+  }
+
+  .command-hub,
+  .table-container {
+    padding: 10px;
+  }
+
+  .table-header {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .table-header :deep(.el-button) {
+    width: 100%;
+  }
+
+  .pagination {
+    justify-content: flex-start;
+    overflow-x: auto;
+    padding-bottom: 4px;
+  }
+
+  .code-box {
+    padding: 10px;
+    font-size: 12px;
+  }
+}
 </style>

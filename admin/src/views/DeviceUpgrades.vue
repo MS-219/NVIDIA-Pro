@@ -74,9 +74,9 @@
               <el-col :span="14">
                 <el-form-item label="目标范围">
                   <el-radio-group v-model="batchForm.targetScope" class="target-scope">
-                    <el-radio-button label="ALL_ONLINE">全部在线</el-radio-button>
-                    <el-radio-button label="LOCATION">按地区</el-radio-button>
-                    <el-radio-button label="CARRIER">按运营商</el-radio-button>
+                    <el-radio-button value="ALL_ONLINE">全部在线</el-radio-button>
+                    <el-radio-button value="LOCATION">按地区</el-radio-button>
+                    <el-radio-button value="CARRIER">按运营商</el-radio-button>
                   </el-radio-group>
                 </el-form-item>
               </el-col>
@@ -218,7 +218,7 @@
         <el-table-column label="版本" width="170">
           <template #default="{ row }">
             <span class="mono">{{ row.fromVersion || '未知版本' }}</span>
-            <span class="muted"> → </span>
+            <el-icon class="muted"><ArrowRight /></el-icon>
             <span class="mono">{{ row.targetVersion }}</span>
           </template>
         </el-table-column>
@@ -251,7 +251,7 @@
 <script setup>
 import { computed, onMounted, reactive, ref, watch } from 'vue'
 import request from '../utils/request'
-import { Box, CircleCheck, Clock, List, Promotion, Refresh, Tickets, UploadFilled, Warning } from '@element-plus/icons-vue'
+import { ArrowRight, Box, CircleCheck, Clock, List, Promotion, Refresh, Tickets, UploadFilled, Warning } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 
 const uploadRef = ref(null)
@@ -540,88 +540,123 @@ onMounted(refreshAll)
 <style scoped>
 .upgrade-page {
   width: 100%;
+  color: var(--orin-text);
 }
 
 .stat-grid,
 .top-row {
-  margin-bottom: 20px;
+  margin-bottom: 14px;
 }
 
 .stat-card,
 .panel {
-  background: white;
-  border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+  background: var(--orin-surface);
+  border: 1px solid var(--orin-border);
+  border-radius: 6px;
+  box-shadow: none;
 }
 
 .stat-card {
-  height: 108px;
-  padding: 20px;
   position: relative;
+  height: 102px;
   overflow: hidden;
+  padding: 17px 18px;
+  border-left-width: 3px;
 }
 
-.stat-card.primary { border-left: 4px solid #1890ff; }
-.stat-card.warning { border-left: 4px solid #faad14; }
-.stat-card.indigo { border-left: 4px solid #6366f1; }
-.stat-card.success { border-left: 4px solid #52c41a; }
-.stat-card.danger { border-left: 4px solid #f56c6c; }
+.stat-card.primary { border-left-color: var(--orin-green); }
+.stat-card.warning { border-left-color: var(--orin-amber); }
+.stat-card.indigo { border-left-color: var(--orin-border-strong); }
+.stat-card.success { border-left-color: var(--orin-green-bright); }
+.stat-card.danger { border-left-color: var(--orin-danger); }
 
 .card-label {
-  font-size: 14px;
-  color: #909399;
   margin-bottom: 8px;
+  color: var(--orin-muted);
+  font-size: 12px;
 }
 
 .card-val {
-  font-size: 30px;
+  color: var(--orin-text);
+  font-size: 28px;
   font-weight: 800;
-  color: #303133;
+  line-height: 1.1;
 }
 
 .card-icon {
   position: absolute;
-  right: 18px;
-  bottom: 18px;
-  font-size: 44px;
-  opacity: 0.1;
+  right: 15px;
+  bottom: 14px;
+  color: var(--orin-green);
+  font-size: 36px;
+  opacity: 0.25;
 }
 
+.stat-card.warning .card-icon { color: var(--orin-amber); }
+.stat-card.indigo .card-icon { color: var(--orin-text-soft); }
+.stat-card.danger .card-icon { color: var(--orin-danger); }
+
 .panel {
-  padding: 22px;
-  margin-bottom: 20px;
+  margin-bottom: 14px;
+  padding: 16px;
 }
 
 .panel-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 16px;
+  gap: 12px;
+  margin-bottom: 14px;
 }
 
 .panel-title {
   display: flex;
   align-items: center;
   gap: 8px;
+  margin-bottom: 14px;
+  color: var(--orin-text);
   font-weight: 800;
-  color: #303133;
-  margin-bottom: 16px;
 }
 
 .panel-head .panel-title {
   margin-bottom: 0;
 }
 
+.panel-title :deep(.el-icon) {
+  color: var(--orin-green);
+}
+
 .upload-icon {
-  font-size: 42px;
-  color: #1890ff;
+  color: var(--orin-green);
+  font-size: 38px;
+}
+
+.panel :deep(.el-upload),
+.panel :deep(.el-upload-dragger) {
+  width: 100%;
+}
+
+.panel :deep(.el-upload-dragger) {
+  padding: 22px 16px;
+  background: var(--orin-surface-soft);
+  border-color: var(--orin-border);
+  border-radius: 6px;
+}
+
+.panel :deep(.el-upload-dragger:hover) {
+  border-color: var(--orin-green-dark);
+}
+
+.panel :deep(.el-upload__text) {
+  color: var(--orin-muted);
 }
 
 .actions {
-  margin-top: 16px;
   display: flex;
-  gap: 10px;
   align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 14px;
 }
 
 .target-scope {
@@ -635,18 +670,32 @@ onMounted(refreshAll)
 
 .target-scope :deep(.el-radio-button__inner) {
   width: 100%;
+  color: var(--orin-text-soft);
+  background: var(--orin-surface-raised);
+  border-color: var(--orin-border);
+  box-shadow: none;
+}
+
+.target-scope :deep(.el-radio-button.is-active .el-radio-button__inner) {
+  color: var(--orin-canvas);
+  background: var(--orin-green);
+  border-color: var(--orin-green);
+  box-shadow: -1px 0 0 0 var(--orin-green);
 }
 
 .target-hint {
   padding: 10px 12px;
+  color: var(--orin-text-soft);
+  background: var(--orin-surface-soft);
+  border: 1px solid var(--orin-border-soft);
+  border-left: 3px solid var(--orin-green-dark);
   border-radius: 6px;
-  background: #f6f8fa;
-  color: #606266;
   font-size: 13px;
 }
 
 .filters {
   display: flex;
+  flex-wrap: wrap;
   gap: 12px;
 }
 
@@ -663,13 +712,105 @@ onMounted(refreshAll)
 }
 
 .muted {
-  color: #909399;
+  color: var(--orin-muted);
   font-size: 12px;
 }
 
+.panel :deep(.el-progress-bar__outer) {
+  background: var(--orin-surface-soft);
+}
+
+.panel :deep(.el-progress-bar__inner) {
+  background-color: var(--orin-green);
+}
+
 .pagination {
-  margin-top: 18px;
   display: flex;
   justify-content: flex-end;
+  margin-top: 18px;
+}
+
+@media (max-width: 900px) {
+  .stat-grid {
+    row-gap: 12px;
+  }
+
+  .stat-grid > :deep(.el-col) {
+    flex: 0 0 33.3333%;
+    max-width: 33.3333%;
+  }
+
+  .top-row {
+    row-gap: 14px;
+  }
+
+  .top-row > :deep(.el-col) {
+    flex: 0 0 100%;
+    max-width: 100%;
+  }
+
+  .panel {
+    padding: 14px;
+  }
+
+  .panel-head {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+}
+
+@media (max-width: 520px) {
+  .stat-grid > :deep(.el-col) {
+    flex: 0 0 50%;
+    max-width: 50%;
+  }
+
+  .stat-card {
+    height: 90px;
+    padding: 13px;
+  }
+
+  .card-val {
+    font-size: 24px;
+  }
+
+  .card-icon {
+    right: 11px;
+    bottom: 11px;
+    font-size: 30px;
+  }
+
+  .panel {
+    padding: 10px;
+  }
+
+  .top-row .panel :deep(.el-col) {
+    flex: 0 0 100%;
+    max-width: 100%;
+  }
+
+  .target-scope {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .filters,
+  .actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .filters :deep(.el-input),
+  .filters :deep(.el-select),
+  .actions :deep(.el-button) {
+    width: 100% !important;
+    margin-left: 0;
+  }
+
+  .pagination {
+    justify-content: flex-start;
+    overflow-x: auto;
+    padding-bottom: 4px;
+  }
 }
 </style>

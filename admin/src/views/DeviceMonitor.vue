@@ -51,9 +51,9 @@
         @change="onLocationChange"
       />
       <el-radio-group v-model="statusFilter" @change="fetchDevices">
-        <el-radio-button label="">全部节点</el-radio-button>
-        <el-radio-button :label="1">在线</el-radio-button>
-        <el-radio-button :label="0">离线</el-radio-button>
+        <el-radio-button value="">全部节点</el-radio-button>
+        <el-radio-button :value="1">在线</el-radio-button>
+        <el-radio-button :value="0">离线</el-radio-button>
       </el-radio-group>
       <el-button type="primary" @click="fetchDevices">刷新集群数据</el-button>
     </div>
@@ -307,7 +307,11 @@ const fetchLocations = async () => {
   try {
     const res = await request.get('/api/admin/sl/devices/locations')
     if (res.data.code === 200) {
-      const { provinces, provinceMap } = res.data.data
+      const locationData = res.data.data || {}
+      const provinces = Array.isArray(locationData.provinces) ? locationData.provinces : []
+      const provinceMap = locationData.provinceMap && typeof locationData.provinceMap === 'object'
+        ? locationData.provinceMap
+        : {}
       locationOptions.value = provinces.map(prov => {
         const cities = provinceMap[prov] || []
         return {
@@ -347,8 +351,9 @@ const fetchDevices = async () => {
       }
     })
     if (res.data.code === 200) {
-      devices.value = res.data.data.records
-      total.value = res.data.data.total
+      const pageData = res.data.data || {}
+      devices.value = Array.isArray(pageData.records) ? pageData.records : []
+      total.value = Number(pageData.total) || 0
     }
   } catch (e) {
     ElMessage.error('获取列表失败')
@@ -422,6 +427,115 @@ onMounted(() => {
 <style scoped>
 .monitor-page {
   width: 100%;
+  color: var(--orin-text);
+}
+
+.stat-grid {
+  margin-bottom: 14px;
+}
+
+.pro-card {
+  position: relative;
+  height: 112px;
+  overflow: hidden;
+  padding: 18px 20px;
+  color: var(--orin-text);
+  background: var(--orin-surface);
+  border: 1px solid var(--orin-border);
+  border-left-width: 3px;
+  border-radius: 6px;
+  box-shadow: none;
+}
+
+.pro-card.primary {
+  border-left-color: var(--orin-green);
+}
+
+.pro-card.success {
+  border-left-color: var(--orin-cyan);
+}
+
+.pro-card.warning {
+  border-left-color: var(--orin-amber);
+}
+
+.pro-card.indigo {
+  border-left-color: var(--orin-border-strong);
+}
+
+.card-label {
+  margin-bottom: 8px;
+  color: var(--orin-muted);
+  font-size: 12px;
+}
+
+.card-val {
+  color: var(--orin-text);
+  font-size: 30px;
+  font-weight: 800;
+  line-height: 1.1;
+}
+
+.card-val small {
+  margin-left: 4px;
+  color: var(--orin-dim);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.card-icon {
+  position: absolute;
+  right: 18px;
+  bottom: 16px;
+  color: var(--orin-green);
+  font-size: 42px;
+  opacity: 0.28;
+}
+
+.pro-card.success .card-icon {
+  color: var(--orin-cyan);
+}
+
+.pro-card.warning .card-icon {
+  color: var(--orin-amber);
+}
+
+.pro-card.indigo .card-icon {
+  color: var(--orin-text-soft);
+}
+
+.filter-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 14px;
+  padding: 14px 16px;
+  background: var(--orin-surface);
+  border: 1px solid var(--orin-border);
+  border-radius: 6px;
+  box-shadow: none;
+}
+
+.filter-bar :deep(.el-radio-button__inner) {
+  color: var(--orin-text-soft);
+  background: var(--orin-surface-raised);
+  border-color: var(--orin-border);
+  box-shadow: none;
+}
+
+.filter-bar :deep(.el-radio-button.is-active .el-radio-button__inner) {
+  color: var(--orin-canvas);
+  background: var(--orin-green);
+  border-color: var(--orin-green);
+  box-shadow: -1px 0 0 0 var(--orin-green);
+}
+
+.table-container {
+  padding: 16px;
+  background: var(--orin-surface);
+  border: 1px solid var(--orin-border);
+  border-radius: 6px;
+  box-shadow: none;
 }
 
 .detail-grid {
@@ -431,13 +545,13 @@ onMounted(() => {
 }
 
 .detail-item {
-  padding: 12px 14px;
-  background: #f7f9fc;
-  border: 1px solid #ebeef5;
-  border-radius: 5px;
   display: flex;
   flex-direction: column;
   gap: 6px;
+  padding: 12px 14px;
+  background: var(--orin-surface-soft);
+  border: 1px solid var(--orin-border-soft);
+  border-radius: 5px;
 }
 
 .detail-item.full {
@@ -445,14 +559,15 @@ onMounted(() => {
 }
 
 .detail-label {
+  color: var(--orin-muted);
   font-size: 12px;
-  color: #909399;
 }
 
 .detail-value {
+  color: var(--orin-text-soft);
   font-size: 14px;
-  color: #303133;
   font-weight: 600;
+  overflow-wrap: anywhere;
 }
 
 .detail-value.mono {
@@ -460,94 +575,28 @@ onMounted(() => {
 }
 
 .detail-value.accent {
-  color: #1890ff;
+  color: var(--orin-green-bright);
   font-size: 18px;
   font-weight: 800;
-}
-
-.stat-grid {
-  margin-bottom: 14px;
-}
-
-.pro-card {
-  height: 120px;
-  background: white;
-  border: 1px solid #e0e3dc;
-  border-radius: 6px;
-  padding: 20px;
-  position: relative;
-  overflow: hidden;
-  box-shadow: none;
-}
-
-.card-label {
-  font-size: 14px;
-  color: #909399;
-  margin-bottom: 8px;
-}
-
-.card-val {
-  font-size: 32px;
-  font-weight: 800;
-  color: #303133;
-}
-
-.card-val small {
-  font-size: 14px;
-  color: #999;
-  margin-left: 4px;
-}
-
-.card-icon {
-  position: absolute;
-  right: 20px;
-  bottom: 20px;
-  font-size: 48px;
-  opacity: 0.1;
-}
-
-.primary { border-top: 3px solid #2b8c94; }
-.success { border-top: 3px solid #659f00; }
-.warning { border-top: 3px solid #d59b22; }
-.indigo { border-top: 3px solid #343a32; }
-
-.filter-bar {
-  background: white;
-  padding: 20px;
-  border-radius: 6px;
-  margin-bottom: 14px;
-  display: flex;
-  gap: 20px;
-  align-items: center;
-  border: 1px solid #e0e3dc;
-  box-shadow: none;
-}
-
-.table-container {
-  background: white;
-  padding: 24px;
-  border: 1px solid #e0e3dc;
-  border-radius: 6px;
-  box-shadow: none;
 }
 
 .runtime-version,
 .telemetry-inline {
   margin: 4px 0;
-  color: #858b80;
+  color: var(--orin-muted);
   font-size: 10px;
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
 }
 
 .carrier-info {
-  font-size: 11px;
-  color: #999;
   margin-top: 4px;
+  color: var(--orin-muted);
+  font-size: 11px;
 }
 
 .env-cell {
+  color: var(--orin-text-soft);
   font-size: 12px;
-  color: #606266;
   line-height: 1.45;
 }
 
@@ -557,7 +606,7 @@ onMounted(() => {
 
 .env-missing {
   margin-top: 3px;
-  color: #e6a23c;
+  color: var(--orin-amber);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -568,18 +617,117 @@ onMounted(() => {
 }
 
 .pagination {
-  margin-top: 24px;
   display: flex;
   justify-content: flex-end;
+  margin-top: 18px;
+}
+
+.table-container :deep(.el-progress-bar__outer) {
+  background: var(--orin-surface-soft);
+}
+
+.table-container :deep(.el-progress-bar__inner) {
+  background-color: var(--orin-green) !important;
+}
+
+.table-container :deep([style*="color: #1890ff"]),
+.table-container :deep([style*="color: #67c23a"]) {
+  color: var(--orin-green-bright) !important;
+}
+
+.table-container :deep([style*="color: #f56c6c"]) {
+  color: var(--orin-danger) !important;
+}
+
+.table-container :deep([style*="color: #909399"]),
+.table-container :deep([style*="color: #666"]),
+.table-container :deep([style*="color: #999"]) {
+  color: var(--orin-muted) !important;
 }
 
 @media (max-width: 900px) {
-  .stat-grid { row-gap: 12px; }
-  .filter-bar { align-items: stretch; flex-direction: column; }
+  .stat-grid {
+    row-gap: 12px;
+  }
+
+  .pro-card {
+    height: 102px;
+    padding: 16px;
+  }
+
+  .filter-bar {
+    align-items: stretch;
+    flex-wrap: wrap;
+  }
+
   .filter-bar :deep(.el-input),
-  .filter-bar :deep(.el-cascader) { width: 100% !important; }
-  .table-container { padding: 12px; overflow-x: auto; }
-  .detail-grid { grid-template-columns: 1fr; }
-  .detail-item.full { grid-column: auto; }
+  .filter-bar :deep(.el-cascader) {
+    width: calc(50% - 6px) !important;
+  }
+
+  .filter-bar :deep(.el-radio-group) {
+    flex: 1 1 100%;
+  }
+
+  .filter-bar :deep(.el-radio-button) {
+    flex: 1;
+  }
+
+  .filter-bar :deep(.el-radio-button__inner) {
+    width: 100%;
+  }
+
+  .table-container {
+    padding: 12px;
+  }
+
+  .detail-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .detail-item.full {
+    grid-column: auto;
+  }
+}
+
+@media (max-width: 520px) {
+  .pro-card {
+    height: 94px;
+    padding: 14px;
+  }
+
+  .card-val {
+    font-size: 26px;
+  }
+
+  .card-icon {
+    right: 14px;
+    bottom: 14px;
+    font-size: 34px;
+  }
+
+  .filter-bar {
+    padding: 10px;
+  }
+
+  .filter-bar :deep(.el-input),
+  .filter-bar :deep(.el-cascader),
+  .filter-bar :deep(.el-button) {
+    width: 100% !important;
+  }
+
+  .table-container {
+    padding: 8px;
+  }
+
+  .pagination {
+    justify-content: flex-start;
+    overflow-x: auto;
+    padding-bottom: 4px;
+  }
+
+  .detail-item {
+    padding: 10px;
+  }
 }
 </style>

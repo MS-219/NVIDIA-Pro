@@ -4,11 +4,11 @@
     <el-row :gutter="16" class="amount-stats-row">
       <el-col :span="6">
         <div class="amount-card bosskg" style="background: linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%); border: 1px solid #fed7aa; cursor: pointer;" @click="checkBossKgEnabled" title="点击刷新余额">
-          <div class="amount-icon" style="background: rgba(255,165,0,0.2);">🏦</div>
+          <div class="amount-icon" style="background: rgba(255,165,0,0.2);"><el-icon><WalletFilled /></el-icon></div>
           <div class="amount-info">
             <div class="amount-value" style="color: #c2410c;">
               ¥{{ bosskgBalance !== null ? formatAmount(bosskgBalance) : '---' }}
-              <span style="font-size: 12px; margin-left: 4px;">↻</span>
+              <el-icon style="font-size: 12px; margin-left: 4px;"><Refresh /></el-icon>
             </div>
             <div class="amount-label" style="color: #9a3412;">身边云余额 (点击刷新)</div>
           </div>
@@ -16,7 +16,7 @@
       </el-col>
       <el-col :span="6">
         <div class="amount-card total">
-          <div class="amount-icon">💰</div>
+          <div class="amount-icon"><el-icon><Coin /></el-icon></div>
           <div class="amount-info">
             <div class="amount-value">¥{{ formatAmount(stats.totalAmount) }}</div>
             <div class="amount-label">累计提现金额</div>
@@ -25,7 +25,7 @@
       </el-col>
       <el-col :span="6">
         <div class="amount-card pending-pay">
-          <div class="amount-icon">⏳</div>
+          <div class="amount-icon"><el-icon><Timer /></el-icon></div>
           <div class="amount-info">
             <div class="amount-value">¥{{ formatAmount(stats.pendingPayAmount) }}</div>
             <div class="amount-label">待打款金额</div>
@@ -34,7 +34,7 @@
       </el-col>
       <el-col :span="6">
         <div class="amount-card paid-amount">
-          <div class="amount-icon">✅</div>
+          <div class="amount-icon"><el-icon><CircleCheckFilled /></el-icon></div>
           <div class="amount-info">
             <div class="amount-value">¥{{ formatAmount(stats.paidAmount) }}</div>
             <div class="amount-label">已打款金额</div>
@@ -48,7 +48,7 @@
     <el-row :gutter="16" class="stats-row">
       <el-col :span="4.8" style="width: 20%;">
         <div class="stat-card pending clickable" @click="filterByStatus(0)">
-          <div class="stat-icon">⏳</div>
+          <div class="stat-icon"><el-icon><Clock /></el-icon></div>
           <div class="stat-info">
             <div class="stat-value">{{ stats.pending }}</div>
             <div class="stat-label">待审核</div>
@@ -58,7 +58,7 @@
       </el-col>
       <el-col :span="4.8" style="width: 20%;">
         <div class="stat-card approved clickable" @click="filterByStatus(1)">
-          <div class="stat-icon">✓</div>
+          <div class="stat-icon"><el-icon><Check /></el-icon></div>
           <div class="stat-info">
             <div class="stat-value">{{ stats.approved }}</div>
             <div class="stat-label">已通过</div>
@@ -67,7 +67,7 @@
       </el-col>
       <el-col :span="4.8" style="width: 20%;">
         <div class="stat-card paid clickable" @click="filterByStatus(3)">
-          <div class="stat-icon">✅</div>
+          <div class="stat-icon"><el-icon><CircleCheckFilled /></el-icon></div>
           <div class="stat-info">
             <div class="stat-value">{{ stats.paid }}</div>
             <div class="stat-label">已打款</div>
@@ -76,7 +76,7 @@
       </el-col>
       <el-col :span="4.8" style="width: 20%;">
         <div class="stat-card failed clickable" @click="filterByStatus(4)">
-          <div class="stat-icon">⚠️</div>
+          <div class="stat-icon"><el-icon><WarningFilled /></el-icon></div>
           <div class="stat-info">
             <div class="stat-value" style="color: #f59e0b;">{{ stats.failed || 0 }}</div>
             <div class="stat-label">打款失败</div>
@@ -85,7 +85,7 @@
       </el-col>
       <el-col :span="4.8" style="width: 20%;">
         <div class="stat-card rejected clickable" @click="filterByStatus(2)">
-          <div class="stat-icon">✕</div>
+          <div class="stat-icon"><el-icon><CircleCloseFilled /></el-icon></div>
           <div class="stat-info">
             <div class="stat-value">{{ stats.rejected }}</div>
             <div class="stat-label">已拒绝</div>
@@ -145,7 +145,7 @@
         <el-tab-pane label="全部" name="all">
           <template #label>
             <span class="tab-label">
-              <span class="tab-icon">📋</span>
+              <el-icon class="tab-icon"><Tickets /></el-icon>
               全部
             </span>
           </template>
@@ -153,7 +153,7 @@
         <el-tab-pane label="微信" name="1">
           <template #label>
             <span class="tab-label wechat">
-              <span class="tab-icon">💚</span>
+              <el-icon class="tab-icon"><ChatDotRound /></el-icon>
               微信
             </span>
           </template>
@@ -161,7 +161,7 @@
         <el-tab-pane label="支付宝" name="2">
           <template #label>
             <span class="tab-label alipay">
-              <span class="tab-icon">💙</span>
+              <el-icon class="tab-icon"><CreditCard /></el-icon>
               支付宝
             </span>
           </template>
@@ -169,7 +169,7 @@
         <el-tab-pane label="银行卡" name="3">
           <template #label>
             <span class="tab-label bank">
-              <span class="tab-icon">🏦</span>
+              <el-icon class="tab-icon"><OfficeBuilding /></el-icon>
               银行卡
             </span>
           </template>
@@ -261,7 +261,7 @@
             <!-- 打款失败标注 -->
             <div v-if="row.bossKgFailed" style="margin-top: 4px;">
               <el-tag size="small" type="danger" effect="plain">
-                ⚠️ 曾失败{{ row.paymentFailCount || 1 }}次
+                <el-icon><WarningFilled /></el-icon> 曾失败{{ row.paymentFailCount || 1 }}次
               </el-tag>
             </div>
             <!-- 失败原因 -->
@@ -333,6 +333,21 @@
 import { ref, reactive, onMounted, onUnmounted, computed } from 'vue'
 import axios from '../utils/request'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import {
+  ChatDotRound,
+  Check,
+  CircleCheckFilled,
+  CircleCloseFilled,
+  Clock,
+  Coin,
+  CreditCard,
+  OfficeBuilding,
+  Refresh,
+  Tickets,
+  Timer,
+  WalletFilled,
+  WarningFilled
+} from '@element-plus/icons-vue'
 
 const withdrawList = ref([])
 const loading = ref(false)

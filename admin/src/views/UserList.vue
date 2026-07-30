@@ -4,7 +4,7 @@
     <el-row :gutter="20" class="stat-cards">
       <el-col :span="6">
         <div class="stat-card users">
-          <div class="stat-icon">👥</div>
+          <div class="stat-icon"><el-icon><UserFilled /></el-icon></div>
           <div class="stat-info">
             <div class="stat-value">{{ total }}</div>
             <div class="stat-label">总用户数</div>
@@ -13,7 +13,7 @@
       </el-col>
       <el-col :span="6">
         <div class="stat-card active">
-          <div class="stat-icon">📱</div>
+          <div class="stat-icon"><el-icon><Monitor /></el-icon></div>
           <div class="stat-info">
             <div class="stat-value">{{ stats.hasDeviceCount || 0 }}</div>
             <div class="stat-label">有设备用户</div>
@@ -22,7 +22,7 @@
       </el-col>
       <el-col :span="6">
         <div class="stat-card balance">
-          <div class="stat-icon">💰</div>
+          <div class="stat-icon"><el-icon><Coin /></el-icon></div>
           <div class="stat-info">
             <div class="stat-value">¥{{ stats.totalBalance || '0.00' }}</div>
             <div class="stat-label">总余额</div>
@@ -31,7 +31,7 @@
       </el-col>
       <el-col :span="6">
         <div class="stat-card quota">
-          <div class="stat-icon">⚡</div>
+          <div class="stat-icon"><el-icon><Lightning /></el-icon></div>
           <div class="stat-info">
             <div class="stat-value">{{ stats.totalQuota || 0 }}</div>
             <div class="stat-label">总聚芯算力值</div>
@@ -104,7 +104,7 @@
               </el-avatar>
               <div class="user-detail">
                 <div class="nickname">{{ row.nickname || '微信用户' }}</div>
-                <div class="phone" v-if="row.phone">📱 {{ maskPhone(row.phone) }}</div>
+                <div class="phone" v-if="row.phone"><el-icon><Iphone /></el-icon> {{ maskPhone(row.phone) }}</div>
                 <div class="openid">
                   <span>{{ maskIdentifier(row.openid) }}</span>
                 </div>
@@ -119,13 +119,13 @@
         </el-table-column>
         <el-table-column label="聚芯算力值" width="90">
           <template #default="{ row }">
-            <span class="quota-value">⚡{{ row.quota ?? 0 }}</span>
+            <span class="quota-value"><el-icon><Lightning /></el-icon>{{ row.quota ?? 0 }}</span>
           </template>
         </el-table-column>
         <el-table-column label="设备" width="80">
           <template #default="{ row }">
             <el-tag v-if="row.deviceCount > 0" type="success" effect="dark" round size="small">
-              📱 {{ row.deviceCount }}
+              <el-icon><Monitor /></el-icon> {{ row.deviceCount }}
             </el-tag>
             <el-tag v-else type="info" effect="plain" round size="small">0</el-tag>
           </template>
@@ -150,14 +150,14 @@
               {{ getLevelText(row.level) }}
             </el-tag>
             <el-tooltip v-if="row.levelManual" content="等级已锁定 (不参与自动晋升)" placement="top">
-              <span style="margin-left: 4px; cursor: help;">🔒</span>
+              <el-icon style="margin-left: 4px; cursor: help;"><Lock /></el-icon>
             </el-tooltip>
           </template>
         </el-table-column>
         <el-table-column label="创作" width="80">
           <template #default="{ row }">
             <el-tag v-if="row.taskCount > 0" type="warning" effect="dark" round size="small">
-              🎨 {{ row.taskCount }}
+              <el-icon><Brush /></el-icon> {{ row.taskCount }}
             </el-tag>
             <el-tag v-else type="info" effect="plain" round size="small">0</el-tag>
           </template>
@@ -327,7 +327,7 @@
               <div class="stat-text">余额</div>
             </div>
             <div class="stat-item">
-              <div class="stat-num quota-value">⚡ {{ currentUser.quota ?? 0 }}</div>
+              <div class="stat-num quota-value"><el-icon><Lightning /></el-icon> {{ currentUser.quota ?? 0 }}</div>
               <div class="stat-text">聚芯算力值</div>
             </div>
             <div class="stat-item">
@@ -342,7 +342,7 @@
         <!-- 设备列表 -->
         <div class="detail-section">
           <div class="section-title" style="display: flex; justify-content: space-between; align-items: center;">
-            <span>📱 绑定的设备 ({{ currentUser.devices?.length || 0 }} 台)</span>
+            <span><el-icon><Monitor /></el-icon> 绑定的设备 ({{ currentUser.devices?.length || 0 }} 台)</span>
             <el-button
               type="danger"
               size="small"
@@ -384,7 +384,7 @@
             <el-table-column label="状态" width="90">
               <template #default="{ row }">
                 <el-tag :type="row.status === 1 ? 'success' : 'info'" effect="dark" size="small" round>
-                  {{ row.status === 1 ? '🟢 在线' : '⚫ 离线' }}
+                  {{ row.status === 1 ? '在线' : '离线' }}
                 </el-tag>
               </template>
             </el-table-column>
@@ -497,7 +497,7 @@
 
         <!-- 基础信息 -->
         <div class="detail-section">
-          <div class="section-title">📋 基础信息</div>
+          <div class="section-title"><el-icon><Memo /></el-icon> 基础信息</div>
           <el-descriptions :column="2" border size="small">
             <el-descriptions-item label="用户 ID">{{ currentUser.id }}</el-descriptions-item>
             <el-descriptions-item label="昵称">{{ currentUser.nickname || '-' }}</el-descriptions-item>
@@ -508,7 +508,7 @@
               </el-tag>
             </el-descriptions-item>
             <el-descriptions-item label="备注" :span="2">{{ currentUser.remark || '-' }}</el-descriptions-item>
-            <el-descriptions-item label="聚芯算力值">⚡ {{ currentUser.quota ?? 0 }}</el-descriptions-item>
+            <el-descriptions-item label="聚芯算力值"><el-icon><Lightning /></el-icon> {{ currentUser.quota ?? 0 }}</el-descriptions-item>
             <el-descriptions-item label="OpenID" :span="2">
               <code>{{ sensitiveVisible ? currentUser.openid : maskIdentifier(currentUser.openid) }}</code>
             </el-descriptions-item>
@@ -590,7 +590,7 @@
                 </el-form-item>
               </el-col>
             </el-row>
-            <div class="form-tip sync-tip">💡 保存后算力配额会按账户余额自动同步</div>
+            <div class="form-tip sync-tip"><el-icon><Opportunity /></el-icon> 保存后算力配额会按账户余额自动同步</div>
           </div>
 
           <div class="form-section">
@@ -645,7 +645,7 @@
                   </div>
                 </el-option>
               </el-select>
-              <div class="form-tip warning">⚠️ 修改后将直接影响所有下级产生的分润归属</div>
+              <div class="form-tip warning"><el-icon><WarningFilled /></el-icon> 修改后将直接影响所有下级产生的分润归属</div>
             </el-form-item>
           </div>
         </el-form>
@@ -662,14 +662,14 @@
     <el-dialog v-model="rechargeVisible" title="充值聚芯算力值" width="400px">
       <el-form :model="rechargeForm" label-width="80px">
         <el-form-item label="当前聚芯算力值">
-          <span class="quota-value">⚡ {{ rechargeForm.currentQuota }}</span>
+          <span class="quota-value"><el-icon><Lightning /></el-icon> {{ rechargeForm.currentQuota }}</span>
         </el-form-item>
         <el-form-item label="充值数量">
           <el-input-number v-model="rechargeForm.amount" :min="1" :max="10000" />
           <span style="margin-left: 8px; color: #9ca3af;">点</span>
         </el-form-item>
         <el-form-item label="充值后">
-          <span class="quota-value success">⚡ {{ rechargeForm.currentQuota + rechargeForm.amount }}</span>
+          <span class="quota-value success"><el-icon><Lightning /></el-icon> {{ rechargeForm.currentQuota + rechargeForm.amount }}</span>
         </el-form-item>
       </el-form>
       <template #footer>
@@ -714,6 +714,18 @@
 import { computed, ref, reactive, onMounted } from 'vue'
 import axios from '../utils/request'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import {
+  Brush,
+  Coin,
+  Iphone,
+  Lightning,
+  Lock,
+  Memo,
+  Monitor,
+  Opportunity,
+  UserFilled,
+  WarningFilled
+} from '@element-plus/icons-vue'
 
 const userList = ref([])
 const loading = ref(false)

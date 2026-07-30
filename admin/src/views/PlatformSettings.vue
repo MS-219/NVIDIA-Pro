@@ -5,7 +5,7 @@
       <el-col :span="24" style="margin-bottom: 24px;">
         <el-card class="setting-card profile-card" id="profile">
           <template #header>
-            <span class="card-title">👤 个人信息</span>
+            <span class="card-title"><el-icon><User /></el-icon> 个人信息</span>
           </template>
           <div class="profile-info">
             <el-avatar :size="80" class="profile-avatar">{{ (adminInfo.username || 'A').charAt(0).toUpperCase() }}</el-avatar>
@@ -31,7 +31,7 @@
       <el-col :span="12">
         <el-card class="setting-card">
           <template #header>
-            <span class="card-title">💰 收益设置</span>
+            <span class="card-title"><el-icon><Coin /></el-icon> 收益设置</span>
           </template>
           <el-form :model="earningsSettings" label-width="140px">
             <el-form-item label="每小时收益 (￥)">
@@ -53,7 +53,7 @@
             </el-form-item>
 
             <!-- 动态邀请等级设置 -->
-            <el-divider content-position="left">👥 代理等级及分润配置</el-divider>
+            <el-divider content-position="left"><span class="card-title"><el-icon><UserFilled /></el-icon> 代理等级及分润配置</span></el-divider>
             <div v-for="(lv, index) in inviteLevels" :key="index" class="level-config-item">
               <el-form-item :label="'等级 ' + (index + 1)">
                 <div class="level-inputs">
@@ -78,7 +78,7 @@
       <el-col :span="12">
         <el-card class="setting-card">
           <template #header>
-            <span class="card-title">📅 提现日期限制</span>
+            <span class="card-title"><el-icon><Calendar /></el-icon> 提现日期限制</span>
           </template>
           <el-form label-width="120px">
             <el-form-item label="允许提现日">
@@ -104,7 +104,7 @@
       <el-col :span="12" style="margin-top: 24px;">
         <el-card class="setting-card">
           <template #header>
-            <span class="card-title">⚙️ 系统设置</span>
+            <span class="card-title"><el-icon><Setting /></el-icon> 系统设置</span>
           </template>
           <el-form :model="systemSettings" label-width="120px">
             <el-form-item label="系统名称">
@@ -135,8 +135,8 @@
         <el-card class="setting-card">
           <template #header>
             <div class="card-header-flex">
-              <span class="card-title">🖼️ 首页轮播图</span>
-              <el-button type="success" size="small" @click="addBanner">+ 添加轮播</el-button>
+              <span class="card-title"><el-icon><Picture /></el-icon> 首页轮播图</span>
+              <el-button type="success" size="small" :icon="Plus" @click="addBanner">添加轮播</el-button>
             </div>
           </template>
           <div class="banner-list-admin">
@@ -175,7 +175,7 @@
       <el-col :span="12" style="margin-top: 24px;">
         <el-card class="setting-card" id="security">
           <template #header>
-            <span class="card-title">🔒 安全设置</span>
+            <span class="card-title"><el-icon><Lock /></el-icon> 安全设置</span>
           </template>
           <el-form :model="securitySettings" label-width="120px">
             <el-form-item label="当前密码">
@@ -201,7 +201,7 @@
 import { reactive, ref, onMounted, nextTick } from 'vue'
 import { useRoute } from 'vue-router'
 import axios from '../utils/request'
-import { Plus } from '@element-plus/icons-vue'
+import { Calendar, Coin, Lock, Picture, Plus, Setting, User, UserFilled } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 
 const route = useRoute()

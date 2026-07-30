@@ -136,11 +136,11 @@
     <!-- 快捷查看：优秀团队长 -->
     <div class="leaders-overview" v-if="!selectedUserId && !loading && userOptions.length > 0">
       <div class="section-title">
-        <span>🏆 优秀团队长 (按设备持有量排序)</span>
+        <span><el-icon><Trophy /></el-icon> 优秀团队长 (按设备持有量排序)</span>
         <el-button type="primary" link @click="loadInitialUsers">刷新推荐</el-button>
       </div>
       <el-row :gutter="20">
-        <el-col :span="6" v-for="user in userOptions.slice(0, 12)" :key="user.id" class="leader-col">
+        <el-col :xs="24" :sm="12" :lg="6" v-for="user in userOptions.slice(0, 12)" :key="user.id" class="leader-col">
           <el-card class="leader-card" shadow="hover" @click="viewSubTeam(user)">
             <div class="leader-content">
               <div class="leader-avatar-wrapper">
@@ -181,7 +181,7 @@
     <!-- 空状态 (仅当确实无数据时显示) -->
     <div class="empty-state" v-if="!selectedUserId && !loading && userOptions.length === 0">
         <div class="empty-icon-wrapper">
-          <div class="empty-box-icon">📦</div>
+          <div class="empty-box-icon"><el-icon><Box /></el-icon></div>
         </div>
         <div class="empty-text">暂无数据，请尝试搜索</div>
     </div>
@@ -192,6 +192,7 @@
 import { ref, reactive, onMounted } from 'vue'
 import axios from '../utils/request'
 import { ElMessage } from 'element-plus'
+import { Box, Trophy } from '@element-plus/icons-vue'
 
 const teamList = ref([])
 const loading = ref(false)

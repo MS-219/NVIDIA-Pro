@@ -1,15 +1,97 @@
 :root {
-  color: #20241e;
-  background: #f4f5f2;
+  color: #f2f5ef;
+  background: #0b0d0c;
+  color-scheme: dark;
   font-family: Inter, "PingFang SC", "Microsoft YaHei", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
-  --orin-green: #659f00;
-  --orin-green-bright: #76b900;
-  --orin-ink: #151814;
-  --orin-border: #dfe3da;
-  --orin-surface: #ffffff;
-  --orin-muted: #7f867a;
+
+  --orin-canvas: #0b0d0c;
+  --orin-sidebar: #080a08;
+  --orin-surface: #141714;
+  --orin-surface-raised: #1b1f1b;
+  --orin-surface-soft: #101310;
+  --orin-surface-hover: #20251f;
+  --orin-border: #30352f;
+  --orin-border-soft: #252a24;
+  --orin-border-strong: #424940;
+  --orin-text: #f2f5ef;
+  --orin-text-soft: #c2c8bd;
+  --orin-muted: #939b90;
+  --orin-dim: #697067;
+  --orin-green: #76b900;
+  --orin-green-bright: #8bd400;
+  --orin-green-dark: #4e7900;
+  --orin-green-soft: rgba(118, 185, 0, 0.12);
+  --orin-cyan: #38a9a5;
+  --orin-amber: #d6a33a;
+  --orin-danger: #e06269;
+  --orin-blue: #5f94d8;
+  --orin-shadow: 0 14px 32px rgba(0, 0, 0, 0.24);
+
+  --el-color-primary: #76b900;
+  --el-color-primary-light-3: #8bc936;
+  --el-color-primary-light-5: #9fd45e;
+  --el-color-primary-light-7: #34441f;
+  --el-color-primary-light-8: #263319;
+  --el-color-primary-light-9: #1b2513;
+  --el-color-primary-dark-2: #5e9400;
+  --el-color-success: #38a98e;
+  --el-color-success-light-3: #63bca6;
+  --el-color-success-light-5: #82c9b8;
+  --el-color-success-light-7: #24483e;
+  --el-color-success-light-8: #1b352e;
+  --el-color-success-light-9: #13261f;
+  --el-color-success-dark-2: #237966;
+  --el-color-warning: #d6a33a;
+  --el-color-warning-light-3: #dfb761;
+  --el-color-warning-light-5: #e7c77f;
+  --el-color-warning-light-7: #544421;
+  --el-color-warning-light-8: #3c321a;
+  --el-color-warning-light-9: #292315;
+  --el-color-warning-dark-2: #a9771f;
+  --el-color-danger: #e06269;
+  --el-color-danger-light-3: #e98288;
+  --el-color-danger-light-5: #ee9da1;
+  --el-color-danger-light-7: #542d31;
+  --el-color-danger-light-8: #3c2225;
+  --el-color-danger-light-9: #2a181a;
+  --el-color-danger-dark-2: #a9434c;
+  --el-color-info: #939b90;
+  --el-color-info-light-3: #aab0a7;
+  --el-color-info-light-5: #bbc0b8;
+  --el-color-info-light-7: #3b413a;
+  --el-color-info-light-8: #2c312b;
+  --el-color-info-light-9: #20241f;
+  --el-color-info-dark-2: #747c71;
+  --el-bg-color: #141714;
+  --el-bg-color-page: #0b0d0c;
+  --el-bg-color-overlay: #1b1f1b;
+  --el-fill-color: #20251f;
+  --el-fill-color-light: #1a1e1a;
+  --el-fill-color-lighter: #171a17;
+  --el-fill-color-extra-light: #121512;
+  --el-fill-color-dark: #282e27;
+  --el-fill-color-darker: #30362f;
+  --el-fill-color-blank: #141714;
+  --el-border-color: #30352f;
+  --el-border-color-light: #292e28;
+  --el-border-color-lighter: #242923;
+  --el-border-color-extra-light: #1d211d;
+  --el-border-color-dark: #3b4139;
+  --el-border-color-darker: #484f46;
+  --el-text-color-primary: #f2f5ef;
+  --el-text-color-regular: #c2c8bd;
+  --el-text-color-secondary: #939b90;
+  --el-text-color-placeholder: #697067;
+  --el-text-color-disabled: #565d54;
+  --el-disabled-bg-color: #181c18;
+  --el-disabled-text-color: #697067;
+  --el-disabled-border-color: #292e28;
+  --el-mask-color: rgba(3, 5, 3, 0.78);
+  --el-mask-color-extra-light: rgba(3, 5, 3, 0.55);
+  --el-box-shadow: 0 12px 30px rgba(0, 0, 0, 0.3);
+  --el-box-shadow-light: 0 8px 22px rgba(0, 0, 0, 0.24);
 }
 
 html,
@@ -23,18 +105,62 @@ body,
   overflow: hidden;
 }
 
-* { box-sizing: border-box; }
-body { background: #f4f5f2; }
+* {
+  box-sizing: border-box;
+}
+
+body {
+  background: var(--orin-canvas);
+}
+
 button,
 input,
 textarea,
-select { font: inherit; }
+select {
+  font: inherit;
+}
 
-::-webkit-scrollbar { width: 8px; height: 8px; }
-::-webkit-scrollbar-track { background: #eef0eb; }
-::-webkit-scrollbar-thumb { background: #bcc1b7; border: 2px solid #eef0eb; border-radius: 8px; }
+::selection {
+  color: #0b0d0c;
+  background: var(--orin-green);
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #0e110e;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #3b4239;
+  border: 2px solid #0e110e;
+  border-radius: 6px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #50584d;
+}
+
+.login-page {
+  color-scheme: light;
+  --el-bg-color: #ffffff;
+  --el-bg-color-overlay: #ffffff;
+  --el-fill-color-blank: #ffffff;
+  --el-fill-color-light: #f5f7f2;
+  --el-fill-color-lighter: #f7f8f5;
+  --el-border-color: #d8dcd3;
+  --el-border-color-light: #e1e4dd;
+  --el-text-color-primary: #1d201b;
+  --el-text-color-regular: #51564d;
+  --el-text-color-secondary: #848a7f;
+  --el-text-color-placeholder: #9ba097;
+}
 
 .page-container,
+.overview-page,
 .monitor-page,
 .task-page,
 .automation-page,
@@ -51,8 +177,9 @@ select { font: inherit; }
 .earnings-page,
 .reward-list-page {
   width: 100%;
-  max-width: 1600px;
+  max-width: 1680px;
   margin: 0 auto;
+  color: var(--orin-text);
 }
 
 .panel,
@@ -60,28 +187,355 @@ select { font: inherit; }
 .filter-bar {
   border-color: var(--orin-border) !important;
   border-radius: 6px !important;
+  background: var(--orin-surface) !important;
   box-shadow: none !important;
 }
 
-.el-button { border-radius: 4px; }
+/* Element Plus dark workbench */
+.el-card {
+  color: var(--orin-text);
+  background: var(--orin-surface);
+  border-color: var(--orin-border);
+  border-radius: 6px;
+  box-shadow: none;
+}
+
+.el-card__header {
+  border-bottom-color: var(--orin-border-soft);
+}
+
+.el-button {
+  border-radius: 4px;
+  font-weight: 600;
+  letter-spacing: 0;
+}
+
 .el-button--primary {
+  --el-button-text-color: #0c0f0b;
   --el-button-bg-color: var(--orin-green);
   --el-button-border-color: var(--orin-green);
-  --el-button-hover-bg-color: #72ad08;
-  --el-button-hover-border-color: #72ad08;
-  --el-button-active-bg-color: #517f00;
-  --el-button-active-border-color: #517f00;
+  --el-button-hover-text-color: #080a08;
+  --el-button-hover-bg-color: var(--orin-green-bright);
+  --el-button-hover-border-color: var(--orin-green-bright);
+  --el-button-active-text-color: #080a08;
+  --el-button-active-bg-color: #659f00;
+  --el-button-active-border-color: #659f00;
+}
+
+.el-button--success {
+  --el-button-bg-color: #237966;
+  --el-button-border-color: #237966;
+  --el-button-hover-bg-color: #2d8d77;
+  --el-button-hover-border-color: #2d8d77;
+}
+
+.el-button--warning {
+  --el-button-bg-color: #a9771f;
+  --el-button-border-color: #a9771f;
+  --el-button-hover-bg-color: #bd892b;
+  --el-button-hover-border-color: #bd892b;
+}
+
+.el-button--danger {
+  --el-button-bg-color: #a9434c;
+  --el-button-border-color: #a9434c;
+  --el-button-hover-bg-color: #bd5159;
+  --el-button-hover-border-color: #bd5159;
+}
+
+.el-button.is-link,
+.el-button.is-text {
+  background: transparent !important;
 }
 
 .el-input__wrapper,
 .el-select__wrapper,
-.el-textarea__inner { border-radius: 4px !important; }
-.el-table { --el-table-header-bg-color: #f1f3ee; --el-table-row-hover-bg-color: #f5f8f0; }
-.el-table th.el-table__cell { color: #5c6258; font-size: 11px; font-weight: 700; }
-.el-table td.el-table__cell { color: #353a33; font-size: 12px; }
-.el-card { border-radius: 6px; box-shadow: none; }
-.el-dialog { max-width: calc(100vw - 32px); border-radius: 7px; }
-.el-tag { border-radius: 3px; }
+.el-textarea__inner,
+.el-date-editor.el-input__wrapper,
+.el-date-editor--daterange {
+  color: var(--orin-text);
+  background: var(--orin-surface-raised) !important;
+  border-radius: 4px !important;
+  box-shadow: 0 0 0 1px var(--orin-border) inset !important;
+}
+
+.el-input__wrapper:hover,
+.el-select__wrapper:hover,
+.el-textarea__inner:hover {
+  box-shadow: 0 0 0 1px var(--orin-border-strong) inset !important;
+}
+
+.el-input__wrapper.is-focus,
+.el-select__wrapper.is-focused,
+.el-textarea__inner:focus {
+  box-shadow: 0 0 0 1px var(--orin-green) inset, 0 0 0 3px var(--orin-green-soft) !important;
+}
+
+.el-input__inner,
+.el-textarea__inner,
+.el-select__selected-item,
+.el-range-input {
+  color: var(--orin-text) !important;
+}
+
+.el-input-number__decrease,
+.el-input-number__increase {
+  color: var(--orin-text-soft);
+  background: var(--orin-surface-soft);
+  border-color: var(--orin-border);
+}
+
+.el-form-item__label,
+.el-checkbox__label,
+.el-radio__label {
+  color: var(--orin-text-soft);
+}
+
+.el-checkbox__inner,
+.el-radio__inner {
+  background: var(--orin-surface-raised);
+  border-color: var(--orin-border-strong);
+}
+
+.el-table {
+  color: var(--orin-text-soft);
+  background: var(--orin-surface);
+  --el-table-bg-color: var(--orin-surface);
+  --el-table-tr-bg-color: var(--orin-surface);
+  --el-table-header-bg-color: #181c18;
+  --el-table-row-hover-bg-color: var(--orin-surface-hover);
+  --el-table-current-row-bg-color: #20281c;
+  --el-table-border-color: var(--orin-border-soft);
+  --el-table-header-text-color: var(--orin-muted);
+  --el-table-text-color: var(--orin-text-soft);
+}
+
+.el-table::before,
+.el-table__inner-wrapper::before {
+  background: var(--orin-border-soft) !important;
+}
+
+.el-table tr,
+.el-table th.el-table__cell,
+.el-table td.el-table__cell,
+.el-table__fixed,
+.el-table__fixed-right {
+  background: inherit;
+}
+
+.el-table th.el-table__cell {
+  height: 42px;
+  color: var(--orin-muted) !important;
+  background: #181c18 !important;
+  border-bottom: 1px solid var(--orin-border) !important;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.el-table th.el-table__cell .cell {
+  color: var(--orin-muted) !important;
+}
+
+.el-table td.el-table__cell {
+  height: 48px;
+  color: var(--orin-text-soft);
+  border-bottom-color: var(--orin-border-soft);
+  font-size: 12px;
+}
+
+.el-table--striped .el-table__body tr.el-table__row--striped td.el-table__cell {
+  background: #111411;
+}
+
+.el-table__body tr:hover > td.el-table__cell,
+.el-table__row:hover,
+.el-table__row.hover-row > td.el-table__cell {
+  background: var(--orin-surface-hover) !important;
+}
+
+.el-dialog,
+.el-message-box,
+.el-drawer,
+.el-notification {
+  max-width: calc(100vw - 32px);
+  color: var(--orin-text);
+  background: var(--orin-surface-raised);
+  border: 1px solid var(--orin-border);
+  border-radius: 6px;
+  box-shadow: 0 22px 60px rgba(0, 0, 0, 0.48);
+}
+
+.el-dialog__header,
+.el-message-box__header {
+  border-bottom: 1px solid var(--orin-border-soft);
+}
+
+.el-dialog__title,
+.el-message-box__title,
+.el-dialog__body,
+.el-message-box__content,
+.el-drawer__header,
+.el-drawer__body,
+.el-notification__title,
+.el-notification__content {
+  color: var(--orin-text);
+}
+
+.el-message {
+  color: var(--orin-text-soft);
+  background: var(--orin-surface-raised);
+  border-color: var(--orin-border);
+}
+
+.el-message .el-message__content {
+  color: inherit;
+}
+
+.el-message--success {
+  color: #70d8bc;
+  background: #13261f;
+  border-color: rgba(56, 169, 142, 0.38);
+}
+
+.el-message--warning {
+  color: #e5bd66;
+  background: #292315;
+  border-color: rgba(214, 163, 58, 0.38);
+}
+
+.el-message--error {
+  color: #ef8a90;
+  background: #2a181a;
+  border-color: rgba(224, 98, 105, 0.38);
+}
+
+.el-overlay {
+  background: rgba(2, 4, 2, 0.76);
+  backdrop-filter: blur(3px);
+}
+
+.el-popper,
+.el-select-dropdown,
+.el-picker-panel,
+.el-dropdown-menu,
+.el-popover,
+.el-cascader__dropdown {
+  color: var(--orin-text-soft) !important;
+  background: var(--orin-surface-raised) !important;
+  border-color: var(--orin-border) !important;
+}
+
+.el-select-dropdown__item,
+.el-dropdown-menu__item,
+.el-picker-panel__content,
+.el-date-table td .el-date-table-cell__text {
+  color: var(--orin-text-soft);
+}
+
+.el-select-dropdown__item.is-hovering,
+.el-dropdown-menu__item:not(.is-disabled):focus,
+.el-dropdown-menu__item:not(.is-disabled):hover {
+  color: var(--orin-text);
+  background: var(--orin-surface-hover);
+}
+
+.el-popper__arrow::before {
+  background: var(--orin-surface-raised) !important;
+  border-color: var(--orin-border) !important;
+}
+
+.el-tabs__nav-wrap::after {
+  height: 1px;
+  background: var(--orin-border-soft);
+}
+
+.el-tabs__item {
+  height: 42px;
+  color: var(--orin-muted);
+}
+
+.el-tabs__item:hover,
+.el-tabs__item.is-active {
+  color: var(--orin-text);
+}
+
+.el-tabs__active-bar {
+  height: 2px;
+  background: var(--orin-green);
+}
+
+.el-pagination {
+  --el-pagination-bg-color: var(--orin-surface-soft);
+  --el-pagination-button-bg-color: var(--orin-surface-raised);
+  --el-pagination-hover-color: var(--orin-green-bright);
+  color: var(--orin-muted);
+}
+
+.el-pagination button,
+.el-pager li {
+  color: var(--orin-text-soft);
+  background: var(--orin-surface-raised) !important;
+}
+
+.el-pager li.is-active {
+  color: #0b0d0c;
+  background: var(--orin-green) !important;
+}
+
+.el-descriptions {
+  --el-descriptions-table-border: 1px solid var(--orin-border-soft);
+}
+
+.el-descriptions__body,
+.el-descriptions__cell,
+.el-descriptions__label,
+.el-descriptions__content {
+  color: var(--orin-text-soft) !important;
+  background: var(--orin-surface) !important;
+  border-color: var(--orin-border-soft) !important;
+}
+
+.el-divider {
+  border-color: var(--orin-border-soft);
+}
+
+.el-divider__text {
+  color: var(--orin-muted);
+  background: var(--orin-surface);
+}
+
+.el-empty__description p {
+  color: var(--orin-muted);
+}
+
+.el-upload-dragger {
+  background: var(--orin-surface-soft);
+  border-color: var(--orin-border);
+}
+
+.el-alert {
+  border: 1px solid var(--orin-border);
+}
+
+.el-tag {
+  border-radius: 3px;
+}
+
+/* Restored operational modules */
+.user-list-page,
+.team-list-page,
+.notice-list-page,
+.feedback-page,
+.withdraw-list-page,
+.payment-apply-list,
+.earnings-page,
+.reward-list-page,
+.settings-page {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding-bottom: 24px !important;
+}
 
 .user-list-page .el-card,
 .team-list-page .el-card,
@@ -92,57 +546,449 @@ select { font: inherit; }
 .earnings-page .el-card,
 .reward-list-page .el-card,
 .settings-page .el-card {
+  color: var(--orin-text) !important;
+  background: var(--orin-surface) !important;
+  border: 1px solid var(--orin-border) !important;
   border-radius: 6px !important;
   box-shadow: none !important;
+}
+
+.user-list-page .search-card,
+.team-list-page .search-card,
+.notice-list-page .search-card,
+.feedback-page .search-card,
+.withdraw-list-page .filter-card,
+.payment-apply-list .filter-card,
+.reward-list-page .search-card {
+  background: var(--orin-surface-soft) !important;
 }
 
 .user-list-page .stat-card,
 .withdraw-list-page .amount-card,
 .withdraw-list-page .status-card,
+.withdraw-list-page .stat-card,
 .earnings-page .stat-card {
+  min-height: 116px;
+  padding: 18px !important;
+  color: var(--orin-text) !important;
+  background: var(--orin-surface) !important;
+  border: 1px solid var(--orin-border) !important;
+  border-left: 3px solid var(--orin-green) !important;
+  border-radius: 6px !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
+
+.user-list-page .stat-card.active,
+.withdraw-list-page .amount-card.paid-amount,
+.earnings-page .stat-card.income-today {
+  border-left-color: var(--orin-cyan) !important;
+}
+
+.user-list-page .stat-card.balance,
+.withdraw-list-page .amount-card.bosskg,
+.earnings-page .stat-card.income-month {
+  border-left-color: var(--orin-amber) !important;
+}
+
+.user-list-page .stat-card.quota,
+.withdraw-list-page .amount-card.pending-pay,
+.earnings-page .stat-card.runtime {
+  border-left-color: var(--orin-blue) !important;
+}
+
+.user-list-page .stat-icon,
+.withdraw-list-page .amount-icon,
+.withdraw-list-page .stat-icon,
+.earnings-page .stat-icon-wrapper {
+  width: 40px !important;
+  height: 40px !important;
+  display: grid !important;
+  flex: 0 0 40px;
+  place-items: center;
+  color: var(--orin-green) !important;
+  background: var(--orin-green-soft) !important;
+  border: 1px solid rgba(118, 185, 0, 0.28) !important;
+  border-radius: 4px !important;
+  font-size: 19px !important;
+}
+
+.user-list-page .stat-value,
+.withdraw-list-page .amount-value,
+.withdraw-list-page .stat-value,
+.earnings-page .stat-value {
+  color: var(--orin-text) !important;
+  font-size: 26px !important;
+  line-height: 1.1;
+  letter-spacing: 0 !important;
+}
+
+.user-list-page .stat-label,
+.withdraw-list-page .amount-label,
+.withdraw-list-page .stat-label,
+.earnings-page .stat-label {
+  color: var(--orin-muted) !important;
+  font-size: 11px !important;
+}
+
+.user-list-page .el-table__header-wrapper th,
+.earnings-page .el-table__header-wrapper th {
+  color: var(--orin-muted) !important;
+  background: #181c18 !important;
+  border-bottom: 1px solid var(--orin-border) !important;
+}
+
+.user-list-page .el-table__header-wrapper .cell,
+.earnings-page .el-table__header-wrapper .cell {
+  color: var(--orin-muted) !important;
+}
+
+.user-list-page .el-table__row:hover,
+.earnings-page .el-table__row:hover {
+  background: var(--orin-surface-hover) !important;
+}
+
+.user-list-page .pagination-wrapper,
+.team-list-page .pagination-wrapper,
+.notice-list-page .pagination-wrapper,
+.feedback-page .pagination-wrapper,
+.withdraw-list-page .pagination-wrapper,
+.payment-apply-list .pagination-wrapper,
+.earnings-page .pagination-wrapper,
+.reward-list-page .pagination-wrapper {
+  background: var(--orin-surface-soft) !important;
+  border-top-color: var(--orin-border-soft) !important;
+}
+
+.user-list-page .table-toolbar-title,
+.user-list-page .nickname,
+.user-list-page .user-name,
+.user-list-page .header-name,
+.user-list-page .section-title,
+.team-list-page h3,
+.team-list-page .leader-name,
+.notice-list-page .title-text,
+.feedback-page .user-name,
+.withdraw-list-page .card-title,
+.earnings-page h3,
+.earnings-page .user-name,
+.reward-list-page .user-name,
+.settings-page .card-title,
+.settings-page .profile-row .value {
+  color: var(--orin-text) !important;
+}
+
+.user-list-page .table-toolbar-tip,
+.user-list-page .openid,
+.user-list-page .create-time,
+.user-list-page .time-text,
+.user-list-page .header-id,
+.user-list-page .stat-text,
+.team-list-page .team-user-id,
+.team-list-page .leader-meta,
+.notice-list-page .time,
+.feedback-page .user-id,
+.withdraw-list-page .card-subtitle,
+.earnings-page .user-id,
+.settings-page .hint,
+.settings-page .profile-row .label {
+  color: var(--orin-muted) !important;
+}
+
+.user-list-page .search-card,
+.user-list-page .user-info-cell,
+.user-list-page .detail-header,
+.user-list-page .stat-item,
+.user-list-page .empty-tip,
+.user-list-page .sn-code,
+.user-list-page code,
+.user-list-page .form-section,
+.user-list-page .switch-wrapper,
+.user-list-page .sync-tip,
+.user-list-page .id-tag,
+.team-list-page .leader-card,
+.team-list-page .empty-box,
+.feedback-page .detail-content,
+.notice-list-page .notice-detail,
+.withdraw-list-page .batch-bar,
+.withdraw-list-page .detail-section,
+.earnings-page .user-info-cell,
+.earnings-page .compensate-panel,
+.earnings-page .compensate-form,
+.earnings-page .compensate-result,
+.settings-page .profile-card,
+.settings-page .level-config-item,
+.settings-page .banner-item-admin,
+.settings-page .empty-text {
+  color: var(--orin-text-soft) !important;
+  background: var(--orin-surface-soft) !important;
+  border-color: var(--orin-border) !important;
   border-radius: 6px !important;
   box-shadow: none !important;
 }
 
-.user-list-page .stat-card {
-  color: var(--orin-ink) !important;
-  background: var(--orin-surface) !important;
-  border: 1px solid var(--orin-border) !important;
-  border-left: 4px solid #659f00 !important;
+.user-list-page .section-badge {
+  color: #0b0d0c !important;
+  background: var(--orin-green) !important;
+  border-radius: 3px !important;
+  box-shadow: none !important;
 }
 
-.user-list-page .stat-card.active { border-left-color: #2684c7 !important; }
-.user-list-page .stat-card.balance { border-left-color: #d58b00 !important; }
-.user-list-page .stat-card.quota { border-left-color: #5c6258 !important; }
-.user-list-page .stat-card .stat-value { color: var(--orin-ink) !important; }
-.user-list-page .stat-card .stat-label { color: #646b60 !important; }
-
-.withdraw-list-page .amount-card {
-  color: var(--orin-ink) !important;
-  background: var(--orin-surface) !important;
-  border: 1px solid var(--orin-border) !important;
-  border-left: 4px solid #659f00 !important;
+.user-list-page .section-badge.account {
+  background: var(--orin-cyan) !important;
 }
 
-.withdraw-list-page .amount-card.bosskg { border-left-color: #d58b00 !important; }
-.withdraw-list-page .amount-card.pending-pay { border-left-color: #d04a58 !important; }
-.withdraw-list-page .amount-card.paid-amount { border-left-color: #16865f !important; }
-.withdraw-list-page .amount-card .amount-value { color: var(--orin-ink) !important; }
-.withdraw-list-page .amount-card .amount-label { color: #646b60 !important; }
+.user-list-page .section-badge.level {
+  background: var(--orin-amber) !important;
+}
 
-.user-list-page .stat-card:hover,
-.withdraw-list-page .amount-card:hover,
-.withdraw-list-page .status-card:hover,
-.earnings-page .stat-card:hover {
+.user-list-page .section-badge.invite {
+  color: var(--orin-text) !important;
+  background: #6e5aa6 !important;
+}
+
+.app-shell .user-list-page .header-stats {
+  min-width: 0;
+}
+
+.app-shell .user-list-page .header-stats .stat-item {
+  min-width: 0;
+  padding: 10px 14px !important;
+  background: var(--orin-surface-raised) !important;
+  border: 1px solid var(--orin-border-soft);
+  border-radius: 4px !important;
+}
+
+.app-shell .user-list-page .header-stats .stat-num {
+  color: var(--orin-text) !important;
+  font-size: 18px;
+  letter-spacing: 0;
+}
+
+.app-shell .user-list-page .header-stats .stat-num.balance {
+  color: var(--orin-cyan) !important;
+}
+
+.app-shell .user-list-page .header-stats .stat-num.quota-value {
+  color: var(--orin-amber) !important;
+}
+
+.team-list-page .leader-card:hover,
+.settings-page .level-config-item:hover,
+.settings-page .banner-item-admin:hover {
+  background: var(--orin-surface-hover) !important;
+  border-color: var(--orin-border-strong) !important;
+  box-shadow: none !important;
   transform: none !important;
+}
+
+.earnings-page .data-card,
+.earnings-page .el-tabs,
+.earnings-page .el-tabs__content {
+  background: var(--orin-surface) !important;
+}
+
+.earnings-page .compensate-panel {
+  border-left: 3px solid var(--orin-amber) !important;
+}
+
+.earnings-page .compensate-alert {
+  background: rgba(214, 163, 58, 0.1) !important;
+}
+
+.earnings-page .form-desc,
+.earnings-page .result-detail {
+  color: var(--orin-muted) !important;
+}
+
+.settings-page .profile-card {
+  border-left: 3px solid var(--orin-green) !important;
+}
+
+.settings-page .profile-avatar {
+  color: #0b0d0c !important;
+  background: var(--orin-green) !important;
+  border: 1px solid var(--orin-green-bright) !important;
+  box-shadow: none !important;
+}
+
+.settings-page .banner-img-preview {
+  background: #0d100d !important;
+  border-color: var(--orin-border-strong) !important;
+  border-radius: 4px !important;
+}
+
+.settings-page .el-input__wrapper,
+.settings-page .el-input-number .el-input__wrapper {
+  background: var(--orin-surface-raised) !important;
+  box-shadow: 0 0 0 1px var(--orin-border) inset !important;
+}
+
+.app-shell .user-list-page .el-table__header-wrapper th,
+.app-shell .earnings-page .el-table__header-wrapper th {
+  color: var(--orin-muted) !important;
+  background: #181c18 !important;
+  border-bottom: 1px solid var(--orin-border) !important;
+}
+
+.app-shell .user-list-page .el-table__header-wrapper .cell,
+.app-shell .earnings-page .el-table__header-wrapper .cell {
+  color: var(--orin-muted) !important;
+}
+
+.app-shell .user-list-page .el-table__row:hover,
+.app-shell .earnings-page .el-table__row:hover {
+  background: var(--orin-surface-hover) !important;
+}
+
+.app-shell .earnings-page .el-tabs__nav-wrap {
+  padding: 0 16px !important;
+  background: var(--orin-surface-soft) !important;
+  border-bottom: 1px solid var(--orin-border-soft);
+}
+
+.app-shell .earnings-page .el-tabs__item {
+  height: 44px !important;
+  color: var(--orin-muted) !important;
+  font-size: 13px !important;
+}
+
+.app-shell .earnings-page .el-tabs__item.is-active,
+.app-shell .earnings-page .el-tabs__item:hover {
+  color: var(--orin-text) !important;
+}
+
+.app-shell .earnings-page .form-desc p,
+.app-shell .earnings-page .result-stat-label,
+.app-shell .earnings-page .compensate-title p {
+  color: var(--orin-muted) !important;
+}
+
+.app-shell .earnings-page .form-label,
+.app-shell .earnings-page .result-stat-value,
+.app-shell .earnings-page .result-title {
+  color: var(--orin-text) !important;
+}
+
+.app-shell .earnings-page .form-desc,
+.app-shell .earnings-page .result-stat-item {
+  color: var(--orin-text-soft) !important;
+  background: var(--orin-surface-raised) !important;
+  border-color: var(--orin-border) !important;
+  border-radius: 5px !important;
+}
+
+.app-shell .settings-page .el-card__header {
+  border-bottom-color: var(--orin-border-soft) !important;
+}
+
+.app-shell .settings-page .el-form-item__label,
+.app-shell .settings-page .unit,
+.app-shell .settings-page .range-text {
+  color: var(--orin-text-soft) !important;
+}
+
+.app-shell .settings-page .hint {
+  color: var(--orin-muted) !important;
+}
+
+.app-shell .withdraw-list-page .stat-amount {
+  color: var(--orin-text-soft) !important;
+}
+
+.app-shell .user-list-page .total-count {
+  color: var(--orin-text-soft) !important;
+  background: var(--orin-green-soft) !important;
+  border: 1px solid rgba(118, 185, 0, 0.22);
+  border-radius: 4px !important;
+}
+
+.app-shell .team-list-page {
+  padding: 0 0 24px !important;
+}
+
+.app-shell .team-list-page .section-title {
+  color: var(--orin-text) !important;
+  border-left-color: var(--orin-green) !important;
+}
+
+.app-shell .team-list-page .leader-stats-grid,
+.app-shell .team-list-page .empty-state,
+.app-shell .team-list-page .empty-icon-wrapper {
+  color: var(--orin-text-soft) !important;
+  background: var(--orin-surface-soft) !important;
+  border-color: var(--orin-border) !important;
+  border-radius: 6px !important;
+}
+
+.app-shell .team-list-page .leader-id,
+.app-shell .team-list-page .stat-label,
+.app-shell .team-list-page .empty-text {
+  color: var(--orin-muted) !important;
+}
+
+.app-shell .team-list-page .stat-value {
+  color: var(--orin-text) !important;
+}
+
+.app-shell .team-list-page .stat-value.highlight {
+  color: var(--orin-green) !important;
+}
+
+.app-shell .el-tag.el-tag--success {
+  color: #70d8bc !important;
+  background: rgba(35, 121, 102, 0.16) !important;
+  border-color: rgba(56, 169, 165, 0.36) !important;
+}
+
+.app-shell .el-tag.el-tag--warning {
+  color: #e5bd66 !important;
+  background: rgba(169, 119, 31, 0.16) !important;
+  border-color: rgba(214, 163, 58, 0.38) !important;
+}
+
+.app-shell .el-tag.el-tag--danger {
+  color: #ef8a90 !important;
+  background: rgba(169, 67, 76, 0.16) !important;
+  border-color: rgba(224, 98, 105, 0.36) !important;
+}
+
+.app-shell .el-tag.el-tag--info {
+  color: var(--orin-text-soft) !important;
+  background: rgba(147, 155, 144, 0.1) !important;
+  border-color: var(--orin-border) !important;
+}
+
+.app-shell .el-tag.el-tag--primary {
+  color: #8db9ed !important;
+  background: rgba(95, 148, 216, 0.14) !important;
+  border-color: rgba(95, 148, 216, 0.34) !important;
 }
 
 .sensitive-toggle {
   flex: 0 0 auto;
 }
 
-@media (max-width: 720px) {
-  .el-dialog { width: calc(100vw - 32px) !important; }
+.icon-text,
+.metric-icon-label,
+.section-title-icon,
+.card-title-icon {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.icon-text > .el-icon,
+.metric-icon-label > .el-icon,
+.section-title-icon > .el-icon,
+.card-title-icon > .el-icon {
+  color: var(--orin-green);
+}
+
+@media (max-width: 900px) {
+  .el-dialog {
+    width: calc(100vw - 32px) !important;
+  }
 
   .user-list-page .el-row,
   .team-list-page .el-row,
@@ -185,12 +1031,37 @@ select { font: inherit; }
     flex-direction: column;
   }
 
-  .settings-page .level-inputs {
-    align-items: flex-start;
-    flex-direction: column;
+  .app-shell .user-list-page .detail-header {
+    gap: 14px;
+    padding: 14px !important;
   }
 
+  .app-shell .user-list-page .header-info {
+    width: 100%;
+    text-align: center;
+  }
+
+  .app-shell .user-list-page .header-stats {
+    width: 100%;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .app-shell .user-list-page .header-stats .stat-item {
+    padding: 9px 4px !important;
+  }
+
+  .app-shell .user-list-page .header-stats .stat-num {
+    overflow: hidden;
+    font-size: 15px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .settings-page .level-inputs,
   .settings-page .banner-item-admin {
+    align-items: stretch;
     flex-direction: column;
   }
 
@@ -200,12 +1071,7 @@ select { font: inherit; }
     aspect-ratio: 5 / 3;
   }
 
-  .earnings-page .stat-row > .el-col {
-    width: 50% !important;
-    max-width: 50% !important;
-    flex: 0 0 50% !important;
-  }
-
+  .earnings-page .stat-row > .el-col,
   .user-list-page .stat-cards > .el-col,
   .withdraw-list-page .amount-stats-row > .el-col,
   .withdraw-list-page .stats-row > .el-col {
@@ -222,58 +1088,25 @@ select { font: inherit; }
 
   .user-list-page .stat-card,
   .withdraw-list-page .amount-card,
-  .withdraw-list-page .stat-card {
-    min-height: 92px;
-    padding: 12px !important;
-    gap: 10px;
-  }
-
-  .user-list-page .stat-icon,
-  .withdraw-list-page .amount-icon,
-  .withdraw-list-page .stat-icon {
-    width: 40px !important;
-    height: 40px !important;
-    flex: 0 0 40px;
-    font-size: 20px !important;
-  }
-
-  .user-list-page .stat-value,
-  .withdraw-list-page .amount-value,
-  .withdraw-list-page .stat-value {
-    font-size: 20px !important;
-  }
-
+  .withdraw-list-page .stat-card,
   .earnings-page .stat-card {
     min-height: 92px;
     padding: 12px !important;
     gap: 10px;
   }
 
-  .earnings-page .stat-icon-wrapper {
-    width: 40px;
-    height: 40px;
-    flex: 0 0 40px;
-    border-radius: 6px;
-    font-size: 20px;
-  }
-
-  .earnings-page .stat-info {
-    min-width: 0;
-  }
-
+  .user-list-page .stat-value,
+  .withdraw-list-page .amount-value,
+  .withdraw-list-page .stat-value,
   .earnings-page .stat-value {
     overflow: hidden;
-    font-size: 18px;
+    font-size: 19px !important;
     text-overflow: ellipsis;
     white-space: nowrap;
   }
 
-  .earnings-page .stat-label {
-    font-size: 12px;
-  }
-
   .earnings-page .compensate-form {
-    padding: 20px;
+    padding: 16px !important;
   }
 
   .earnings-page .compensate-form .el-input-number {
@@ -288,5 +1121,24 @@ select { font: inherit; }
   .earnings-page .tab-header .el-date-editor,
   .earnings-page .tab-header .el-input {
     width: 100% !important;
+  }
+}
+
+@media (max-width: 520px) {
+  .earnings-page .stat-row > .el-col,
+  .user-list-page .stat-cards > .el-col,
+  .withdraw-list-page .amount-stats-row > .el-col,
+  .withdraw-list-page .stats-row > .el-col {
+    width: 100% !important;
+    max-width: 100% !important;
+    flex: 0 0 100% !important;
+  }
+
+  .el-card__body {
+    padding: 14px;
+  }
+
+  .el-card__header {
+    padding: 13px 14px;
   }
 }

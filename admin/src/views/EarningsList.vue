@@ -4,7 +4,7 @@
     <el-row :gutter="20" class="stat-row">
       <el-col :span="6">
         <div class="stat-card income-total">
-          <div class="stat-icon-wrapper">💰</div>
+          <div class="stat-icon-wrapper"><el-icon><Coin /></el-icon></div>
           <div class="stat-info">
             <div class="stat-value">¥{{ stats.totalEarnings || '0.00' }}</div>
             <div class="stat-label">累计收益</div>
@@ -13,7 +13,7 @@
       </el-col>
       <el-col :span="6">
         <div class="stat-card income-today">
-          <div class="stat-icon-wrapper">📅</div>
+          <div class="stat-icon-wrapper"><el-icon><Calendar /></el-icon></div>
           <div class="stat-info">
             <div class="stat-value">¥{{ stats.todayEarnings || '0.00' }}</div>
             <div class="stat-label">今日收益</div>
@@ -22,7 +22,7 @@
       </el-col>
       <el-col :span="6">
         <div class="stat-card income-month">
-          <div class="stat-icon-wrapper">📈</div>
+          <div class="stat-icon-wrapper"><el-icon><TrendCharts /></el-icon></div>
           <div class="stat-info">
             <div class="stat-value">¥{{ stats.monthEarnings || '0.00' }}</div>
             <div class="stat-label">本月收益</div>
@@ -31,7 +31,7 @@
       </el-col>
       <el-col :span="6">
         <div class="stat-card runtime">
-          <div class="stat-icon-wrapper">⏱️</div>
+          <div class="stat-icon-wrapper"><el-icon><Timer /></el-icon></div>
           <div class="stat-info">
             <div class="stat-value">{{ stats.totalHours || 0 }}h</div>
             <div class="stat-label">设备运行时长</div>
@@ -103,7 +103,7 @@
               clearable
               @keyup.enter="fetchSummary"
             >
-              <template #prefix>🔍</template>
+              <template #prefix><el-icon><Search /></el-icon></template>
             </el-input>
             <el-button type="primary" @click="fetchSummary">查询</el-button>
           </div>
@@ -144,7 +144,7 @@
               clearable
               @keyup.enter="fetchSummary"
             >
-              <template #prefix>🛰️</template>
+              <template #prefix><el-icon><Cpu /></el-icon></template>
             </el-input>
             <el-button type="primary" @click="fetchSummary">查询</el-button>
           </div>
@@ -170,7 +170,7 @@
         <el-tab-pane label="补偿收益" name="compensate">
           <div class="compensate-panel">
             <div class="compensate-header">
-              <div class="compensate-icon">🔧</div>
+              <div class="compensate-icon"><el-icon><Tools /></el-icon></div>
               <div class="compensate-title">
                 <h3>收益补偿工具</h3>
                 <p>用于服务器宕机等异常情况，为所有已绑定且在线的设备批量补发收益</p>
@@ -205,10 +205,10 @@
               <div class="form-item">
                 <label class="form-label">操作说明</label>
                 <div class="form-desc">
-                  <p>• 将为 <strong>所有已绑定且在线的设备</strong> 补发 <strong>{{ compensateHours }}</strong> 小时的收益</p>
-                  <p>• 每台设备每小时收益 = 基础收益 × 用户等级费率</p>
-                  <p>• 同时会增加对应的算力值（每小时 +100）</p>
-                  <p>• 邀请人的级差分润也会同步计算</p>
+                  <p><el-icon><CircleCheck /></el-icon> 将为 <strong>所有已绑定且在线的设备</strong> 补发 <strong>{{ compensateHours }}</strong> 小时的收益</p>
+                  <p><el-icon><CircleCheck /></el-icon> 每台设备每小时收益 = 基础收益 × 用户等级费率</p>
+                  <p><el-icon><CircleCheck /></el-icon> 同时会增加对应的算力值（每小时 +100）</p>
+                  <p><el-icon><CircleCheck /></el-icon> 邀请人的级差分润也会同步计算</p>
                 </div>
               </div>
 
@@ -229,7 +229,7 @@
             <!-- 补偿结果 -->
             <div v-if="compensateResult" class="compensate-result">
               <div class="result-header">
-                <span class="result-icon">✅</span>
+                <el-icon class="result-icon"><CircleCheckFilled /></el-icon>
                 <span class="result-title">补偿完成</span>
               </div>
               <el-row :gutter="16" class="result-stats">
@@ -292,7 +292,18 @@
 import { ref, onMounted } from 'vue'
 import axios from '../utils/request'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Lightning } from '@element-plus/icons-vue'
+import {
+  Calendar,
+  CircleCheck,
+  CircleCheckFilled,
+  Coin,
+  Cpu,
+  Lightning,
+  Search,
+  Timer,
+  Tools,
+  TrendCharts
+} from '@element-plus/icons-vue'
 
 const loading = ref(false)
 const earningsList = ref([])
@@ -406,7 +417,7 @@ const handleCompensate = async () => {
   try {
     await ElMessageBox.confirm(
       `确认要为所有在线设备补偿 ${compensateHours.value} 小时的收益吗？\n\n此操作将为所有已绑定且在线的设备补发收益、更新余额和算力值。`,
-      '⚠️ 确认补偿操作',
+      '确认补偿操作',
       {
         confirmButtonText: '确认补偿',
         cancelButtonText: '取消',
@@ -510,7 +521,7 @@ onMounted(() => {
   font-size: 28px;
   font-weight: 800;
   color: #fff;
-  letter-spacing: -0.5px;
+  letter-spacing: 0;
 }
 
 .stat-label {
