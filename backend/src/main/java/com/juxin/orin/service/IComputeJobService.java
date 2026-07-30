@@ -24,6 +24,12 @@ public interface IComputeJobService extends IService<ComputeJob> {
     Map<String, Object> getTaskTrend();
 
     /**
+     * Atomically claim the oldest pending task that is either targeted at the
+     * device or belongs to the public queue.
+     */
+    ComputeJob claimNextPendingTask(String deviceSn);
+
+    /**
      * Admin: Get N latest task logs
      */
     java.util.List<ComputeJob> getLatestTasks(Integer limit);

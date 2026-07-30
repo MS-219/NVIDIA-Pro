@@ -3,6 +3,7 @@ package com.juxin.orin.entity;
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.Data;
 import java.time.LocalDateTime;
 
@@ -94,6 +95,20 @@ public class Device {
 
     /** 镜像版本 */
     private String imageVersion;
+
+    /** 每台设备独立访问令牌的 SHA-256；数据库不保存原始令牌。 */
+    @JsonIgnore
+    private String deviceTokenHash;
+
+    /** 用于幂等恢复首次入网响应的随机种子，不是设备访问令牌。 */
+    @JsonIgnore
+    private String deviceTokenSeed;
+
+    /** 首次入网时绑定的硬件指纹。 */
+    private String hardwareFingerprint;
+
+    /** 完成安全入网的时间。 */
+    private LocalDateTime enrolledAt;
 
     /** Jetson 型号 */
     private String deviceModel;

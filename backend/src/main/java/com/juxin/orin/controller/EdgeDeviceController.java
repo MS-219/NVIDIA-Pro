@@ -1,21 +1,28 @@
 package com.juxin.orin.controller;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import com.juxin.orin.common.Result;
+import com.juxin.orin.dto.EdgeEnrollRequest;
+import com.juxin.orin.dto.EdgeEnrollResponse;
 import com.juxin.orin.entity.ComputeJob;
 import com.juxin.orin.entity.Device;
 import com.juxin.orin.entity.DeviceCommand;
+import com.juxin.orin.exception.EdgeDeviceApiException;
 import com.juxin.orin.service.IComputeJobService;
 import com.juxin.orin.service.IDeviceCommandService;
+import com.juxin.orin.service.IEdgeDeviceAccessService;
 import com.juxin.orin.service.IDeviceService;
 import com.juxin.orin.service.IDeviceUpgradeService;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
 import java.net.InetAddress;
 import java.time.LocalDateTime;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -25,8 +32,14 @@ import java.util.Map;
 @RequestMapping("/api/edge")
 public class EdgeDeviceController {
 
+    private static final String EDGE_PROTOCOL_VERSION = "1";
+    private static final String MINIMUM_AGENT_VERSION = "0.3.0-orin";
+
     @Autowired
     private IDeviceService deviceService;
+
+    @Autowired
+    private IEdgeDeviceAccessService edgeDeviceAccessService;
 
     @Autowired
     private IComputeJobService computeJobService;
@@ -41,26 +54,64 @@ public class EdgeDeviceController {
     private com.juxin.orin.service.ISystemConfigService configService;
 
     /**
+     * Read-only deployment contract used by the manufacturing preflight gate.
+     */
+    @GetMapping("/capabilities")
+    public Result<Map<String, Object>> capabilities() {
+        Map<String, Object> response = new HashMap<>();
+        response.put("protocolVersion", EDGE_PROTOCOL_VERSION);
+        response.put("minimumAgentVersion", MINIMUM_AGENT_VERSION);
+        response.put("authenticatedEnrollment", true);
+        response.put("atomicTaskClaim", true);
+        response.put("persistentResultOutbox", true);
+        response.put("taskHandlers", List.of("ollama", "external-runner"));
+        return Result.success(response);
+    }
+
+    /**
+     * 使用镜像授权码完成一次性入网，并换取每台设备独立的访问令牌。
+     * 原始令牌只在这个响应中返回一次，服务端仅保存 SHA-256。
+     */
+    @PostMapping("/enroll")
+    public Result<EdgeEnrollResponse> enroll(
+            @RequestBody EdgeEnrollRequest enrollRequest,
+            HttpServletRequest request) {
+        String reportedIp = enrollRequest != null && enrollRequest.telemetry() != null
+                && enrollRequest.telemetry().get("ip") != null
+                        ? enrollRequest.telemetry().get("ip").toString()
+                        : null;
+        return Result.success(edgeDeviceAccessService.enroll(
+                enrollRequest,
+                resolveHeartbeatIp(request, reportedIp)));
+    }
+
+    /**
      * 1. 节点心跳与状态上报
      * Agent 按配置间隔调用（默认 60s）
      */
     @PostMapping("/report")
     public Result<Map<String, Object>> reportStatus(@RequestBody Map<String, Object> report,
-            HttpServletRequest request) {
-        String sn = (String) report.get("sn");
-        if (sn == null || sn.trim().isEmpty()) {
-            return Result.error("sn is required");
+            HttpServletRequest request,
+            @RequestHeader(value = IEdgeDeviceAccessService.DEVICE_TOKEN_HEADER, required = false) String deviceToken) {
+        Device authenticatedDevice = edgeDeviceAccessService.authenticate(deviceToken);
+        if (report == null) {
+            throw new EdgeDeviceApiException(HttpStatus.BAD_REQUEST, "report is required");
         }
-        sn = sn.trim();
+        String sn = getReportText(report, "sn");
+        if (sn == null) {
+            throw new EdgeDeviceApiException(HttpStatus.BAD_REQUEST, "sn is required");
+        }
+        edgeDeviceAccessService.requireOwnedSn(authenticatedDevice, sn);
+        edgeDeviceAccessService.requireMatchingHardwareFingerprint(
+                authenticatedDevice,
+                getReportText(report, "hardware_fingerprint"));
         String reportedIp = report.get("ip") != null ? report.get("ip").toString() : null;
         String ip = resolveHeartbeatIp(request, reportedIp);
         String cpuUsage = report.get("cpu_load") != null ? report.get("cpu_load").toString() : "0";
         String memUsage = report.get("mem_load") != null ? report.get("mem_load").toString() : "0";
         String cpuModel = report.get("cpu_model") != null ? report.get("cpu_model").toString() : null;
         String agentVersion = report.get("agent_version") != null ? report.get("agent_version").toString() : null;
-        String imageLicenseKey = getReportText(report, "image_license");
         String imageVersion = getReportText(report, "image_version");
-        String hardwareFingerprint = getReportText(report, "hardware_fingerprint");
 
         // 更新设备心跳
         Device device;
@@ -70,13 +121,13 @@ public class EdgeDeviceController {
                     ip,
                     cpuUsage,
                     memUsage,
-                    imageLicenseKey,
-                    imageVersion,
-                    hardwareFingerprint,
+                    null,
+                    null,
+                    null,
                     cpuModel,
                     agentVersion);
         } catch (IllegalArgumentException e) {
-            return Result.error(e.getMessage());
+            throw new EdgeDeviceApiException(HttpStatus.BAD_REQUEST, e.getMessage());
         }
         if (device != null) {
             boolean shouldUpdate = false;
@@ -90,6 +141,10 @@ public class EdgeDeviceController {
             }
             if (agentVersion != null && !agentVersion.isEmpty() && !agentVersion.equals(device.getAgentVersion())) {
                 device.setAgentVersion(agentVersion);
+                shouldUpdate = true;
+            }
+            if (imageVersion != null && !imageVersion.equals(device.getImageVersion())) {
+                device.setImageVersion(imageVersion);
                 shouldUpdate = true;
             }
             shouldUpdate |= applyOrinTelemetry(device, report);
@@ -257,22 +312,15 @@ public class EdgeDeviceController {
      * 2. 节点领取挂起任务 (Fetch Task)
      */
     @GetMapping("/tasks/fetch")
-    public Result<ComputeJob> fetchTask(@RequestParam String sn) {
-        // 查找属于该节点或公共池中处于 pending 状态的最早任务
-        LambdaQueryWrapper<ComputeJob> query = new LambdaQueryWrapper<>();
-        query.eq(ComputeJob::getStatus, "pending")
-                .and(i -> i.eq(ComputeJob::getDeviceSn, sn).or().isNull(ComputeJob::getDeviceSn))
-                .orderByAsc(ComputeJob::getCreateTime)
-                .last("LIMIT 1");
+    public Result<ComputeJob> fetchTask(
+            @RequestParam String sn,
+            @RequestHeader(value = IEdgeDeviceAccessService.DEVICE_TOKEN_HEADER, required = false) String deviceToken) {
+        Device authenticatedDevice = edgeDeviceAccessService.authenticate(deviceToken);
+        edgeDeviceAccessService.requireOwnedSn(authenticatedDevice, sn);
+        String normalizedSn = sn.trim();
 
-        ComputeJob task = computeJobService.getOne(query);
-
+        ComputeJob task = computeJobService.claimNextPendingTask(normalizedSn);
         if (task != null) {
-            // 锁定任务为 running 状态并分配给该 SN
-            task.setStatus("running");
-            task.setDeviceSn(sn);
-            task.setUpdateTime(LocalDateTime.now());
-            computeJobService.updateById(task);
             return Result.success(task);
         }
 
@@ -283,27 +331,58 @@ public class EdgeDeviceController {
      * 3. 节点回传任务执行结果 (Submit Result)
      */
     @PostMapping("/tasks/submit")
-    public Result<String> submitResult(@RequestBody ComputeJob result) {
+    public Result<String> submitResult(
+            @RequestBody ComputeJob result,
+            @RequestHeader(value = IEdgeDeviceAccessService.DEVICE_TOKEN_HEADER, required = false) String deviceToken) {
+        Device authenticatedDevice = edgeDeviceAccessService.authenticate(deviceToken);
+        if (result == null || result.getId() == null) {
+            throw new EdgeDeviceApiException(HttpStatus.BAD_REQUEST, "任务 ID 不能为空");
+        }
+        edgeDeviceAccessService.requireOwnedSn(authenticatedDevice, result.getDeviceSn());
+
         ComputeJob task = computeJobService.getById(result.getId());
         if (task == null) {
-            return Result.error("任务不存在");
+            throw new EdgeDeviceApiException(HttpStatus.NOT_FOUND, "任务不存在");
+        }
+        if (!authenticatedDevice.getSn().equals(task.getDeviceSn())) {
+            throw new EdgeDeviceApiException(HttpStatus.FORBIDDEN, "任务不属于当前设备");
+        }
+        if ("completed".equals(task.getStatus()) || "failed".equals(task.getStatus())) {
+            if (task.getStatus().equals(result.getStatus())) {
+                return Result.success("Contribution already recorded");
+            }
+            throw new EdgeDeviceApiException(HttpStatus.CONFLICT, "任务结果与已记录状态不一致");
+        }
+        if (!"running".equals(task.getStatus())) {
+            throw new EdgeDeviceApiException(HttpStatus.CONFLICT, "任务当前状态不允许提交");
+        }
+        if (!"completed".equals(result.getStatus()) && !"failed".equals(result.getStatus())) {
+            throw new EdgeDeviceApiException(HttpStatus.BAD_REQUEST, "任务结果状态必须是 completed 或 failed");
         }
 
-        // 更新执行详情
-        task.setStatus(result.getStatus()); // completed 或 failed
-        task.setResponseText(result.getResponseText());
-        task.setGenerateTokens(result.getGenerateTokens());
-        task.setDurationMs(result.getDurationMs());
-        task.setErrorMsg(result.getErrorMsg());
-        task.setUpdateTime(LocalDateTime.now());
-
-        // 计算奖励算力 (简易逻辑：100 Tokens = 1 绩效)
-        if ("completed".equals(task.getStatus())) {
-            int reward = (task.getGenerateTokens() != null ? task.getGenerateTokens() : 0) / 100;
-            task.setRewardHashrate(Math.max(1, reward));
+        int reward = "completed".equals(result.getStatus())
+                ? Math.max(1, (result.getGenerateTokens() == null ? 0 : result.getGenerateTokens()) / 100)
+                : 0;
+        boolean updated = computeJobService.update(new UpdateWrapper<ComputeJob>()
+                .eq("id", task.getId())
+                .eq("status", "running")
+                .eq("device_sn", authenticatedDevice.getSn())
+                .eq("deleted", 0)
+                .set("status", result.getStatus())
+                .set("response_text", result.getResponseText())
+                .set("generate_tokens", result.getGenerateTokens())
+                .set("duration_ms", result.getDurationMs())
+                .set("error_msg", result.getErrorMsg())
+                .set("reward_hashrate", reward)
+                .set("update_time", LocalDateTime.now()));
+        if (!updated) {
+            ComputeJob current = computeJobService.getById(result.getId());
+            if (current != null && authenticatedDevice.getSn().equals(current.getDeviceSn())
+                    && result.getStatus().equals(current.getStatus())) {
+                return Result.success("Contribution already recorded");
+            }
+            throw new EdgeDeviceApiException(HttpStatus.CONFLICT, "任务已被其他状态变更接管");
         }
-
-        computeJobService.updateById(task);
         return Result.success("Contribution recorded");
     }
 
@@ -311,11 +390,37 @@ public class EdgeDeviceController {
      * 4. 节点回传远程指令执行结果
      */
     @PostMapping("/commands/submit")
-    public Result<String> submitCommandResult(@RequestBody Map<String, Object> result) {
+    public Result<String> submitCommandResult(
+            @RequestBody Map<String, Object> result,
+            @RequestHeader(value = IEdgeDeviceAccessService.DEVICE_TOKEN_HEADER, required = false) String deviceToken) {
+        Device authenticatedDevice = edgeDeviceAccessService.authenticate(deviceToken);
+        if (result == null) {
+            throw new EdgeDeviceApiException(HttpStatus.BAD_REQUEST, "指令结果不能为空");
+        }
+        String sn = getReportText(result, "sn");
+        edgeDeviceAccessService.requireOwnedSn(authenticatedDevice, sn);
+
         String commandNo = result.get("commandNo") != null ? result.get("commandNo").toString() : null;
+        if (commandNo == null || commandNo.isBlank()) {
+            throw new EdgeDeviceApiException(HttpStatus.BAD_REQUEST, "commandNo is required");
+        }
+        DeviceCommand command = deviceCommandService.getOne(new LambdaQueryWrapper<DeviceCommand>()
+                .eq(DeviceCommand::getCommandNo, commandNo.trim())
+                .last("LIMIT 1"));
+        if (command == null) {
+            throw new EdgeDeviceApiException(HttpStatus.NOT_FOUND, "指令不存在");
+        }
+        if (!authenticatedDevice.getSn().equals(command.getDeviceSn())) {
+            throw new EdgeDeviceApiException(HttpStatus.FORBIDDEN, "指令不属于当前设备");
+        }
+
         Integer exitCode = null;
         if (result.get("exitCode") != null) {
-            exitCode = Integer.valueOf(result.get("exitCode").toString());
+            try {
+                exitCode = Integer.valueOf(result.get("exitCode").toString());
+            } catch (NumberFormatException exception) {
+                throw new EdgeDeviceApiException(HttpStatus.BAD_REQUEST, "exitCode 格式错误");
+            }
         }
         String resultText = result.get("resultText") != null ? result.get("resultText").toString() : null;
         boolean success = deviceCommandService.submitResult(commandNo, exitCode, resultText);

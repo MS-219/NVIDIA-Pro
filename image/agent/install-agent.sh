@@ -1,15 +1,73 @@
 #!/usr/bin/env bash
-set -euo pipefail
+set -Eeuo pipefail
 
-install -d -m 0755 /opt/juxin-orin/agent /etc/juxin-orin /var/lib/juxin-orin /var/log/juxin-orin
-install -m 0755 "$(dirname "$0")/orin_agent.py" /opt/juxin-orin/agent/orin_agent.py
-install -m 0644 "$(dirname "$0")/juxin-orin-agent.service" /etc/systemd/system/juxin-orin-agent.service
+if [[ "${EUID}" -ne 0 ]]; then
+  echo "Please run this installer as root." >&2
+  exit 1
+fi
 
-if [[ ! -f /etc/juxin-orin/agent.env ]]; then
-  install -m 0600 "$(dirname "$0")/agent.env.example" /etc/juxin-orin/agent.env
-  echo "请先编辑 /etc/juxin-orin/agent.env，再启动 juxin-orin-agent.service"
-  exit 0
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REMOTE_UPGRADE="${ORIN_REMOTE_UPGRADE:-0}"
+
+install -d -m 0755 \
+  /opt/juxin-orin/agent \
+  /opt/juxin-orin/runtime \
+  /usr/lib/juxin-orin \
+  /etc/juxin-orin \
+  /var/lib/juxin-orin \
+  /var/log/juxin-orin
+
+install -m 0755 "${SCRIPT_DIR}/orin_agent.py" /opt/juxin-orin/agent/orin_agent.py
+install -m 0644 "${SCRIPT_DIR}/juxin-orin-agent.service" /etc/systemd/system/juxin-orin-agent.service
+
+if [[ -f "${SCRIPT_DIR}/orin-firstboot.sh" ]]; then
+  install -m 0755 "${SCRIPT_DIR}/orin-firstboot.sh" /usr/lib/juxin-orin/orin-firstboot.sh
+fi
+if [[ -f "${SCRIPT_DIR}/juxin-orin-firstboot.service" ]]; then
+  install -m 0644 "${SCRIPT_DIR}/juxin-orin-firstboot.service" \
+    /etc/systemd/system/juxin-orin-firstboot.service
+fi
+if [[ -f "${SCRIPT_DIR}/orin-performance.sh" ]]; then
+  install -m 0755 "${SCRIPT_DIR}/orin-performance.sh" \
+    /usr/lib/juxin-orin/orin-performance.sh
+fi
+if [[ -f "${SCRIPT_DIR}/juxin-orin-performance.service" ]]; then
+  install -m 0644 "${SCRIPT_DIR}/juxin-orin-performance.service" \
+    /etc/systemd/system/juxin-orin-performance.service
+fi
+
+if [[ ! -f /etc/juxin-orin/image.env ]]; then
+  if [[ -z "${ORIN_IMAGE_LICENSE:-}" ]]; then
+    install -m 0600 "${SCRIPT_DIR}/agent.env.example" /etc/juxin-orin/image.env.example
+    echo "Missing /etc/juxin-orin/image.env and ORIN_IMAGE_LICENSE." >&2
+    echo "This device cannot enroll until an active image license is configured." >&2
+    exit 2
+  fi
+  cat >/etc/juxin-orin/image.env <<EOF
+ORIN_API_BASE_URL=${ORIN_API_BASE_URL:-https://nvidia.juxinsuanli.cn}
+ORIN_IMAGE_LICENSE=${ORIN_IMAGE_LICENSE}
+ORIN_AGENT_VERSION=${ORIN_AGENT_VERSION:-0.3.0-orin}
+ORIN_IMAGE_VERSION=${ORIN_IMAGE_VERSION:-orin-l4t-36.4.7-v1}
+ORIN_HEARTBEAT_INTERVAL=${ORIN_HEARTBEAT_INTERVAL:-60}
+ORIN_TASK_POLL_INTERVAL=${ORIN_TASK_POLL_INTERVAL:-60}
+ORIN_TASK_TIMEOUT=${ORIN_TASK_TIMEOUT:-240}
+ORIN_REQUEST_RETRIES=${ORIN_REQUEST_RETRIES:-2}
+EOF
+  chmod 0600 /etc/juxin-orin/image.env
 fi
 
 systemctl daemon-reload
-systemctl enable --now juxin-orin-agent.service
+services=(juxin-orin-firstboot.service juxin-orin-agent.service)
+[[ -f /etc/systemd/system/juxin-orin-performance.service ]] \
+  && services+=(juxin-orin-performance.service)
+systemctl enable "${services[@]}"
+
+if [[ "$REMOTE_UPGRADE" == "1" ]]; then
+  nohup sh -c 'sleep 5; systemctl restart juxin-orin-agent.service' \
+    >>/opt/juxin-orin/runtime/upgrade.log 2>&1 &
+  echo "Agent files installed; service restart scheduled."
+else
+  systemctl start juxin-orin-firstboot.service
+  systemctl restart juxin-orin-agent.service
+  systemctl --no-pager --full status juxin-orin-agent.service || true
+fi

@@ -1,6 +1,8 @@
 package com.juxin.orin.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.juxin.orin.entity.ComputeJob;
@@ -14,11 +16,14 @@ import org.springframework.stereotype.Service;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.time.LocalDateTime;
 import java.util.stream.Collectors;
 
 @Service
 public class ComputeJobServiceImpl extends ServiceImpl<ComputeJobMapper, ComputeJob>
         implements IComputeJobService {
+
+    private static final int MAX_CLAIM_ATTEMPTS = 5;
 
     @Autowired
     private IDeviceService deviceService;
@@ -103,6 +108,57 @@ public class ComputeJobServiceImpl extends ServiceImpl<ComputeJobMapper, Compute
         trend.put("labels", labels);
         trend.put("values", values);
         return trend;
+    }
+
+    @Override
+    public ComputeJob claimNextPendingTask(String deviceSn) {
+        if (deviceSn == null || deviceSn.isBlank()) {
+            return null;
+        }
+        String normalizedSn = deviceSn.trim();
+
+        ComputeJob existing = baseMapper.selectOne(new QueryWrapper<ComputeJob>()
+                .eq("status", "running")
+                .eq("device_sn", normalizedSn)
+                .eq("deleted", 0)
+                .orderByAsc("update_time")
+                .orderByAsc("id")
+                .last("LIMIT 1"));
+        if (existing != null) {
+            return existing;
+        }
+
+        // The select and update are deliberately separate. The conditional
+        // update is the ownership gate that makes concurrent polling safe.
+        for (int attempt = 0; attempt < MAX_CLAIM_ATTEMPTS; attempt++) {
+            ComputeJob candidate = baseMapper.selectOne(new QueryWrapper<ComputeJob>()
+                    .eq("status", "pending")
+                    .eq("deleted", 0)
+                    .and(wrapper -> wrapper.eq("device_sn", normalizedSn).or().isNull("device_sn"))
+                    .orderByAsc("create_time")
+                    .orderByAsc("id")
+                    .last("LIMIT 1"));
+            if (candidate == null || candidate.getId() == null) {
+                return null;
+            }
+
+            LocalDateTime now = LocalDateTime.now();
+            int claimed = baseMapper.update(null, new UpdateWrapper<ComputeJob>()
+                    .eq("id", candidate.getId())
+                    .eq("status", "pending")
+                    .eq("deleted", 0)
+                    .and(wrapper -> wrapper.eq("device_sn", normalizedSn).or().isNull("device_sn"))
+                    .set("status", "running")
+                    .set("device_sn", normalizedSn)
+                    .set("update_time", now));
+            if (claimed == 1) {
+                candidate.setStatus("running");
+                candidate.setDeviceSn(normalizedSn);
+                candidate.setUpdateTime(now);
+                return candidate;
+            }
+        }
+        return null;
     }
 
     private void fillDeviceInfo(List<ComputeJob> records) {

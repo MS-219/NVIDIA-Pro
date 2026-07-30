@@ -103,6 +103,10 @@ CREATE TABLE IF NOT EXISTS device (
     agent_version VARCHAR(64),
     image_license_key VARCHAR(64),
     image_version VARCHAR(64),
+    device_token_hash CHAR(64),
+    device_token_seed CHAR(64),
+    hardware_fingerprint VARCHAR(128),
+    enrolled_at DATETIME,
     device_model VARCHAR(160),
     architecture VARCHAR(32),
     l4t_version VARCHAR(128),
@@ -118,7 +122,9 @@ CREATE TABLE IF NOT EXISTS device (
     KEY idx_device_merchant (merchant_id),
     KEY idx_device_status_type (status, type),
     KEY idx_device_heartbeat (last_heartbeat_time),
-    KEY idx_device_image_license (image_license_key)
+    KEY idx_device_image_license (image_license_key),
+    UNIQUE KEY uk_device_token_hash (device_token_hash),
+    UNIQUE KEY uk_device_hardware_fingerprint (hardware_fingerprint)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 CREATE TABLE IF NOT EXISTS compute_job (

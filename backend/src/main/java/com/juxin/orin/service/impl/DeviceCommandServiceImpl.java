@@ -1,6 +1,8 @@
 package com.juxin.orin.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.juxin.orin.entity.Device;
 import com.juxin.orin.entity.DeviceCommand;
@@ -109,25 +111,38 @@ public class DeviceCommandServiceImpl extends ServiceImpl<DeviceCommandMapper, D
         if (deviceSn == null || deviceSn.trim().isEmpty()) {
             return null;
         }
-        LambdaQueryWrapper<DeviceCommand> query = new LambdaQueryWrapper<>();
-        query.eq(DeviceCommand::getDeviceSn, deviceSn.trim())
-                .eq(DeviceCommand::getStatus, "pending")
-                .orderByAsc(DeviceCommand::getCreateTime)
-                .last("LIMIT 1");
-        DeviceCommand command = getOne(query);
+        String normalizedSn = deviceSn.trim();
+        DeviceCommand delivered = baseMapper.selectOne(new QueryWrapper<DeviceCommand>()
+                .eq("device_sn", normalizedSn)
+                .eq("status", "delivered")
+                .eq("deleted", 0)
+                .orderByAsc("dispatched_at")
+                .orderByAsc("id")
+                .last("LIMIT 1"));
+        if (delivered != null) {
+            return delivered;
+        }
+
+        DeviceCommand command = baseMapper.selectOne(new QueryWrapper<DeviceCommand>()
+                .eq("device_sn", normalizedSn)
+                .eq("status", "pending")
+                .eq("deleted", 0)
+                .orderByAsc("create_time")
+                .orderByAsc("id")
+                .last("LIMIT 1"));
         if (command == null) {
             return null;
         }
 
         LocalDateTime now = LocalDateTime.now();
-        boolean updated = lambdaUpdate()
-                .eq(DeviceCommand::getId, command.getId())
-                .eq(DeviceCommand::getStatus, "pending")
-                .set(DeviceCommand::getStatus, "delivered")
-                .set(DeviceCommand::getDispatchedAt, now)
-                .set(DeviceCommand::getUpdateTime, now)
-                .update();
-        if (!updated) {
+        int updated = baseMapper.update(null, new UpdateWrapper<DeviceCommand>()
+                .eq("id", command.getId())
+                .eq("status", "pending")
+                .eq("deleted", 0)
+                .set("status", "delivered")
+                .set("dispatched_at", now)
+                .set("update_time", now));
+        if (updated != 1) {
             return null;
         }
         command.setStatus("delivered");
@@ -173,25 +188,38 @@ public class DeviceCommandServiceImpl extends ServiceImpl<DeviceCommandMapper, D
         if (commandNo == null || commandNo.trim().isEmpty()) {
             return false;
         }
-        DeviceCommand command = lambdaQuery()
-                .eq(DeviceCommand::getCommandNo, commandNo.trim())
-                .one();
+        DeviceCommand command = baseMapper.selectOne(new QueryWrapper<DeviceCommand>()
+                .eq("command_no", commandNo.trim())
+                .eq("deleted", 0)
+                .last("LIMIT 1"));
         if (command == null) {
             return false;
         }
         String status = exitCode != null && exitCode == 0 ? "completed" : "failed";
-        boolean updated = lambdaUpdate()
-                .eq(DeviceCommand::getId, command.getId())
-                .set(DeviceCommand::getStatus, status)
-                .set(DeviceCommand::getExitCode, exitCode)
-                .set(DeviceCommand::getResultText, trimResult(resultText))
-                .set(DeviceCommand::getFinishedAt, LocalDateTime.now())
-                .set(DeviceCommand::getUpdateTime, LocalDateTime.now())
-                .update();
-        if (updated && "UPGRADE_AGENT".equals(command.getCommandType())) {
+        if ("completed".equals(command.getStatus()) || "failed".equals(command.getStatus())) {
+            return status.equals(command.getStatus());
+        }
+        if (!"delivered".equals(command.getStatus())) {
+            return false;
+        }
+        LocalDateTime now = LocalDateTime.now();
+        int updated = baseMapper.update(null, new UpdateWrapper<DeviceCommand>()
+                .eq("id", command.getId())
+                .eq("status", "delivered")
+                .eq("deleted", 0)
+                .set("status", status)
+                .set("exit_code", exitCode)
+                .set("result_text", trimResult(resultText))
+                .set("finished_at", now)
+                .set("update_time", now));
+        if (updated == 1 && "UPGRADE_AGENT".equals(command.getCommandType())) {
             deviceUpgradeService.handleCommandResult(command.getCommandNo(), exitCode, resultText);
         }
-        return updated;
+        if (updated == 1) {
+            return true;
+        }
+        DeviceCommand current = baseMapper.selectById(command.getId());
+        return current != null && status.equals(current.getStatus());
     }
 
     @Override
