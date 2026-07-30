@@ -5,7 +5,6 @@ import com.juxin.orin.common.Result;
 import com.juxin.orin.entity.ApiMerchant;
 import com.juxin.orin.entity.Device;
 import com.juxin.orin.entity.DeviceCommand;
-import com.juxin.orin.entity.ImageLicense;
 import com.juxin.orin.entity.SysUser;
 import com.juxin.orin.service.IDeviceCommandService;
 import com.juxin.orin.service.IDeviceService;
@@ -45,9 +44,6 @@ public class DeviceController {
 
     @Autowired
     private com.juxin.orin.service.ISysUserService sysUserService;
-
-    @Autowired
-    private com.juxin.orin.service.IImageLicenseService imageLicenseService;
 
     /**
      * 验证管理员权限的辅助方法
@@ -140,12 +136,7 @@ public class DeviceController {
                     sn,
                     ip,
                     "0",
-                    "0",
-                    params.get("image_license"),
-                    params.get("image_version"),
-                    params.get("hardware_fingerprint"),
-                    null,
-                    null);
+                    "0");
         } catch (IllegalArgumentException e) {
             return Result.error(e.getMessage());
         }
@@ -809,20 +800,9 @@ public class DeviceController {
             query.isNull(Device::getUserId);
         }
         if ("factory".equals(role)) {
-            String username = com.juxin.orin.util.JwtUtil.getUsername(rawToken);
-            java.util.List<String> licenseKeys = imageLicenseService.lambdaQuery()
-                    .eq(ImageLicense::getFactoryUsername, username)
-                    .list()
-                    .stream()
-                    .map(ImageLicense::getLicenseKey)
-                    .filter(key -> key != null && !key.isBlank())
-                    .toList();
-            if (licenseKeys.isEmpty()) {
-                return Result.success(Map.of(
-                        "total", 0,
-                        "list", java.util.List.of()));
-            }
-            query.in(Device::getImageLicenseKey, licenseKeys);
+            return Result.success(Map.of(
+                    "total", 0,
+                    "list", java.util.List.of()));
         }
 
         query.orderByDesc(Device::getCreateTime);

@@ -22,7 +22,7 @@ class DeviceEnrollmentSchemaInitializerTest {
     @Test
     void initializeAddsOnlyMissingEnrollmentColumnsAndIndexes() {
         when(jdbcTemplate.queryForObject(anyString(), eq(Integer.class), any()))
-                .thenReturn(0, 0, 0, 0, 0, 0, 0);
+                .thenReturn(0, 0, 0, 0, 0, 0);
 
         new DeviceEnrollmentSchemaInitializer(jdbcTemplate).initialize();
 
@@ -32,17 +32,15 @@ class DeviceEnrollmentSchemaInitializerTest {
         verify(jdbcTemplate).execute(DeviceEnrollmentSchemaInitializer.ADD_ENROLLED_AT_SQL);
         verify(jdbcTemplate).execute(DeviceEnrollmentSchemaInitializer.ADD_TOKEN_INDEX_SQL);
         verify(jdbcTemplate).execute(DeviceEnrollmentSchemaInitializer.ADD_FINGERPRINT_INDEX_SQL);
-        verify(jdbcTemplate, never()).update(DeviceEnrollmentSchemaInitializer.BACKFILL_FINGERPRINT_SQL);
     }
 
     @Test
     void initializeIsRepeatableWhenSchemaAlreadyExists() {
         when(jdbcTemplate.queryForObject(anyString(), eq(Integer.class), any()))
-                .thenReturn(1, 1, 1, 1, 1, 1, 1);
+                .thenReturn(1, 1, 1, 1, 1, 1);
 
         new DeviceEnrollmentSchemaInitializer(jdbcTemplate).initialize();
 
         verify(jdbcTemplate, never()).execute(anyString());
-        verify(jdbcTemplate).update(DeviceEnrollmentSchemaInitializer.BACKFILL_FINGERPRINT_SQL);
     }
 }

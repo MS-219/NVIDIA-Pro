@@ -12,13 +12,6 @@ public interface IDeviceService extends IService<Device> {
      */
     Device handleHeartbeat(String sn, String ip, String cpuUsage, String memoryUsage);
 
-    /**
-     * 处理设备心跳，并在新设备首次接入时校验镜像授权。
-     */
-    Device handleHeartbeat(String sn, String ip, String cpuUsage, String memoryUsage,
-                           String imageLicenseKey, String imageVersion, String hardwareFingerprint,
-                           String cpuModel, String agentVersion);
-
     boolean bindDevice(String sn, String code, Long userId);
 
     boolean bindDevice(String sn, String code, Long userId, Long merchantId);

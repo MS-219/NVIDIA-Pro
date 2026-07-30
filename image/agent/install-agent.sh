@@ -37,16 +37,9 @@ if [[ -f "${SCRIPT_DIR}/juxin-orin-performance.service" ]]; then
 fi
 
 if [[ ! -f /etc/juxin-orin/image.env ]]; then
-  if [[ -z "${ORIN_IMAGE_LICENSE:-}" ]]; then
-    install -m 0600 "${SCRIPT_DIR}/agent.env.example" /etc/juxin-orin/image.env.example
-    echo "Missing /etc/juxin-orin/image.env and ORIN_IMAGE_LICENSE." >&2
-    echo "This device cannot enroll until an active image license is configured." >&2
-    exit 2
-  fi
   cat >/etc/juxin-orin/image.env <<EOF
 ORIN_API_BASE_URL=${ORIN_API_BASE_URL:-https://nvidia.juxinsuanli.cn}
-ORIN_IMAGE_LICENSE=${ORIN_IMAGE_LICENSE}
-ORIN_AGENT_VERSION=${ORIN_AGENT_VERSION:-0.3.0-orin}
+ORIN_AGENT_VERSION=${ORIN_AGENT_VERSION:-0.4.0-orin}
 ORIN_IMAGE_VERSION=${ORIN_IMAGE_VERSION:-orin-l4t-36.4.7-v1}
 ORIN_HEARTBEAT_INTERVAL=${ORIN_HEARTBEAT_INTERVAL:-60}
 ORIN_TASK_POLL_INTERVAL=${ORIN_TASK_POLL_INTERVAL:-60}
@@ -55,6 +48,12 @@ ORIN_REQUEST_RETRIES=${ORIN_REQUEST_RETRIES:-2}
 EOF
   chmod 0600 /etc/juxin-orin/image.env
 fi
+
+for config_file in /etc/juxin-orin/image.env /etc/juxin-orin/agent.env; do
+  if [[ -f "$config_file" ]]; then
+    sed -i '/^ORIN_IMAGE_LICENSE=/d' "$config_file"
+  fi
+done
 
 systemctl daemon-reload
 services=(juxin-orin-firstboot.service juxin-orin-agent.service)

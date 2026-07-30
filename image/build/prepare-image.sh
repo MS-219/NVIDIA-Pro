@@ -4,11 +4,10 @@ set -Eeuo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 DOWNLOADS=""
 WORK_DIR=""
-LICENSE_FILE=""
 SSH_PUBLIC_KEY_FILE=""
 API_URL="https://nvidia.juxinsuanli.cn"
 IMAGE_VERSION="orin-l4t-36.4.7-v1"
-AGENT_VERSION="0.3.0-orin"
+AGENT_VERSION="0.4.0-orin"
 QUIET_BOOT=0
 
 BSP_NAME="Jetson_Linux_R36.4.4_aarch64.tbz2"
@@ -19,7 +18,7 @@ ROOTFS_SHA1="73df3f66ad77f29d1424d61dbb45d5587090c912"
 usage() {
   cat <<'EOF'
 Usage: sudo ./prepare-image.sh --downloads DIR --work-dir DIR \
-  --license-file FILE --ssh-public-key FILE [options]
+  --ssh-public-key FILE [options]
 
 The script must run on a physical x86_64 Ubuntu 22.04 host and an ext4/xfs/btrfs
 work directory. It builds NVIDIA's Basic (non-GUI) rootfs and injects the Orin agent.
@@ -35,7 +34,6 @@ while [[ $# -gt 0 ]]; do
   case "$1" in
     --downloads) DOWNLOADS="${2:-}"; shift 2 ;;
     --work-dir) WORK_DIR="${2:-}"; shift 2 ;;
-    --license-file) LICENSE_FILE="${2:-}"; shift 2 ;;
     --ssh-public-key) SSH_PUBLIC_KEY_FILE="${2:-}"; shift 2 ;;
     --api-url) API_URL="${2:-}"; shift 2 ;;
     --image-version) IMAGE_VERSION="${2:-}"; shift 2 ;;
@@ -52,7 +50,6 @@ grep -q '^VERSION_CODENAME=jammy$' /etc/os-release || die "requires Ubuntu 22.04
 [[ -n "$DOWNLOADS" && -d "$DOWNLOADS" ]] || die "--downloads directory is required"
 [[ -n "$WORK_DIR" ]] || die "--work-dir is required"
 [[ -f "$DOWNLOADS/$BSP_NAME" ]] || die "missing $DOWNLOADS/$BSP_NAME"
-[[ -f "$LICENSE_FILE" ]] || die "--license-file is required"
 [[ -f "$SSH_PUBLIC_KEY_FILE" ]] || die "--ssh-public-key is required"
 
 install -d -m 0755 "$WORK_DIR"
@@ -101,7 +98,6 @@ cd "$L4T_DIR"
 
 inject_args=( \
   --rootfs "$L4T_DIR/rootfs" \
-  --license-file "$LICENSE_FILE" \
   --ssh-public-key "$SSH_PUBLIC_KEY_FILE" \
   --api-url "$API_URL" \
   --image-version "$IMAGE_VERSION" \

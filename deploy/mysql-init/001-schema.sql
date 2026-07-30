@@ -101,7 +101,6 @@ CREATE TABLE IF NOT EXISTS device (
     memory_usage VARCHAR(16),
     cpu_model VARCHAR(255),
     agent_version VARCHAR(64),
-    image_license_key VARCHAR(64),
     image_version VARCHAR(64),
     device_token_hash CHAR(64),
     device_token_seed CHAR(64),
@@ -122,7 +121,6 @@ CREATE TABLE IF NOT EXISTS device (
     KEY idx_device_merchant (merchant_id),
     KEY idx_device_status_type (status, type),
     KEY idx_device_heartbeat (last_heartbeat_time),
-    KEY idx_device_image_license (image_license_key),
     UNIQUE KEY uk_device_token_hash (device_token_hash),
     UNIQUE KEY uk_device_hardware_fingerprint (hardware_fingerprint)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
@@ -273,44 +271,6 @@ CREATE TABLE IF NOT EXISTS device_upgrade_record (
     KEY idx_upgrade_record_command (command_no),
     KEY idx_upgrade_record_device (device_sn),
     KEY idx_upgrade_record_status (status)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
-
-CREATE TABLE IF NOT EXISTS image_license (
-    id BIGINT NOT NULL AUTO_INCREMENT,
-    license_key VARCHAR(64) NOT NULL,
-    name VARCHAR(100) NOT NULL,
-    image_version VARCHAR(64),
-    status VARCHAR(32) NOT NULL DEFAULT 'active',
-    remark VARCHAR(255),
-    created_by VARCHAR(64),
-    factory_username VARCHAR(64),
-    revoked_at DATETIME,
-    create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    PRIMARY KEY (id),
-    UNIQUE KEY uk_image_license_key (license_key),
-    KEY idx_image_license_factory (factory_username),
-    KEY idx_image_license_status (status)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
-
-CREATE TABLE IF NOT EXISTS image_license_activation (
-    id BIGINT NOT NULL AUTO_INCREMENT,
-    license_id BIGINT NOT NULL,
-    license_key VARCHAR(64) NOT NULL,
-    device_sn VARCHAR(64) NOT NULL,
-    device_id BIGINT,
-    hardware_fingerprint VARCHAR(128),
-    agent_version VARCHAR(64),
-    image_version VARCHAR(64),
-    ip VARCHAR(64),
-    cpu_model VARCHAR(255),
-    first_seen_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    last_seen_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    PRIMARY KEY (id),
-    UNIQUE KEY uk_image_license_device (license_key, device_sn),
-    KEY idx_image_activation_license (license_id),
-    KEY idx_image_activation_device (device_sn),
-    KEY idx_image_activation_seen (last_seen_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 CREATE TABLE IF NOT EXISTS notice (

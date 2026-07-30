@@ -4,17 +4,16 @@ set -Eeuo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 IMAGE_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 ROOTFS=""
-LICENSE_FILE=""
 SSH_PUBLIC_KEY_FILE=""
 API_URL="https://nvidia.juxinsuanli.cn"
 IMAGE_VERSION="orin-l4t-36.4.7-v1"
-AGENT_VERSION="0.3.0-orin"
+AGENT_VERSION="0.4.0-orin"
 MAINTENANCE_USER="juxin"
 QUIET_BOOT=0
 
 usage() {
   cat <<'EOF'
-Usage: sudo ./inject-rootfs.sh --rootfs PATH --license-file PATH --ssh-public-key PATH [options]
+Usage: sudo ./inject-rootfs.sh --rootfs PATH --ssh-public-key PATH [options]
 
 Options:
   --api-url URL             Orin platform URL (default: https://nvidia.juxinsuanli.cn)
@@ -33,7 +32,6 @@ die() {
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --rootfs) ROOTFS="${2:-}"; shift 2 ;;
-    --license-file) LICENSE_FILE="${2:-}"; shift 2 ;;
     --ssh-public-key) SSH_PUBLIC_KEY_FILE="${2:-}"; shift 2 ;;
     --api-url) API_URL="${2:-}"; shift 2 ;;
     --image-version) IMAGE_VERSION="${2:-}"; shift 2 ;;
@@ -49,16 +47,12 @@ done
 [[ -n "$ROOTFS" && -d "$ROOTFS/etc" && -f "$ROOTFS/etc/os-release" ]] || die "invalid rootfs"
 ROOTFS="$(realpath "$ROOTFS")"
 [[ "$ROOTFS" != "/" ]] || die "refusing to modify the build host root filesystem"
-[[ -n "$LICENSE_FILE" && -f "$LICENSE_FILE" ]] || die "--license-file is required"
 [[ -n "$SSH_PUBLIC_KEY_FILE" && -f "$SSH_PUBLIC_KEY_FILE" ]] || die "--ssh-public-key is required"
 [[ ! -e "$ROOTFS/usr/bin/gnome-shell" ]] || die "desktop rootfs detected; build NVIDIA basic flavor instead"
 [[ "$API_URL" =~ ^https://[A-Za-z0-9.-]+(:[0-9]+)?(/.*)?$ ]] || die "API URL must use HTTPS"
 [[ "$IMAGE_VERSION" =~ ^[A-Za-z0-9._-]+$ ]] || die "invalid image version"
 [[ "$AGENT_VERSION" =~ ^[A-Za-z0-9._-]+$ ]] || die "invalid agent version"
 [[ "$MAINTENANCE_USER" =~ ^[a-z_][a-z0-9_-]{0,31}$ ]] || die "invalid maintenance username"
-
-IMAGE_LICENSE="$(head -n 1 "$LICENSE_FILE" | tr -d '\r\n ' | tr '[:lower:]' '[:upper:]')"
-[[ "$IMAGE_LICENSE" =~ ^IMG-[0-9]{8}-[A-F0-9]{24}$ ]] || die "license file does not contain a valid image license"
 
 SSH_PUBLIC_KEY="$(head -n 1 "$SSH_PUBLIC_KEY_FILE" | tr -d '\r\n')"
 [[ "$SSH_PUBLIC_KEY" =~ ^ssh-(ed25519|rsa)[[:space:]]+[A-Za-z0-9+/=]+([[:space:]].*)?$ ]] \
@@ -85,7 +79,6 @@ install -m 0644 "$IMAGE_DIR/agent/juxin-orin-performance.service" "$ROOTFS/etc/s
 
 cat >"$ROOTFS/etc/juxin-orin/image.env" <<EOF
 ORIN_API_BASE_URL=${API_URL}
-ORIN_IMAGE_LICENSE=${IMAGE_LICENSE}
 ORIN_AGENT_VERSION=${AGENT_VERSION}
 ORIN_IMAGE_VERSION=${IMAGE_VERSION}
 ORIN_HEARTBEAT_INTERVAL=60

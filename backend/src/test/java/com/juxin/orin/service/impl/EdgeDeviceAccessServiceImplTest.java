@@ -5,11 +5,8 @@ import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import com.juxin.orin.dto.EdgeEnrollRequest;
 import com.juxin.orin.dto.EdgeEnrollResponse;
 import com.juxin.orin.entity.Device;
-import com.juxin.orin.entity.ImageLicense;
 import com.juxin.orin.exception.EdgeDeviceApiException;
 import com.juxin.orin.mapper.DeviceMapper;
-import com.juxin.orin.mapper.ImageLicenseMapper;
-import com.juxin.orin.service.IImageLicenseService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -35,17 +32,10 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 class EdgeDeviceAccessServiceImplTest {
 
-    private static final String LICENSE_KEY = "IMG-20260730-AAAAAAAAAAAAAAAAAAAAAAAA";
     private static final String TEST_SECRET = "test-enrollment-secret-with-at-least-32-bytes";
 
     @Mock
     private DeviceMapper deviceMapper;
-
-    @Mock
-    private ImageLicenseMapper imageLicenseMapper;
-
-    @Mock
-    private IImageLicenseService imageLicenseService;
 
     private EdgeDeviceAccessServiceImpl service;
 
@@ -53,15 +43,11 @@ class EdgeDeviceAccessServiceImplTest {
     void setUp() {
         service = new EdgeDeviceAccessServiceImpl(
                 deviceMapper,
-                imageLicenseMapper,
-                imageLicenseService,
                 TEST_SECRET);
     }
 
     @Test
     void enrollCreatesDeviceAndStoresOnlyTokenHash() {
-        ImageLicense license = activeLicense(LICENSE_KEY, "orin-l4t-36.4.7-v1");
-        when(imageLicenseMapper.selectOne(any(LambdaQueryWrapper.class))).thenReturn(license);
         when(deviceMapper.selectOne(any(LambdaQueryWrapper.class))).thenReturn(null, null, null);
         doAnswer(invocation -> {
             Device device = invocation.getArgument(0);
@@ -71,7 +57,6 @@ class EdgeDeviceAccessServiceImplTest {
 
         EdgeEnrollResponse response = service.enroll(new EdgeEnrollRequest(
                 "ORIN-001",
-                LICENSE_KEY.toLowerCase(),
                 "orin-l4t-36.4.7-v1",
                 "0123456789abcdef",
                 Map.of(
@@ -96,32 +81,21 @@ class EdgeDeviceAccessServiceImplTest {
         assertEquals("0123456789abcdef", stored.getHardwareFingerprint());
         assertEquals("aarch64", stored.getArchitecture());
         assertEquals(42.5, stored.getGpuTemperature());
-        verify(imageLicenseService).recordActivation(
-                license,
-                stored,
-                "0123456789abcdef",
-                "1.0.0",
-                "orin-l4t-36.4.7-v1",
-                "203.0.113.10",
-                null);
     }
 
     @Test
     void enrollNeverReissuesTokenForAlreadyEnrolledDevice() {
-        ImageLicense license = activeLicense(LICENSE_KEY, "orin-l4t-36.4.7-v1");
         Device existing = new Device();
         existing.setId(8L);
         existing.setSn("ORIN-001");
         existing.setHardwareFingerprint("0123456789abcdef");
         existing.setDeviceTokenHash("a".repeat(64));
 
-        when(imageLicenseMapper.selectOne(any(LambdaQueryWrapper.class))).thenReturn(license);
         when(deviceMapper.selectOne(any(LambdaQueryWrapper.class))).thenReturn(existing, existing);
 
         EdgeDeviceApiException exception = assertThrows(EdgeDeviceApiException.class, () -> service.enroll(
                 new EdgeEnrollRequest(
                         "ORIN-001",
-                        LICENSE_KEY,
                         "orin-l4t-36.4.7-v1",
                         "0123456789abcdef",
                         Map.of()),
@@ -133,8 +107,6 @@ class EdgeDeviceAccessServiceImplTest {
 
     @Test
     void enrollmentRetryRecoversSameTokenAfterResponseLoss() {
-        ImageLicense license = activeLicense(LICENSE_KEY, "orin-l4t-36.4.7-v1");
-        when(imageLicenseMapper.selectOne(any(LambdaQueryWrapper.class))).thenReturn(license);
         when(deviceMapper.selectOne(any(LambdaQueryWrapper.class))).thenReturn(null, null, null);
         doAnswer(invocation -> {
             Device device = invocation.getArgument(0);
@@ -159,8 +131,6 @@ class EdgeDeviceAccessServiceImplTest {
 
     @Test
     void concurrentEnrollmentReturnsWinningTokenWhenConditionalClaimLoses() {
-        ImageLicense license = activeLicense(LICENSE_KEY, "orin-l4t-36.4.7-v1");
-        when(imageLicenseMapper.selectOne(any(LambdaQueryWrapper.class))).thenReturn(license);
         when(deviceMapper.selectOne(any(LambdaQueryWrapper.class))).thenReturn(null, null, null);
         doAnswer(invocation -> {
             Device device = invocation.getArgument(0);
@@ -179,7 +149,6 @@ class EdgeDeviceAccessServiceImplTest {
         stale.setSn(winner.getSn());
         stale.setBindCode(winner.getBindCode());
         stale.setHardwareFingerprint(winner.getHardwareFingerprint());
-        stale.setImageLicenseKey(winner.getImageLicenseKey());
         when(deviceMapper.selectOne(any(LambdaQueryWrapper.class))).thenReturn(stale, stale, winner);
         when(deviceMapper.update(isNull(), any(UpdateWrapper.class))).thenReturn(0);
 
@@ -190,21 +159,21 @@ class EdgeDeviceAccessServiceImplTest {
     }
 
     @Test
-    void enrollRejectsRevokedLicenseBeforeCreatingDevice() {
-        ImageLicense license = activeLicense(LICENSE_KEY, "orin-l4t-36.4.7-v1");
-        license.setStatus("revoked");
-        when(imageLicenseMapper.selectOne(any(LambdaQueryWrapper.class))).thenReturn(license);
+    void enrollRejectsFingerprintBoundToAnotherDevice() {
+        Device owner = new Device();
+        owner.setSn("ORIN-OTHER");
+        owner.setHardwareFingerprint("fedcba9876543210");
+        when(deviceMapper.selectOne(any(LambdaQueryWrapper.class))).thenReturn(owner);
 
         EdgeDeviceApiException exception = assertThrows(EdgeDeviceApiException.class, () -> service.enroll(
                 new EdgeEnrollRequest(
                         "ORIN-002",
-                        LICENSE_KEY,
                         "orin-l4t-36.4.7-v1",
                         "fedcba9876543210",
                         Map.of()),
                 "203.0.113.11"));
 
-        assertEquals(HttpStatus.UNAUTHORIZED, exception.getStatus());
+        assertEquals(HttpStatus.CONFLICT, exception.getStatus());
         verify(deviceMapper, never()).insert(any(Device.class));
     }
 
@@ -228,19 +197,9 @@ class EdgeDeviceAccessServiceImplTest {
         verify(deviceMapper, never()).selectOne(any(LambdaQueryWrapper.class));
     }
 
-    private ImageLicense activeLicense(String key, String version) {
-        ImageLicense license = new ImageLicense();
-        license.setId(3L);
-        license.setLicenseKey(key);
-        license.setImageVersion(version);
-        license.setStatus("active");
-        return license;
-    }
-
     private EdgeEnrollRequest enrollmentRequest(String sn) {
         return new EdgeEnrollRequest(
                 sn,
-                LICENSE_KEY,
                 "orin-l4t-36.4.7-v1",
                 "0123456789abcdef",
                 Map.of("architecture", "aarch64", "agent_version", "1.0.0"));

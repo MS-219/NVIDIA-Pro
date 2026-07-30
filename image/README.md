@@ -18,15 +18,15 @@ NVIDIA UEFI logo
   -> juxin-orin-firstboot.service
   -> derive ORIN-xxxxxxxxxxxx from the Tegra serial/MAC
   -> generate machine-id and SSH host keys
-  -> enroll with the image license
+  -> enroll with the device SN and hardware fingerprint
   -> persist the per-device token
   -> juxin-orin-agent.service heartbeat and task polling
   -> device appears online at nvidia.juxinsuanli.cn
 ```
 
-The shared image license is only an enrollment credential. After enrollment,
-the backend returns a unique device token and stores only its hash. All later
-edge requests use that token.
+On first boot, the node enrolls directly with its generated SN and hardware
+fingerprint. The backend returns a unique device token and stores only its hash.
+All later edge requests use that token.
 
 ## Image contract
 
@@ -80,22 +80,7 @@ Expected SHA-1:
 The downloaded desktop Sample RootFS may be retained as an official reference,
 but the product build intentionally generates NVIDIA's Basic rootfs instead.
 
-## 2. Create an image license
-
-Deploy the backend version that supports `/api/edge/enroll`, then open the admin
-console's image-license page and create one active license for the manufacturing
-batch. Save only the license value into a root-readable file outside Git:
-
-```bash
-install -d -m 0700 ~/juxin-secrets
-printf '%s\n' 'IMG-YYYYMMDD-24_HEX_CHARACTERS' >~/juxin-secrets/orin-v1.license
-chmod 0600 ~/juxin-secrets/orin-v1.license
-```
-
-Use a separate license for each image batch. Revoke it after the batch has
-finished enrolling; already enrolled nodes continue with their device tokens.
-
-## 3. Prepare maintenance SSH access
+## 2. Prepare maintenance SSH access
 
 The image creates a locked `juxin` account. Password and root login are disabled;
 an SSH public key is required:
@@ -106,7 +91,7 @@ ssh-keygen -t ed25519 -f ~/juxin-secrets/orin-maintenance -C juxin-orin-maintena
 
 Never put the private key in the repository or image.
 
-## 4. Build the non-GUI rootfs
+## 3. Build the non-GUI rootfs
 
 From this repository on the Ubuntu build host:
 
@@ -114,7 +99,6 @@ From this repository on the Ubuntu build host:
 sudo ./image/build/prepare-image.sh \
   --downloads /srv/nvidia/downloads \
   --work-dir /srv/nvidia/orin-l4t-36.4.7-v1 \
-  --license-file /home/BUILD_USER/juxin-secrets/orin-v1.license \
   --ssh-public-key /home/BUILD_USER/juxin-secrets/orin-maintenance.pub \
   --image-version orin-l4t-36.4.7-v1
 ```
@@ -136,7 +120,7 @@ default variant shows the NVIDIA logo followed by the `juxin-orin login:` prompt
 The output is a prepared `Linux_for_Tegra` tree. No device-specific state is
 created until the flashed Orin boots.
 
-## 5. Verify the deployed backend
+## 4. Verify the deployed backend
 
 Do not flash a node until the backend release and public Agent assets have been
 deployed. From the same source revision that will build the image, run this
@@ -147,11 +131,11 @@ read-only gate:
 ```
 
 The gate requires the application and database to be healthy, edge protocol
-version `1`, minimum Agent version `0.3.0-orin`, and byte-for-byte matches for
+version `2`, minimum Agent version `0.4.0-orin`, and byte-for-byte matches for
 the three public Agent upgrade files. It does not enroll a device, claim a task,
 or write any production data.
 
-## 6. Flash one pilot node
+## 5. Flash one pilot node
 
 Connect one Orin Nano to the Ubuntu host using its USB-C recovery port, enter
 Force Recovery mode, and verify that `lsusb` shows exactly one NVIDIA `0955`
@@ -168,7 +152,7 @@ The script requires the operator to type `FLASH-ORIN`, then flashes QSPI and the
 `jetson-orin-nano-devkit-super-maxn` board configuration. It refuses a desktop
 rootfs, a non-R36.4.7 rootfs or a missing first-boot configuration.
 
-## 7. Verify the first boot
+## 6. Verify the first boot
 
 Connect wired Ethernet before powering on the node. On the node or through SSH:
 

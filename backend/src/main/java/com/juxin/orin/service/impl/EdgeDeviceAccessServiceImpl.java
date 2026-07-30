@@ -5,12 +5,9 @@ import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import com.juxin.orin.dto.EdgeEnrollRequest;
 import com.juxin.orin.dto.EdgeEnrollResponse;
 import com.juxin.orin.entity.Device;
-import com.juxin.orin.entity.ImageLicense;
 import com.juxin.orin.exception.EdgeDeviceApiException;
 import com.juxin.orin.mapper.DeviceMapper;
-import com.juxin.orin.mapper.ImageLicenseMapper;
 import com.juxin.orin.service.IEdgeDeviceAccessService;
-import com.juxin.orin.service.IImageLicenseService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.http.HttpStatus;
@@ -38,25 +35,18 @@ public class EdgeDeviceAccessServiceImpl implements IEdgeDeviceAccessService {
     private static final int TOKEN_BYTES = 32;
     private static final Duration ENROLLMENT_RECOVERY_WINDOW = Duration.ofMinutes(15);
     private static final Pattern SN_PATTERN = Pattern.compile("[A-Za-z0-9][A-Za-z0-9._:-]{0,63}");
-    private static final Pattern LICENSE_PATTERN = Pattern.compile("IMG-[0-9]{8}-[A-F0-9]{24}");
     private static final Pattern TOKEN_PATTERN = Pattern.compile("[A-Za-z0-9_-]{43}");
 
     private final DeviceMapper deviceMapper;
-    private final ImageLicenseMapper imageLicenseMapper;
-    private final IImageLicenseService imageLicenseService;
     private final byte[] enrollmentSecret;
 
     public EdgeDeviceAccessServiceImpl(
             DeviceMapper deviceMapper,
-            ImageLicenseMapper imageLicenseMapper,
-            IImageLicenseService imageLicenseService,
             @Value("${ORIN_JWT_SECRET:}") String enrollmentSecret) {
         if (enrollmentSecret == null || enrollmentSecret.getBytes(StandardCharsets.UTF_8).length < 32) {
             throw new IllegalStateException("ORIN_JWT_SECRET must contain at least 32 bytes");
         }
         this.deviceMapper = deviceMapper;
-        this.imageLicenseMapper = imageLicenseMapper;
-        this.imageLicenseService = imageLicenseService;
         this.enrollmentSecret = enrollmentSecret.getBytes(StandardCharsets.UTF_8);
     }
 
@@ -68,28 +58,14 @@ public class EdgeDeviceAccessServiceImpl implements IEdgeDeviceAccessService {
         }
 
         String sn = requireText(request.sn(), "sn", 64);
-        String licenseKey = requireText(request.imageLicense(), "image_license", 64).toUpperCase(Locale.ROOT);
         String imageVersion = requireText(request.imageVersion(), "image_version", 64);
         String hardwareFingerprint = requireText(
                 request.hardwareFingerprint(), "hardware_fingerprint", 128);
         if (!SN_PATTERN.matcher(sn).matches()) {
             throw badRequest("sn format is invalid");
         }
-        if (!LICENSE_PATTERN.matcher(licenseKey).matches()) {
-            throw new EdgeDeviceApiException(HttpStatus.UNAUTHORIZED, "镜像授权码无效或已停用");
-        }
         if (hardwareFingerprint.length() < 16) {
             throw badRequest("hardware_fingerprint is too short");
-        }
-
-        ImageLicense license = imageLicenseMapper.selectOne(new LambdaQueryWrapper<ImageLicense>()
-                .eq(ImageLicense::getLicenseKey, licenseKey)
-                .last("LIMIT 1"));
-        if (license == null || !"active".equals(license.getStatus())) {
-            throw new EdgeDeviceApiException(HttpStatus.UNAUTHORIZED, "镜像授权码无效或已停用");
-        }
-        if (hasText(license.getImageVersion()) && !license.getImageVersion().trim().equals(imageVersion)) {
-            throw badRequest("镜像版本与授权码不匹配");
         }
 
         Device fingerprintOwner = deviceMapper.selectOne(new LambdaQueryWrapper<Device>()
@@ -111,10 +87,10 @@ public class EdgeDeviceAccessServiceImpl implements IEdgeDeviceAccessService {
             device.setHashrate(0);
             device.setType(2);
         } else {
-            validateExistingIdentity(device, licenseKey, hardwareFingerprint);
+            validateExistingIdentity(device, hardwareFingerprint);
             if (hasText(device.getDeviceTokenHash())) {
                 return recoverRecentEnrollment(
-                        device, license, imageVersion, hardwareFingerprint, request.telemetry(), clientIp);
+                        device, imageVersion, hardwareFingerprint, request.telemetry(), clientIp);
             }
             if (!hasText(device.getBindCode())) {
                 device.setBindCode(generateAvailableBindCode(sn));
@@ -122,13 +98,12 @@ public class EdgeDeviceAccessServiceImpl implements IEdgeDeviceAccessService {
         }
 
         String tokenSeed = randomHex(TOKEN_BYTES);
-        String rawToken = deriveToken(tokenSeed, sn, hardwareFingerprint, licenseKey);
+        String rawToken = deriveToken(tokenSeed, sn, hardwareFingerprint);
         LocalDateTime now = LocalDateTime.now();
         device.setDeviceTokenHash(sha256(rawToken));
         device.setDeviceTokenSeed(tokenSeed);
         device.setHardwareFingerprint(hardwareFingerprint);
         device.setEnrolledAt(now);
-        device.setImageLicenseKey(licenseKey);
         device.setImageVersion(imageVersion);
         device.setStatus(1);
         device.setType(2);
@@ -141,7 +116,7 @@ public class EdgeDeviceAccessServiceImpl implements IEdgeDeviceAccessService {
                 deviceMapper.insert(device);
             } catch (DuplicateKeyException exception) {
                 return recoverConcurrentEnrollment(
-                        sn, license, imageVersion, hardwareFingerprint, request.telemetry(), clientIp);
+                        sn, imageVersion, hardwareFingerprint, request.telemetry(), clientIp);
             }
         } else {
             int claimed = deviceMapper.update(null, new UpdateWrapper<Device>()
@@ -151,30 +126,19 @@ public class EdgeDeviceAccessServiceImpl implements IEdgeDeviceAccessService {
                     .set("device_token_seed", device.getDeviceTokenSeed())
                     .set("hardware_fingerprint", hardwareFingerprint)
                     .set("enrolled_at", now)
-                    .set("image_license_key", licenseKey)
                     .set("image_version", imageVersion));
             if (claimed != 1) {
                 return recoverConcurrentEnrollment(
-                        sn, license, imageVersion, hardwareFingerprint, request.telemetry(), clientIp);
+                        sn, imageVersion, hardwareFingerprint, request.telemetry(), clientIp);
             }
             deviceMapper.updateById(device);
         }
-
-        imageLicenseService.recordActivation(
-                license,
-                device,
-                hardwareFingerprint,
-                device.getAgentVersion(),
-                imageVersion,
-                device.getIp(),
-                device.getCpuModel());
 
         return new EdgeEnrollResponse(device.getSn(), device.getId(), device.getBindCode(), rawToken);
     }
 
     private EdgeEnrollResponse recoverConcurrentEnrollment(
             String sn,
-            ImageLicense license,
             String imageVersion,
             String hardwareFingerprint,
             Map<String, Object> telemetry,
@@ -191,13 +155,12 @@ public class EdgeDeviceAccessServiceImpl implements IEdgeDeviceAccessService {
             }
             throw new EdgeDeviceApiException(HttpStatus.CONFLICT, "设备入网发生并发冲突，请重试");
         }
-        validateExistingIdentity(enrolled, license.getLicenseKey(), hardwareFingerprint);
-        return recoverRecentEnrollment(enrolled, license, imageVersion, hardwareFingerprint, telemetry, clientIp);
+        validateExistingIdentity(enrolled, hardwareFingerprint);
+        return recoverRecentEnrollment(enrolled, imageVersion, hardwareFingerprint, telemetry, clientIp);
     }
 
     private EdgeEnrollResponse recoverRecentEnrollment(
             Device device,
-            ImageLicense license,
             String imageVersion,
             String hardwareFingerprint,
             Map<String, Object> telemetry,
@@ -211,8 +174,7 @@ public class EdgeDeviceAccessServiceImpl implements IEdgeDeviceAccessService {
         String rawToken = deriveToken(
                 device.getDeviceTokenSeed(),
                 device.getSn(),
-                hardwareFingerprint,
-                license.getLicenseKey());
+                hardwareFingerprint);
         if (!sha256(rawToken).equals(device.getDeviceTokenHash())) {
             throw new EdgeDeviceApiException(HttpStatus.CONFLICT, "设备入网凭据状态异常，请管理员重置");
         }
@@ -224,25 +186,13 @@ public class EdgeDeviceAccessServiceImpl implements IEdgeDeviceAccessService {
         device.setImageVersion(imageVersion);
         applyTelemetry(device, telemetry);
         deviceMapper.updateById(device);
-        imageLicenseService.recordActivation(
-                license,
-                device,
-                hardwareFingerprint,
-                device.getAgentVersion(),
-                imageVersion,
-                device.getIp(),
-                device.getCpuModel());
         return new EdgeEnrollResponse(device.getSn(), device.getId(), device.getBindCode(), rawToken);
     }
 
-    private void validateExistingIdentity(Device device, String licenseKey, String hardwareFingerprint) {
+    private void validateExistingIdentity(Device device, String hardwareFingerprint) {
         if (hasText(device.getHardwareFingerprint())
                 && !hardwareFingerprint.equals(device.getHardwareFingerprint())) {
             throw new EdgeDeviceApiException(HttpStatus.CONFLICT, "设备硬件指纹不匹配");
-        }
-        if (hasText(device.getImageLicenseKey())
-                && !licenseKey.equalsIgnoreCase(device.getImageLicenseKey())) {
-            throw new EdgeDeviceApiException(HttpStatus.CONFLICT, "设备镜像授权归属不匹配");
         }
     }
 
@@ -311,12 +261,12 @@ public class EdgeDeviceAccessServiceImpl implements IEdgeDeviceAccessService {
         throw new EdgeDeviceApiException(HttpStatus.CONFLICT, "设备绑定码生成失败，请重试");
     }
 
-    private String deriveToken(String tokenSeed, String sn, String hardwareFingerprint, String licenseKey) {
+    private String deriveToken(String tokenSeed, String sn, String hardwareFingerprint) {
         try {
             Mac mac = Mac.getInstance("HmacSHA256");
             mac.init(new SecretKeySpec(enrollmentSecret, "HmacSHA256"));
-            String context = "juxin-orin-device-token-v1\0"
-                    + tokenSeed + '\0' + sn + '\0' + hardwareFingerprint + '\0' + licenseKey;
+            String context = "juxin-orin-device-token-v2\0"
+                    + tokenSeed + '\0' + sn + '\0' + hardwareFingerprint;
             return Base64.getUrlEncoder().withoutPadding()
                     .encodeToString(mac.doFinal(context.getBytes(StandardCharsets.UTF_8)));
         } catch (java.security.GeneralSecurityException exception) {

@@ -3,17 +3,14 @@ package com.juxin.orin.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.juxin.orin.entity.Device;
-import com.juxin.orin.entity.ImageLicense;
 import com.juxin.orin.mapper.DeviceMapper;
 import com.juxin.orin.service.IDeviceService;
-import com.juxin.orin.service.IImageLicenseService;
 import com.juxin.orin.util.IpUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import java.time.LocalDateTime;
-import java.util.Locale;
 
 @Service
 public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device> implements IDeviceService {
@@ -30,26 +27,14 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device> impleme
     @org.springframework.context.annotation.Lazy
     private com.juxin.orin.service.IAppUserService appUserService;
 
-    @Autowired
-    private IImageLicenseService imageLicenseService;
-
     @Override
     public Device handleHeartbeat(String sn, String ip, String cpuUsage, String memoryUsage) {
-        return handleHeartbeat(sn, ip, cpuUsage, memoryUsage, null, null, null, null, null);
-    }
-
-    @Override
-    public Device handleHeartbeat(String sn, String ip, String cpuUsage, String memoryUsage,
-                                  String imageLicenseKey, String imageVersion, String hardwareFingerprint,
-                                  String cpuModel, String agentVersion) {
         // 1. 精确匹配 SN 查找设备
         LambdaQueryWrapper<Device> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(Device::getSn, sn);
         Device device = this.getOne(wrapper);
 
         String rawLocation = resolveLocation(ip);
-        String normalizedLicenseKey = normalizeLicenseKey(imageLicenseKey);
-        ImageLicense validLicense = null;
 
         if (log.isDebugEnabled()) {
             if (device != null) {
@@ -77,19 +62,6 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device> impleme
         }
 
         if (device == null) {
-            String licenseError = imageLicenseService.validateNewDeviceLicense(normalizedLicenseKey);
-            if (licenseError != null) {
-                log.warn("[Heartbeat] 拒绝新设备接入: SN={}, IP={}, reason={}", sn, ip, licenseError);
-                throw new IllegalArgumentException(licenseError);
-            }
-            validLicense = imageLicenseService.lambdaQuery()
-                    .eq(ImageLicense::getLicenseKey, normalizedLicenseKey)
-                    .eq(ImageLicense::getStatus, "active")
-                    .one();
-            if (validLicense == null) {
-                log.warn("[Heartbeat] 拒绝新设备接入: SN={}, IP={}, reason=镜像授权状态异常", sn, ip);
-                throw new IllegalArgumentException("镜像授权状态异常，禁止新设备接入");
-            }
             // 3. 自动注册新设备
             device = new Device();
             device.setSn(sn);
@@ -102,8 +74,6 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device> impleme
             device.setHashrate(0);
             device.setCpuUsage(cpuUsage);
             device.setMemoryUsage(memoryUsage);
-            device.setImageLicenseKey(normalizedLicenseKey);
-            device.setImageVersion(trimToNull(imageVersion));
             this.save(device);
         } else {
             // 4. 更新心跳时间和状态
@@ -132,33 +102,10 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device> impleme
             device.setIp(ip);
             device.setCpuUsage(cpuUsage);
             device.setMemoryUsage(memoryUsage);
-            if (normalizedLicenseKey != null) {
-                ImageLicense license = imageLicenseService.lambdaQuery()
-                        .eq(ImageLicense::getLicenseKey, normalizedLicenseKey)
-                        .eq(ImageLicense::getStatus, "active")
-                        .one();
-                if (license != null) {
-                    validLicense = license;
-                    device.setImageLicenseKey(normalizedLicenseKey);
-                    if (trimToNull(imageVersion) != null) {
-                        device.setImageVersion(trimToNull(imageVersion));
-                    }
-                }
-            }
             updateDeviceIpInfo(device, rawLocation);
         }
 
         this.updateById(device);
-        if (validLicense != null) {
-            imageLicenseService.recordActivation(
-                    validLicense,
-                    device,
-                    hardwareFingerprint,
-                    agentVersion,
-                    imageVersion,
-                    ip,
-                    cpuModel);
-        }
         return device;
     }
 
@@ -227,18 +174,6 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device> impleme
 
     private String resolveLocation(String ip) {
         return ipUtil.getLocation(ip);
-    }
-
-    private String normalizeLicenseKey(String licenseKey) {
-        String value = trimToNull(licenseKey);
-        return value == null ? null : value.toUpperCase(Locale.ROOT);
-    }
-
-    private String trimToNull(String value) {
-        if (value == null || value.isBlank()) {
-            return null;
-        }
-        return value.trim();
     }
 
     @Override

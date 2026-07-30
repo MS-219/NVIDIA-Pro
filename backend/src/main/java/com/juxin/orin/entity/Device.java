@@ -90,9 +90,6 @@ public class Device {
     /** 边缘 Agent 版本 */
     private String agentVersion;
 
-    /** 镜像授权码 */
-    private String imageLicenseKey;
-
     /** 镜像版本 */
     private String imageVersion;
 

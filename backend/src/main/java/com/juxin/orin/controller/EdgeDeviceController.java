@@ -32,8 +32,8 @@ import java.util.Map;
 @RequestMapping("/api/edge")
 public class EdgeDeviceController {
 
-    private static final String EDGE_PROTOCOL_VERSION = "1";
-    private static final String MINIMUM_AGENT_VERSION = "0.3.0-orin";
+    private static final String EDGE_PROTOCOL_VERSION = "2";
+    private static final String MINIMUM_AGENT_VERSION = "0.4.0-orin";
 
     @Autowired
     private IDeviceService deviceService;
@@ -61,7 +61,9 @@ public class EdgeDeviceController {
         Map<String, Object> response = new HashMap<>();
         response.put("protocolVersion", EDGE_PROTOCOL_VERSION);
         response.put("minimumAgentVersion", MINIMUM_AGENT_VERSION);
-        response.put("authenticatedEnrollment", true);
+        response.put("directEnrollment", true);
+        response.put("imageLicenseRequired", false);
+        response.put("deviceTokenAuthentication", true);
         response.put("atomicTaskClaim", true);
         response.put("persistentResultOutbox", true);
         response.put("taskHandlers", List.of("ollama", "external-runner"));
@@ -69,7 +71,7 @@ public class EdgeDeviceController {
     }
 
     /**
-     * 使用镜像授权码完成一次性入网，并换取每台设备独立的访问令牌。
+     * 使用设备 SN 和硬件指纹完成一次性入网，并换取每台设备独立的访问令牌。
      * 原始令牌只在这个响应中返回一次，服务端仅保存 SHA-256。
      */
     @PostMapping("/enroll")
@@ -120,12 +122,7 @@ public class EdgeDeviceController {
                     sn,
                     ip,
                     cpuUsage,
-                    memUsage,
-                    null,
-                    null,
-                    null,
-                    cpuModel,
-                    agentVersion);
+                    memUsage);
         } catch (IllegalArgumentException e) {
             throw new EdgeDeviceApiException(HttpStatus.BAD_REQUEST, e.getMessage());
         }

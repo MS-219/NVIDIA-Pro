@@ -15,8 +15,7 @@ mkdir -p \
 
 cat >"$TEMP_ROOT/etc/juxin-orin/image.env" <<'EOF'
 ORIN_API_BASE_URL=https://nvidia.juxinsuanli.cn
-ORIN_IMAGE_LICENSE=IMG-20260730-0123456789ABCDEF01234567
-ORIN_AGENT_VERSION=0.3.0-orin
+ORIN_AGENT_VERSION=0.4.0-orin
 ORIN_IMAGE_VERSION=orin-l4t-36.4.7-test
 ORIN_HEARTBEAT_INTERVAL=45
 EOF
@@ -40,8 +39,7 @@ expected_sn="ORIN-${expected_digest:0:12}"
 [[ "$(cat "$TEMP_ROOT/var/lib/juxin-orin/hardware-fingerprint")" == "$expected_digest" ]]
 grep -qx "ORIN_DEVICE_SN=${expected_sn}" "$TEMP_ROOT/etc/juxin-orin/agent.env"
 grep -qx "ORIN_HARDWARE_FINGERPRINT=${expected_digest}" "$TEMP_ROOT/etc/juxin-orin/agent.env"
-grep -qx 'ORIN_IMAGE_LICENSE=IMG-20260730-0123456789ABCDEF01234567' \
-  "$TEMP_ROOT/etc/juxin-orin/agent.env"
+! grep -q '^ORIN_IMAGE_LICENSE=' "$TEMP_ROOT/etc/juxin-orin/agent.env"
 grep -qx 'ORIN_TASK_POLL_INTERVAL=60' "$TEMP_ROOT/etc/juxin-orin/agent.env"
 grep -qx 'ORIN_TASK_TIMEOUT=240' "$TEMP_ROOT/etc/juxin-orin/agent.env"
 grep -qx 'ORIN_REQUEST_RETRIES=2' "$TEMP_ROOT/etc/juxin-orin/agent.env"

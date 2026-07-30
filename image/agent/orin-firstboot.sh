@@ -111,7 +111,7 @@ initialize_host_identity() {
 }
 
 main() {
-  local api_url image_license agent_version image_version interval task_interval task_timeout request_retries
+  local api_url agent_version image_version interval task_interval task_timeout request_retries
   local identity sn fingerprint
 
   platform_check
@@ -119,8 +119,7 @@ main() {
   install -d -m 0755 "$ETC_DIR" "$STATE_DIR"
 
   api_url="$(read_value ORIN_API_BASE_URL https://nvidia.juxinsuanli.cn)"
-  image_license="$(read_value ORIN_IMAGE_LICENSE)"
-  agent_version="$(read_value ORIN_AGENT_VERSION 0.3.0-orin)"
+  agent_version="$(read_value ORIN_AGENT_VERSION 0.4.0-orin)"
   image_version="$(read_value ORIN_IMAGE_VERSION orin-l4t-36.4.7-v1)"
   interval="$(read_value ORIN_HEARTBEAT_INTERVAL 60)"
   task_interval="$(read_value ORIN_TASK_POLL_INTERVAL 60)"
@@ -128,7 +127,6 @@ main() {
   request_retries="$(read_value ORIN_REQUEST_RETRIES 2)"
 
   [[ "$api_url" =~ ^https://[A-Za-z0-9.-]+(:[0-9]+)?(/.*)?$ ]] || die "API URL must use HTTPS"
-  [[ "$image_license" =~ ^IMG-[0-9]{8}-[A-F0-9]{24}$ ]] || die "image license format is invalid"
   [[ "$agent_version" =~ ^[A-Za-z0-9._-]+$ ]] || die "agent version format is invalid"
   [[ "$image_version" =~ ^[A-Za-z0-9._-]+$ ]] || die "image version format is invalid"
   [[ "$interval" =~ ^[0-9]+$ ]] || die "heartbeat interval is invalid"
@@ -154,7 +152,6 @@ main() {
 ORIN_API_BASE_URL=${api_url}
 ORIN_DEVICE_SN=${sn}
 ORIN_HARDWARE_FINGERPRINT=${fingerprint}
-ORIN_IMAGE_LICENSE=${image_license}
 ORIN_AGENT_VERSION=${agent_version}
 ORIN_IMAGE_VERSION=${image_version}
 ORIN_HEARTBEAT_INTERVAL=${interval}

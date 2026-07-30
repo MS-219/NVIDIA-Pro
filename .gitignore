@@ -22,7 +22,6 @@ image/cache/
 image/models/
 image/work/
 image/secrets/
-*.license
 *.img
 *.img.raw
 *.tar.gz

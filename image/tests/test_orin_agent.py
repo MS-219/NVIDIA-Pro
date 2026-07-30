@@ -13,7 +13,6 @@ from unittest import mock
 
 
 AGENT_PATH = Path(__file__).resolve().parents[1] / "agent" / "orin_agent.py"
-VALID_LICENSE = "IMG-20260730-0123456789ABCDEF01234567"
 VALID_SN = "ORIN-0123456789AB"
 VALID_FINGERPRINT = "A" * 64
 
@@ -42,7 +41,6 @@ class OrinAgentTest(unittest.TestCase):
                 "ORIN_STATE_DIR": str(self.state_dir),
                 "ORIN_DEVICE_SN": VALID_SN,
                 "ORIN_HARDWARE_FINGERPRINT": VALID_FINGERPRINT,
-                "ORIN_IMAGE_LICENSE": VALID_LICENSE,
                 "ORIN_API_BASE_URL": "https://nvidia.juxinsuanli.cn",
                 "ORIN_RUNTIME_DIR": str(self.state_dir / "runtime"),
                 "ORIN_OUTBOX_DIR": str(self.state_dir / "outbox"),
@@ -82,7 +80,7 @@ class OrinAgentTest(unittest.TestCase):
         self.assertEqual(0o600, mode)
         args, kwargs = self.agent.request.call_args
         self.assertEqual("/api/edge/enroll", args[0])
-        self.assertEqual(VALID_LICENSE, args[2]["image_license"])
+        self.assertNotIn("image_license", args[2])
         self.assertEqual(VALID_SN, args[2]["sn"])
         self.assertEqual("orin-l4t-36.4.7-test", args[2]["image_version"])
         self.assertEqual(VALID_FINGERPRINT, args[2]["hardware_fingerprint"])

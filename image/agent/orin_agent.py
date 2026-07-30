@@ -19,9 +19,8 @@ from typing import Any
 
 
 API_BASE = os.getenv("ORIN_API_BASE_URL", "https://nvidia.juxinsuanli.cn").rstrip("/")
-AGENT_VERSION = os.getenv("ORIN_AGENT_VERSION", "0.3.0-orin")
+AGENT_VERSION = os.getenv("ORIN_AGENT_VERSION", "0.4.0-orin")
 IMAGE_VERSION = os.getenv("ORIN_IMAGE_VERSION", "orin-l4t-36.4.7-v1")
-IMAGE_LICENSE = os.getenv("ORIN_IMAGE_LICENSE", "").strip()
 STATE_DIR = Path(os.getenv("ORIN_STATE_DIR", "/var/lib/juxin-orin"))
 SN_FILE = Path(os.getenv("ORIN_DEVICE_SN_FILE", str(STATE_DIR / "device-sn")))
 FINGERPRINT_FILE = Path(
@@ -259,12 +258,9 @@ def report_payload() -> dict[str, Any]:
 def ensure_enrolled(payload: dict[str, Any]) -> None:
     if device_token():
         return
-    if not re.fullmatch(r"IMG-[0-9]{8}-[A-F0-9]{24}", IMAGE_LICENSE):
-        raise ApiError("image license is missing or invalid")
     identity_fields = {"sn", "image_version", "hardware_fingerprint"}
     enrollment = {
         "sn": payload.get("sn") or device_sn(),
-        "image_license": IMAGE_LICENSE,
         "image_version": payload.get("image_version") or IMAGE_VERSION,
         "hardware_fingerprint": payload.get("hardware_fingerprint") or hardware_fingerprint(),
         "telemetry": {key: value for key, value in payload.items() if key not in identity_fields},

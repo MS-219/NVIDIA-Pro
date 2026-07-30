@@ -15,7 +15,6 @@ from urllib.parse import parse_qs, urlparse
 
 
 AGENT_PATH = Path(__file__).resolve().parents[1] / "agent" / "orin_agent.py"
-VALID_LICENSE = "IMG-20260730-0123456789ABCDEF01234567"
 VALID_SN = "ORIN-0123456789AB"
 VALID_FINGERPRINT = "A" * 64
 DEVICE_TOKEN = "T" * 43
@@ -102,7 +101,6 @@ class AgentBackendContractTest(unittest.TestCase):
             "ORIN_RUNTIME_DIR": str(state_dir / "runtime"),
             "ORIN_DEVICE_SN": VALID_SN,
             "ORIN_HARDWARE_FINGERPRINT": VALID_FINGERPRINT,
-            "ORIN_IMAGE_LICENSE": VALID_LICENSE,
             "ORIN_REQUEST_RETRIES": "0",
         }
         self.environment = mock.patch.dict(os.environ, environment, clear=False)
@@ -137,7 +135,7 @@ class AgentBackendContractTest(unittest.TestCase):
 
         self.assertEqual(30, self.agent.next_interval(heartbeat, 60))
         self.assertEqual(17, self.agent.next_task_interval(heartbeat, 60))
-        self.assertEqual(VALID_LICENSE, ContractHandler.enrollments[0]["image_license"])
+        self.assertNotIn("image_license", ContractHandler.enrollments[0])
         self.assertEqual(VALID_SN, ContractHandler.reports[0]["sn"])
         self.assertEqual(1, len(ContractHandler.submissions))
         submitted = ContractHandler.submissions[0]

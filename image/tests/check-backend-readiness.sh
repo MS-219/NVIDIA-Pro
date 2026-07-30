@@ -22,7 +22,7 @@ if ! curl -fsS --proto '=https' --tlsv1.2 --connect-timeout 8 --max-time 20 \
 fi
 if ! curl -fsS --proto '=https' --tlsv1.2 --connect-timeout 8 --max-time 20 \
   "$BASE_URL/api/edge/capabilities" >"$TEMP_DIR/capabilities.json"; then
-  echo "backend readiness: edge protocol 1 is not deployed" >&2
+  echo "backend readiness: edge protocol 2 is not deployed" >&2
   exit 1
 fi
 
@@ -39,9 +39,11 @@ with open(sys.argv[2], encoding="utf-8") as handle:
     capabilities = json.load(handle)
 data = capabilities.get("data") or {}
 required = {
-    "protocolVersion": "1",
-    "minimumAgentVersion": "0.3.0-orin",
-    "authenticatedEnrollment": True,
+    "protocolVersion": "2",
+    "minimumAgentVersion": "0.4.0-orin",
+    "directEnrollment": True,
+    "imageLicenseRequired": False,
+    "deviceTokenAuthentication": True,
     "atomicTaskClaim": True,
     "persistentResultOutbox": True,
 }
@@ -59,4 +61,4 @@ for asset in orin_agent.py install-agent.sh juxin-orin-agent.service; do
   fi
 done
 
-echo "backend readiness: PASS ($BASE_URL, protocol 1, agent 0.3.0-orin)"
+echo "backend readiness: PASS ($BASE_URL, protocol 2, agent 0.4.0-orin)"
