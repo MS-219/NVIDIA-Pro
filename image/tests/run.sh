@@ -29,7 +29,7 @@ grep -qF '.nv-l4t-disable-boot-fw-update-in-preinstall' \
   "$IMAGE_DIR/build/install-jetpack-runtime.sh"
 grep -q 'apt-get --fix-broken install -y' \
   "$IMAGE_DIR/build/install-jetpack-runtime.sh"
-[[ "$(grep -c 'qemu-aarch64-static /usr/bin/dpkg-query' \
+[[ "$(grep -c '/usr/bin/dpkg-query' \
   "$IMAGE_DIR/build/install-jetpack-runtime.sh")" == "2" ]]
 grep -q 'fonts-noto-cjk' "$IMAGE_DIR/build/install-jetpack-runtime.sh"
 grep -q 'python3-pil' "$IMAGE_DIR/build/install-jetpack-runtime.sh"
