@@ -322,7 +322,7 @@ public class EarningsController {
             item.put("createTime", record.getCreateTime());
             item.put("date", record.getDate());
             item.put("status", 1);
-            item.put("hours", 1);
+            item.put("days", 1);
 
             if (record.getDeviceId() != null) {
                 Device device = deviceService.getById(record.getDeviceId());
@@ -403,9 +403,8 @@ public class EarningsController {
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
         data.put("monthEarnings", monthEarnings);
 
-        // 设备运行时长（假设每条收益记录代表1小时）
-        long totalHours = earningsService.count();
-        data.put("totalHours", totalHours);
+        long totalSettlements = earningsService.count();
+        data.put("totalSettlements", totalSettlements);
 
         return Result.success(data);
     }
@@ -579,7 +578,7 @@ public class EarningsController {
 
     /**
      * 补偿收益（管理员专用）
-     * 用于服务器宕机等异常情况下，为所有设备补发指定小时数的收益
+     * 用于服务器宕机等异常情况下，为所有设备补发指定天数的收益
      */
     @PostMapping("/admin/compensate")
     public Result<Object> compensateEarnings(
@@ -591,25 +590,24 @@ public class EarningsController {
             return Result.error(error);
         }
 
-        // 获取补偿小时数
-        Object hoursObj = params.get("hours");
-        if (hoursObj == null) {
-            return Result.error("请指定补偿小时数");
+        Object daysObj = params.get("days");
+        if (daysObj == null) {
+            return Result.error("请指定补偿天数");
         }
 
-        int hours;
+        int days;
         try {
-            hours = Integer.parseInt(hoursObj.toString());
+            days = Integer.parseInt(daysObj.toString());
         } catch (NumberFormatException e) {
-            return Result.error("补偿小时数格式不正确");
+            return Result.error("补偿天数格式不正确");
         }
 
-        if (hours < 1 || hours > 24) {
-            return Result.error("补偿小时数必须在 1-24 之间");
+        if (days < 1 || days > 30) {
+            return Result.error("补偿天数必须在 1-30 之间");
         }
 
         try {
-            Map<String, Object> result = earningsService.compensateEarnings(hours);
+            Map<String, Object> result = earningsService.compensateEarnings(days);
             return Result.success(result);
         } catch (Exception e) {
             return Result.error("补偿收益失败: " + e.getMessage());

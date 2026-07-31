@@ -33,8 +33,8 @@
         <div class="stat-card runtime">
           <div class="stat-icon-wrapper"><el-icon><Timer /></el-icon></div>
           <div class="stat-info">
-            <div class="stat-value">{{ stats.totalHours || 0 }}h</div>
-            <div class="stat-label">设备运行时长</div>
+            <div class="stat-value">{{ stats.totalSettlements || 0 }}次</div>
+            <div class="stat-label">累计结算</div>
           </div>
         </div>
       </el-col>
@@ -157,7 +157,7 @@
                 <span class="sum-amount">¥{{ Number(row.totalAmount || 0).toFixed(2) }}</span>
               </template>
             </el-table-column>
-            <el-table-column prop="recordCount" label="运行时长(h)" width="130" align="center" />
+            <el-table-column prop="recordCount" label="结算笔数" width="130" align="center" />
             <el-table-column label="最后产出时间" min-width="180">
               <template #default="{ row }">
                 {{ row.lastTime?.replace('T', ' ') || '-' }}
@@ -187,27 +187,27 @@
 
             <div class="compensate-form">
               <div class="form-item">
-                <label class="form-label">补偿小时数</label>
+                <label class="form-label">补偿天数</label>
                 <div class="form-control">
                   <el-input-number
-                    v-model="compensateHours"
+                    v-model="compensateDays"
                     :min="1"
-                    :max="24"
+                    :max="30"
                     :step="1"
                     size="large"
                     controls-position="right"
                     style="width: 200px"
                   />
-                  <span class="form-hint">小时（1-24小时）</span>
+                  <span class="form-hint">天（1-30天）</span>
                 </div>
               </div>
 
               <div class="form-item">
                 <label class="form-label">操作说明</label>
                 <div class="form-desc">
-                  <p><el-icon><CircleCheck /></el-icon> 将为 <strong>所有已绑定且在线的设备</strong> 补发 <strong>{{ compensateHours }}</strong> 小时的收益</p>
-                  <p><el-icon><CircleCheck /></el-icon> 每台设备每小时收益 = 基础收益 × 用户等级费率</p>
-                  <p><el-icon><CircleCheck /></el-icon> 同时会增加对应的算力值（每小时 +100）</p>
+                  <p><el-icon><CircleCheck /></el-icon> 将为 <strong>所有已绑定且在线的设备</strong> 补发 <strong>{{ compensateDays }}</strong> 天的收益</p>
+                  <p><el-icon><CircleCheck /></el-icon> 每台设备每天收益 = 基础收益 × 用户等级费率</p>
+                  <p><el-icon><CircleCheck /></el-icon> 同时会增加对应的算力值（每天 +100）</p>
                   <p><el-icon><CircleCheck /></el-icon> 邀请人的级差分润也会同步计算</p>
                 </div>
               </div>
@@ -263,7 +263,7 @@
                 </el-col>
               </el-row>
               <div class="result-detail">
-                <span>补偿时长: {{ compensateResult.hours }} 小时</span>
+                <span>补偿天数: {{ compensateResult.days }} 天</span>
                 <span>总记录数: {{ compensateResult.totalRecords }} 条</span>
               </div>
             </div>
@@ -314,7 +314,7 @@ const total = ref(0)
 const dateRange = ref([])
 const stats = ref({})
 const activeTab = ref('records')
-const compensateHours = ref(6)
+const compensateDays = ref(1)
 const compensateLoading = ref(false)
 const compensateResult = ref(null)
 const searchKeyword = ref('')
@@ -416,7 +416,7 @@ const handleSizeChange = (val) => {
 const handleCompensate = async () => {
   try {
     await ElMessageBox.confirm(
-      `确认要为所有在线设备补偿 ${compensateHours.value} 小时的收益吗？\n\n此操作将为所有已绑定且在线的设备补发收益、更新余额和算力值。`,
+      `确认要为所有在线设备补偿 ${compensateDays.value} 天的收益吗？\n\n此操作将为所有已绑定且在线的设备补发收益、更新余额和算力值。`,
       '确认补偿操作',
       {
         confirmButtonText: '确认补偿',
@@ -434,7 +434,7 @@ const handleCompensate = async () => {
 
   try {
     const res = await axios.post('/api/earnings/admin/compensate', {
-      hours: compensateHours.value
+      days: compensateDays.value
     })
     if (res.data.code === 200) {
       compensateResult.value = res.data.data

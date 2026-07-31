@@ -1,9 +1,9 @@
 INSERT INTO system_config (config_key, config_value, description) VALUES
-    ('earnings.hourlyRate', '2.4', '每台在线设备每小时基础收益'),
+    ('earnings.dailyMinRate', '2.4', '每台在线设备每天收益最低金额'),
+    ('earnings.dailyMaxRate', '2.4', '每台在线设备每天收益最高金额'),
     ('earnings.hashratePerYuan', '100', '每元对应的聚芯算力值'),
     ('earnings.minWithdraw', '10', '最低提现金额'),
     ('earnings.withdrawFee', '1', '提现手续费百分比'),
-    ('earnings.cycle', '60', '收益结算周期，单位分钟'),
     ('invite.earningsRate', '0.10', '邀请收益分成比例'),
     ('invite.level.count', '5', '代理等级数量'),
     ('invite.level1.name', 'A', '一级名称'),

@@ -144,8 +144,8 @@ public class SysUserController {
         if (newPassword == null || newPassword.isEmpty()) {
             return Result.error("新密码不能为空");
         }
-        if (newPassword.length() < 12) {
-            return Result.error("新密码长度不能少于12位");
+        if (newPassword.length() < 8) {
+            return Result.error("新密码长度不能少于8位");
         }
 
         SysUser user = sysUserService.getById(userId);

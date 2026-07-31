@@ -34,9 +34,23 @@
             <span class="card-title"><el-icon><Coin /></el-icon> 收益设置</span>
           </template>
           <el-form :model="earningsSettings" label-width="140px">
-            <el-form-item label="每小时收益 (￥)">
-              <el-input-number v-model="earningsSettings.hourlyRate" :min="0" :precision="2" :step="0.1" />
-              <span class="unit">元 / 小时</span>
+            <el-form-item label="每天收益区间 (￥)">
+              <div class="earning-range-row">
+                <el-input-number
+                  v-model="earningsSettings.dailyMinRate"
+                  :min="0"
+                  :precision="2"
+                  :step="0.1"
+                />
+                <span class="range-text">至</span>
+                <el-input-number
+                  v-model="earningsSettings.dailyMaxRate"
+                  :min="0"
+                  :precision="2"
+                  :step="0.1"
+                />
+                <span class="unit">元 / 天</span>
+              </div>
             </el-form-item>
             <el-form-item label="最小提现额度">
               <el-input-number v-model="earningsSettings.minWithdraw" :min="1" :precision="0" />
@@ -199,10 +213,10 @@
               <el-input v-model="securitySettings.currentPassword" type="password" show-password />
             </el-form-item>
             <el-form-item label="新密码">
-              <el-input v-model="securitySettings.newPassword" type="password" show-password />
+              <el-input v-model="securitySettings.newPassword" type="password" show-password minlength="8" />
             </el-form-item>
             <el-form-item label="确认新密码">
-              <el-input v-model="securitySettings.confirmPassword" type="password" show-password />
+              <el-input v-model="securitySettings.confirmPassword" type="password" show-password minlength="8" />
             </el-form-item>
             <el-form-item>
               <el-button type="primary" @click="changePassword">修改密码</el-button>
@@ -215,7 +229,7 @@
 </template>
 
 <script setup>
-import { reactive, ref, onMounted, nextTick } from 'vue'
+import { nextTick, onMounted, reactive, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import axios from '../utils/request'
 import { Calendar, Coin, Delete, Lock, Picture, Plus, Setting, User, UserFilled } from '@element-plus/icons-vue'
@@ -228,7 +242,8 @@ const uploadHeaders = {
 }
 
 const earningsSettings = reactive({
-  hourlyRate: 2.4,
+  dailyMinRate: 2.4,
+  dailyMaxRate: 2.4,
   minWithdraw: 10,
   withdrawFee: 1,
   hashratePerYuan: 100  // 多少聚芯算力值=1元
@@ -309,7 +324,7 @@ const loadSettings = async () => {
 }
 
 const saveEarningsSettings = async () => {
-  const validationError = validateInviteLevels()
+  const validationError = validateEarningsSettings() || validateInviteLevels()
   if (validationError) {
     ElMessage.error(validationError)
     return
@@ -383,6 +398,16 @@ const validateInviteLevels = () => {
   return ''
 }
 
+const validateEarningsSettings = () => {
+  const dailyMinRate = Number(earningsSettings.dailyMinRate)
+  const dailyMaxRate = Number(earningsSettings.dailyMaxRate)
+
+  if (!Number.isFinite(dailyMinRate) || dailyMinRate < 0) return '每天收益最低金额不能小于 0'
+  if (!Number.isFinite(dailyMaxRate) || dailyMaxRate < 0) return '每天收益最高金额不能小于 0'
+  if (dailyMinRate > dailyMaxRate) return '每天收益最低金额不能大于最高金额'
+  return ''
+}
+
 const saveSystemSettings = async () => {
   try {
     const res = await axios.post('/api/settings/system', systemSettings)
@@ -435,8 +460,8 @@ const changePassword = async () => {
     ElMessage.error('请填写完整的密码信息')
     return
   }
-  if (securitySettings.newPassword.length < 12) {
-    ElMessage.error('新密码长度不能少于12位')
+  if (securitySettings.newPassword.length < 8) {
+    ElMessage.error('新密码长度不能少于8位')
     return
   }
 
@@ -635,6 +660,17 @@ onMounted(async () => {
 .range-text {
   color: #64748b;
   font-size: 13px;
+}
+
+.earning-range-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.earning-range-row .unit {
+  margin-left: 0;
 }
 
 .remove-level-button {

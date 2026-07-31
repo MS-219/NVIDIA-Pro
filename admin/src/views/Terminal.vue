@@ -7,13 +7,14 @@
         </el-button>
         <div class="terminal-info">
           <h3>远程指挥终端 <small>[COMMAND CENTER]</small></h3>
-          <p>正在控制节点: <span class="sn-badge">{{ sn }}</span></p>
+          <p v-if="sn">正在控制节点: <span class="sn-badge">{{ sn }}</span></p>
+          <p v-else>尚未选择节点</p>
         </div>
       </div>
       <div class="header-right">
-        <div class="status-indicator" :class="{ connected: isConnected }">
+        <div v-if="sn" class="status-indicator" :class="{ connected: isConnected }">
           <span class="pulse-dot"></span>
-          {{ isConnected ? 'TUNNEL ACTIVE' : 'TUNNEL CLOSED' }}
+          {{ isConnected ? '已连接' : '未连接' }}
         </div>
         <el-button v-if="sn" :icon="Delete" @click="clearTerminal">清空屏幕</el-button>
         <el-button v-if="sn && !isConnected" :icon="Refresh" type="danger" plain @click="reconnect">重新连接</el-button>
@@ -21,7 +22,36 @@
     </div>
     
     <div class="terminal-body" v-loading="loading">
-      <div ref="terminalRef" class="xterm-view"></div>
+      <div v-show="sn" ref="terminalRef" class="xterm-view"></div>
+      <div v-if="!sn" class="terminal-selector" v-loading="deviceLoading">
+        <el-icon class="selector-icon"><Monitor /></el-icon>
+        <h4>选择在线节点</h4>
+        <div class="selector-controls">
+          <el-select
+            v-model="selectedSn"
+            filterable
+            remote
+            clearable
+            :remote-method="loadOnlineDevices"
+            :loading="deviceLoading"
+            placeholder="请选择在线节点"
+            no-data-text="暂无可连接的在线节点"
+          >
+            <el-option
+              v-for="device in deviceOptions"
+              :key="device.sn"
+              :label="device.name ? `${device.sn} · ${device.name}` : device.sn"
+              :value="device.sn"
+            />
+          </el-select>
+          <el-button type="primary" :disabled="!selectedSn" @click="connectSelectedNode">连接</el-button>
+        </div>
+        <el-empty
+          v-if="!deviceLoading && deviceOptions.length === 0"
+          description="暂无可连接的在线节点"
+          :image-size="72"
+        />
+      </div>
     </div>
     
     <div class="terminal-footer">
@@ -38,20 +68,25 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onBeforeUnmount } from 'vue'
+import { nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { Terminal } from 'xterm'
 import { FitAddon } from 'xterm-addon-fit'
 import 'xterm/css/xterm.css'
-import { ArrowLeft, Connection, Delete, Refresh } from '@element-plus/icons-vue'
+import { ArrowLeft, Connection, Delete, Monitor, Refresh } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
+import request from '../utils/request'
 
 const route = useRoute()
 const router = useRouter()
-const sn = ref(route.query.sn)
+const routeSn = typeof route.query.sn === 'string' ? route.query.sn : ''
+const sn = ref(routeSn)
+const selectedSn = ref(routeSn)
 const terminalRef = ref(null)
 const isConnected = ref(false)
 const loading = ref(false)
+const deviceLoading = ref(false)
+const deviceOptions = ref([])
 
 let term = null
 let fitAddon = null
@@ -66,6 +101,28 @@ const sendTerminalInput = (data) => {
 }
 
 const normalizePastedText = (text) => text.replace(/\r\n/g, '\r').replace(/\n/g, '\r')
+
+const disposeTerminal = () => {
+  if (socket) {
+    socket.onopen = null
+    socket.onmessage = null
+    socket.onclose = null
+    socket.onerror = null
+    socket.close()
+    socket = null
+  }
+  if (terminalRef.value && pasteHandler) {
+    terminalRef.value.removeEventListener('paste', pasteHandler, true)
+  }
+  pasteHandler = null
+  inputDisposable?.dispose()
+  inputDisposable = null
+  term?.dispose()
+  term = null
+  fitAddon = null
+  isConnected.value = false
+  loading.value = false
+}
 
 const bindTerminalInput = () => {
   if (inputDisposable) {
@@ -87,11 +144,9 @@ const bindTerminalInput = () => {
 }
 
 const initTerminal = () => {
-  if (!sn.value) {
-    ElMessage.error('缺少节点序列号，无法建立隧道')
-    return
-  }
+  if (!sn.value || !terminalRef.value) return
 
+  disposeTerminal()
   loading.value = true
   
   term = new Terminal({
@@ -136,28 +191,74 @@ const connectWebSocket = () => {
   // 根据后端 RemoteTerminalHandler 的监听路径
   const wsUrl = `${protocol}//${host}/ws/admin/terminal/${sn.value}`
   
-  socket = new WebSocket(wsUrl)
+  const currentSocket = new WebSocket(wsUrl)
+  socket = currentSocket
   
-  socket.onopen = () => {
+  currentSocket.onopen = () => {
+    if (socket !== currentSocket) return
     isConnected.value = true
     loading.value = false
-    term.writeln('\x1b[1;32m[SUCCESS]\x1b[0m 通信隧道已打通，控制权限已获取。\r\n')
+    term?.writeln('\x1b[1;32m[SUCCESS]\x1b[0m 通信隧道已打通，控制权限已获取。\r\n')
   }
 
-  socket.onmessage = (event) => {
-    term.write(event.data)
+  currentSocket.onmessage = (event) => {
+    if (socket !== currentSocket) return
+    term?.write(event.data)
   }
 
-  socket.onclose = () => {
+  currentSocket.onclose = () => {
+    if (socket !== currentSocket) return
     isConnected.value = false
-    term.writeln('\r\n\x1b[1;31m[CLOSED] 通信链路已断开，连接超时或节点离线。\x1b[0m')
+    loading.value = false
+    term?.writeln('\r\n\x1b[1;31m[CLOSED] 通信链路已断开，连接超时或节点离线。\x1b[0m')
   }
 
-  socket.onerror = () => {
+  currentSocket.onerror = () => {
+    if (socket !== currentSocket) return
     isConnected.value = false
-    term.writeln('\r\n\x1b[1;31m[ERROR] 隧道通信发生异常，请检查网络。\x1b[0m')
+    loading.value = false
+    term?.writeln('\r\n\x1b[1;31m[ERROR] 隧道通信发生异常，请检查网络。\x1b[0m')
   }
 
+}
+
+const loadOnlineDevices = async (keyword = '') => {
+  deviceLoading.value = true
+  try {
+    const res = await request.get('/api/admin/sl/devices/list', {
+      params: {
+        page: 1,
+        size: 100,
+        sn: keyword || undefined,
+        status: 1,
+        remoteCapable: true
+      }
+    })
+    if (res.data.code === 200) {
+      const records = res.data.data?.records
+      deviceOptions.value = Array.isArray(records) ? records : []
+    } else {
+      deviceOptions.value = []
+      ElMessage.error(res.data.msg || '获取在线节点失败')
+    }
+  } catch (e) {
+    deviceOptions.value = []
+    ElMessage.error('获取在线节点失败')
+  } finally {
+    deviceLoading.value = false
+  }
+}
+
+const connectSelectedNode = async () => {
+  if (!selectedSn.value) return
+
+  sn.value = selectedSn.value
+  await router.replace({
+    name: 'Terminal',
+    query: { ...route.query, sn: selectedSn.value }
+  })
+  await nextTick()
+  initTerminal()
 }
 
 const reconnect = () => {
@@ -174,17 +275,16 @@ const handleResize = () => {
 }
 
 onMounted(() => {
-  initTerminal()
+  if (sn.value) {
+    initTerminal()
+  } else {
+    loadOnlineDevices()
+  }
   window.addEventListener('resize', handleResize)
 })
 
 onBeforeUnmount(() => {
-  if (terminalRef.value && pasteHandler) {
-    terminalRef.value.removeEventListener('paste', pasteHandler, true)
-  }
-  if (inputDisposable) inputDisposable.dispose()
-  if (socket) socket.close()
-  if (term) term.dispose()
+  disposeTerminal()
   window.removeEventListener('resize', handleResize)
 })
 </script>
@@ -307,6 +407,40 @@ onBeforeUnmount(() => {
   height: 100%;
 }
 
+.terminal-selector {
+  height: 100%;
+  min-height: 280px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+  color: var(--orin-muted);
+}
+
+.selector-icon {
+  font-size: 32px;
+  color: var(--orin-green-dark);
+}
+
+.terminal-selector h4 {
+  margin: 0;
+  color: var(--orin-text);
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.selector-controls {
+  width: min(100%, 520px);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+}
+
+.selector-controls :deep(.el-select) {
+  width: 100%;
+}
+
 .terminal-footer {
   padding: 8px 20px;
   background: var(--orin-surface);
@@ -366,6 +500,10 @@ onBeforeUnmount(() => {
 
   .terminal-body {
     padding: 10px;
+  }
+
+  .selector-controls {
+    grid-template-columns: 1fr;
   }
 
   .terminal-footer {

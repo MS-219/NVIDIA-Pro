@@ -22,16 +22,16 @@ public interface IDeviceEarningsService extends IService<DeviceEarnings> {
     Map<String, BigDecimal> getSystemEarnings();
 
     /**
-     * 为设备生成每小时收益（定时任务调用）
+     * 为设备生成每日收益（定时任务调用）
      */
-    void generateHourlyEarnings();
+    void generateDailyEarnings();
 
     /**
-     * 补偿收益：为所有已绑定设备补发指定小时数的收益和算力值
+     * 补偿收益：为所有已绑定设备补发指定天数的收益和算力值
      * 用于服务器宕机等异常情况下的收益补偿
      *
-     * @param hours 补偿小时数
+     * @param days 补偿天数
      * @return 补偿结果统计 { successCount, failCount, totalAmount }
      */
-    Map<String, Object> compensateEarnings(int hours);
+    Map<String, Object> compensateEarnings(int days);
 }

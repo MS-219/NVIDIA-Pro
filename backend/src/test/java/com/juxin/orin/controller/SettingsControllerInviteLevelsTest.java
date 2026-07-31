@@ -89,6 +89,32 @@ class SettingsControllerInviteLevelsTest {
         verify(appUserService, never()).updateAllUserLevels();
     }
 
+    @Test
+    void savesDailyEarningsAmountRange() {
+        Result<Object> result = controller.saveEarningsSettings(
+                Map.of(
+                        "dailyMinRate", 40,
+                        "dailyMaxRate", 50),
+                adminToken());
+
+        assertEquals(200, result.getCode());
+        verify(configService).setConfig("earnings.dailyMinRate", "40");
+        verify(configService).setConfig("earnings.dailyMaxRate", "50");
+    }
+
+    @Test
+    void rejectsReversedDailyEarningsAmountRange() {
+        Result<Object> result = controller.saveEarningsSettings(
+                Map.of(
+                        "dailyMinRate", 50,
+                        "dailyMaxRate", 40),
+                adminToken());
+
+        assertEquals(500, result.getCode());
+        assertEquals("每天收益最低金额不能大于最高金额", result.getMsg());
+        verify(configService, never()).setConfig(any(), any());
+    }
+
     private List<Map<String, Object>> levels(int count) {
         List<Map<String, Object>> levels = new ArrayList<>();
         for (int level = 1; level <= count; level++) {

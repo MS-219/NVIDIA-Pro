@@ -19,6 +19,7 @@ import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.SplittableRandom;
 
 @Slf4j
 @Service
@@ -68,19 +69,17 @@ public class DeviceEarningsServiceImpl extends ServiceImpl<DeviceEarningsMapper,
     private com.juxin.orin.service.IAppUserService appUserService;
 
     @Override
-    public void generateHourlyEarnings() {
+    public void generateDailyEarnings() {
         LocalDateTime now = LocalDateTime.now();
         LocalDate today = now.toLocalDate();
 
         log.info("========== 开始执行收益结算任务 ==========");
 
         try {
-            // 从系统配置读取心跳超时时间（秒）和结算周期（分钟）
+            // 从系统配置读取心跳超时时间（秒）
             String heartbeatTimeoutStr = configService.getConfig("device.heartbeatTimeout", "120");
-            String earningsCycleStr = configService.getConfig("earnings.cycle", "60");
 
             int heartbeatTimeoutSeconds = Integer.parseInt(heartbeatTimeoutStr);
-            int earningsCycleMinutes = Integer.parseInt(earningsCycleStr);
 
             LocalDateTime activeThreshold = now.minusSeconds(heartbeatTimeoutSeconds);
 
@@ -113,15 +112,21 @@ public class DeviceEarningsServiceImpl extends ServiceImpl<DeviceEarningsMapper,
 
             for (Device device : onlineDevices) {
                 try {
-                    // 检查运行时长是否满结算周期
+                    // 每台设备连续运行满一天后结算一次。
                     LocalDateTime lastPay = device.getLastPayTime();
-                    java.time.Duration duration = java.time.Duration.between(lastPay, now);
-
-                    if (duration.toMinutes() >= earningsCycleMinutes) {
-                        // 单独处理每个设备的收益结算
-                        processDeviceEarnings(device, now, today);
-                        successCount++;
+                    if (lastPay.plusDays(1).isAfter(now)) {
+                        continue;
                     }
+
+                    // 兼容从小时结算升级的当天数据，防止切换后重复入账。
+                    if (earningsMapper.countByDeviceAndDate(device.getId(), today) > 0) {
+                        device.setLastPayTime(now);
+                        deviceService.updateById(device);
+                        continue;
+                    }
+
+                    processDeviceEarnings(device, now, today);
+                    successCount++;
                 } catch (Exception e) {
                     errorCount++;
                     log.error("设备收益结算异常: deviceId={}, sn={}, error={}",
@@ -140,7 +145,7 @@ public class DeviceEarningsServiceImpl extends ServiceImpl<DeviceEarningsMapper,
      * 处理单个设备的收益结算（独立事务）
      */
     @org.springframework.transaction.annotation.Transactional(rollbackFor = Exception.class)
-    public void processDeviceEarnings(Device device, LocalDateTime now, LocalDate today) {
+    public BigDecimal processDeviceEarnings(Device device, LocalDateTime now, LocalDate today) {
         // 用户进入回收站后，MyBatis-Plus 的逻辑删除会使 getById 返回 null。
         // 设备绑定会保留以便后续恢复，但删除期间不能继续产生收益或算力。
         com.juxin.orin.entity.AppUser user = appUserService.getById(device.getUserId());
@@ -149,11 +154,10 @@ public class DeviceEarningsServiceImpl extends ServiceImpl<DeviceEarningsMapper,
             deviceService.updateById(device);
             log.info("跳过无有效用户的设备收益结算: deviceId={}, userId={}",
                     device.getId(), device.getUserId());
-            return;
+            return BigDecimal.ZERO;
         }
 
-        String hourlyRateStr = configService.getConfig("earnings.hourlyRate", "2.4");
-        BigDecimal baseEarnings = new BigDecimal(hourlyRateStr);
+        BigDecimal baseEarnings = calculateDailyBaseEarnings(device.getId(), today);
         BigDecimal earnings = baseEarnings;
         BigDecimal rate = BigDecimal.ZERO;
 
@@ -295,12 +299,14 @@ public class DeviceEarningsServiceImpl extends ServiceImpl<DeviceEarningsMapper,
         device.setHashrate(currentHashrate + 100);
         deviceService.updateById(device);
 
-        log.debug("设备收益结算成功: deviceId={}, userId={}, earnings={}", device.getId(), device.getUserId(), earnings);
+        log.debug("设备收益结算成功: deviceId={}, userId={}, baseEarnings={}, earnings={}",
+                device.getId(), device.getUserId(), baseEarnings, earnings);
+        return earnings;
     }
 
     @Override
-    public Map<String, Object> compensateEarnings(int hours) {
-        log.info("========== 开始执行补偿收益任务: 补偿 {} 小时 ==========", hours);
+    public Map<String, Object> compensateEarnings(int days) {
+        log.info("========== 开始执行补偿收益任务: 补偿 {} 天 ==========", days);
 
         Map<String, Object> result = new HashMap<>();
         LocalDateTime now = LocalDateTime.now();
@@ -322,14 +328,8 @@ public class DeviceEarningsServiceImpl extends ServiceImpl<DeviceEarningsMapper,
 
             log.info("补偿收益: 查询到 {} 台已绑定且在线的设备", allDevices.size());
 
-            // 预读配置
-            String hourlyRateStr = configService.getConfig("earnings.hourlyRate", "2.4");
-            BigDecimal baseEarnings = new BigDecimal(hourlyRateStr);
-
             for (Device device : allDevices) {
                 try {
-                    // 读取用户等级费率用于统计
-                    BigDecimal deviceEarningsPerHour = BigDecimal.ZERO;
                     com.juxin.orin.entity.AppUser user = appUserService.getById(device.getUserId());
                     if (user == null) {
                         device.setLastPayTime(now);
@@ -339,16 +339,11 @@ public class DeviceEarningsServiceImpl extends ServiceImpl<DeviceEarningsMapper,
                                 device.getId(), device.getUserId());
                         continue;
                     }
-                    int level = user.getLevel() != null ? user.getLevel() : 0;
-                    BigDecimal rate = inviteLevelConfigService.getLevelRate(level);
-                    deviceEarningsPerHour = baseEarnings.multiply(rate)
-                            .setScale(2, java.math.RoundingMode.HALF_UP);
-
-                    // 每个小时调用一次结算（复用已有逻辑，包括收益记录、余额、算力、分润等）
-                    for (int h = 0; h < hours; h++) {
-                        processDeviceEarnings(device, now, today);
+                    // 每天调用一次结算，补偿记录按对应日期入账。
+                    for (int day = days - 1; day >= 0; day--) {
+                        BigDecimal creditedAmount = processDeviceEarnings(device, now, today.minusDays(day));
                         totalRecords++;
-                        totalAmount = totalAmount.add(deviceEarningsPerHour);
+                        totalAmount = totalAmount.add(creditedAmount);
                     }
 
                     successCount++;
@@ -368,11 +363,40 @@ public class DeviceEarningsServiceImpl extends ServiceImpl<DeviceEarningsMapper,
         result.put("totalDevices", successCount + failCount + skippedCount);
         result.put("totalRecords", totalRecords);
         result.put("totalAmount", totalAmount.setScale(2, java.math.RoundingMode.HALF_UP));
-        result.put("hours", hours);
+        result.put("days", days);
 
         log.info("========== 补偿收益任务完成: 成功={}台, 失败={}台, 记录={}条, 总金额=¥{} ==========",
                 successCount, failCount, totalRecords, totalAmount);
 
         return result;
+    }
+
+    BigDecimal calculateDailyBaseEarnings(Long deviceId, LocalDate settlementDate) {
+        BigDecimal minRate = getDailyRangeRate("earnings.dailyMinRate");
+        BigDecimal maxRate = getDailyRangeRate("earnings.dailyMaxRate");
+        if (minRate.compareTo(BigDecimal.ZERO) < 0 || maxRate.compareTo(BigDecimal.ZERO) < 0) {
+            throw new IllegalStateException("每天收益金额不能小于 0");
+        }
+        if (minRate.compareTo(maxRate) > 0) {
+            throw new IllegalStateException("每天收益最低金额不能大于最高金额");
+        }
+
+        long minHundredths = minRate.movePointRight(2).longValueExact();
+        long maxHundredths = maxRate.movePointRight(2).longValueExact();
+        long selectedHundredths = minHundredths;
+        if (maxHundredths > minHundredths) {
+            long deviceSeed = deviceId == null ? 0L : deviceId;
+            long seed = (deviceSeed * 0x9E3779B97F4A7C15L) ^ settlementDate.toEpochDay();
+            selectedHundredths = new SplittableRandom(seed).nextLong(minHundredths, maxHundredths + 1);
+        }
+
+        return BigDecimal.valueOf(selectedHundredths, 2);
+    }
+
+    private BigDecimal getDailyRangeRate(String key) {
+        String legacyHourlyRate = configService.getConfig("earnings.hourlyRate", "2.4");
+        String legacyDailyRate = configService.getConfig("earnings.dailyRate", legacyHourlyRate);
+        return new BigDecimal(configService.getConfig(key, legacyDailyRate))
+                .setScale(2, java.math.RoundingMode.HALF_UP);
     }
 }

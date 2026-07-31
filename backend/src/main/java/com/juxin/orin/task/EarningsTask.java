@@ -16,11 +16,11 @@ public class EarningsTask {
 
     /**
      * 每分钟检查一次收益结算
-     * 采用滚动时长制：检查每台设备是否已运行满 1 小时
+     * 采用滚动时长制：检查每台设备是否已运行满 1 天
      */
     @Scheduled(fixedRate = 60000)
-    public void calculateHourlyEarnings() {
-        earningsService.generateHourlyEarnings();
+    public void calculateDailyEarnings() {
+        earningsService.generateDailyEarnings();
     }
 
 }

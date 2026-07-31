@@ -33,12 +33,14 @@ public class SettingsController {
     private IAppUserService appUserService;
 
     // 配置键常量
-    private static final String KEY_HOURLY_RATE = "earnings.hourlyRate";
+    private static final String KEY_DAILY_MIN_RATE = "earnings.dailyMinRate";
+    private static final String KEY_DAILY_MAX_RATE = "earnings.dailyMaxRate";
+    private static final String LEGACY_KEY_DAILY_RATE = "earnings.dailyRate";
+    private static final String LEGACY_KEY_HOURLY_RATE = "earnings.hourlyRate";
     private static final String KEY_HASHRATE_PER_YUAN = "earnings.hashratePerYuan";
     private static final String KEY_MIN_WITHDRAW = "earnings.minWithdraw";
     private static final String KEY_WITHDRAW_FEE = "earnings.withdrawFee";
     private static final String KEY_EARNINGS_RATE = "invite.earningsRate";
-    private static final String KEY_EARNINGS_CYCLE = "earnings.cycle";
 
     private static final String KEY_SITE_NAME = "system.siteName";
     private static final String KEY_CONTACT_EMAIL = "system.contactEmail";
@@ -100,11 +102,11 @@ public class SettingsController {
 
         // 收益设置
         Map<String, Object> earnings = new HashMap<>();
-        earnings.put("hourlyRate", Double.parseDouble(configService.getConfig(KEY_HOURLY_RATE, "2.4")));
+        earnings.put("dailyMinRate", getDailyRangeRate(KEY_DAILY_MIN_RATE));
+        earnings.put("dailyMaxRate", getDailyRangeRate(KEY_DAILY_MAX_RATE));
         earnings.put("hashratePerYuan", Integer.parseInt(configService.getConfig(KEY_HASHRATE_PER_YUAN, "100")));
         earnings.put("minWithdraw", Double.parseDouble(configService.getConfig(KEY_MIN_WITHDRAW, "10")));
         earnings.put("withdrawFee", Double.parseDouble(configService.getConfig(KEY_WITHDRAW_FEE, "1")));
-        earnings.put("cycle", Integer.parseInt(configService.getConfig(KEY_EARNINGS_CYCLE, "60")));
         earnings.put("earningsRate", Double.parseDouble(configService.getConfig(KEY_EARNINGS_RATE, "0.1")));
 
         // 分润等级由管理员配置的数量决定；旧数据未设置数量时默认读取 5 级。
@@ -182,8 +184,53 @@ public class SettingsController {
             }
         }
 
-        if (params.get("hourlyRate") != null) {
-            configService.setConfig(KEY_HOURLY_RATE, params.get("hourlyRate").toString());
+        Object dailyMinRate = params.get("dailyMinRate");
+        Object dailyMaxRate = params.get("dailyMaxRate");
+        Object legacyRate = params.get("dailyRate") != null ? params.get("dailyRate") : params.get("hourlyRate");
+        if (dailyMinRate == null && dailyMaxRate == null && legacyRate != null) {
+            dailyMinRate = legacyRate;
+            dailyMaxRate = legacyRate;
+        }
+
+        BigDecimal dailyMinRateValue;
+        BigDecimal dailyMaxRateValue;
+        try {
+            dailyMinRateValue = parseOptionalDecimal(dailyMinRate, "每天收益最低金额");
+            dailyMaxRateValue = parseOptionalDecimal(dailyMaxRate, "每天收益最高金额");
+        } catch (IllegalArgumentException e) {
+            return Result.error(e.getMessage());
+        }
+
+        if (dailyMinRateValue != null) {
+            dailyMinRateValue = dailyMinRateValue.setScale(2, java.math.RoundingMode.HALF_UP);
+        }
+        if (dailyMaxRateValue != null) {
+            dailyMaxRateValue = dailyMaxRateValue.setScale(2, java.math.RoundingMode.HALF_UP);
+        }
+
+        if (dailyMinRateValue != null || dailyMaxRateValue != null) {
+            BigDecimal effectiveMin = dailyMinRateValue != null
+                    ? dailyMinRateValue
+                    : BigDecimal.valueOf(getDailyRangeRate(KEY_DAILY_MIN_RATE));
+            BigDecimal effectiveMax = dailyMaxRateValue != null
+                    ? dailyMaxRateValue
+                    : BigDecimal.valueOf(getDailyRangeRate(KEY_DAILY_MAX_RATE));
+            if (effectiveMin.compareTo(BigDecimal.ZERO) < 0) {
+                return Result.error("每天收益最低金额不能小于 0");
+            }
+            if (effectiveMax.compareTo(BigDecimal.ZERO) < 0) {
+                return Result.error("每天收益最高金额不能小于 0");
+            }
+            if (effectiveMin.compareTo(effectiveMax) > 0) {
+                return Result.error("每天收益最低金额不能大于最高金额");
+            }
+        }
+
+        if (dailyMinRateValue != null) {
+            configService.setConfig(KEY_DAILY_MIN_RATE, dailyMinRateValue.stripTrailingZeros().toPlainString());
+        }
+        if (dailyMaxRateValue != null) {
+            configService.setConfig(KEY_DAILY_MAX_RATE, dailyMaxRateValue.stripTrailingZeros().toPlainString());
         }
         if (params.get("hashratePerYuan") != null) {
             configService.setConfig(KEY_HASHRATE_PER_YUAN, params.get("hashratePerYuan").toString());
@@ -193,9 +240,6 @@ public class SettingsController {
         }
         if (params.get("withdrawFee") != null) {
             configService.setConfig(KEY_WITHDRAW_FEE, params.get("withdrawFee").toString());
-        }
-        if (params.get("cycle") != null) {
-            configService.setConfig(KEY_EARNINGS_CYCLE, params.get("cycle").toString());
         }
         if (params.get("earningsRate") != null) {
             configService.setConfig(KEY_EARNINGS_RATE, params.get("earningsRate").toString());
@@ -421,8 +465,26 @@ public class SettingsController {
         config.put("hashratePerYuan", Integer.parseInt(configService.getConfig(KEY_HASHRATE_PER_YUAN, "100")));
         config.put("minWithdraw", Double.parseDouble(configService.getConfig(KEY_MIN_WITHDRAW, "10")));
         config.put("withdrawFee", Double.parseDouble(configService.getConfig(KEY_WITHDRAW_FEE, "1")));
-        config.put("hourlyRate", Double.parseDouble(configService.getConfig(KEY_HOURLY_RATE, "2.4")));
+        config.put("dailyMinRate", getDailyRangeRate(KEY_DAILY_MIN_RATE));
+        config.put("dailyMaxRate", getDailyRangeRate(KEY_DAILY_MAX_RATE));
         return Result.success(config);
+    }
+
+    private double getDailyRangeRate(String key) {
+        String legacyHourlyRate = configService.getConfig(LEGACY_KEY_HOURLY_RATE, "2.4");
+        String legacyDailyRate = configService.getConfig(LEGACY_KEY_DAILY_RATE, legacyHourlyRate);
+        return Double.parseDouble(configService.getConfig(key, legacyDailyRate));
+    }
+
+    private BigDecimal parseOptionalDecimal(Object value, String label) {
+        if (value == null) {
+            return null;
+        }
+        try {
+            return new BigDecimal(value.toString());
+        } catch (NumberFormatException e) {
+            throw new IllegalArgumentException(label + "格式不正确");
+        }
     }
 
     /**
