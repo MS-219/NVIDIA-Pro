@@ -51,8 +51,8 @@ recovery_count="$(lsusb -d 0955: 2>/dev/null | wc -l | tr -d ' ')"
 
 READ_INFO_LOG="$(mktemp)"
 echo "Detecting the connected Jetson module..."
-probe_board_config="jetson-orin-nano-devkit-super"
-[[ -f "$L4T_DIR/${probe_board_config}.conf" || -L "$L4T_DIR/${probe_board_config}.conf" ]] \
+probe_board_config="jetson-orin-nano-devkit-super-maxn"
+[[ -e "$L4T_DIR/${probe_board_config}.conf" ]] \
   || die "EEPROM probe board config not found: $probe_board_config"
 set +e
 "$L4T_DIR/flash.sh" --read-info "$probe_board_config" internal 2>&1 \
