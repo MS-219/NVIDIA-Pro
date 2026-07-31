@@ -2,28 +2,21 @@
   <div class="monitor-page">
     <!-- 核心统计栏 -->
     <el-row :gutter="20" class="stat-grid">
-      <el-col :xs="24" :sm="12" :lg="6">
+      <el-col :xs="24" :sm="8" :lg="8">
         <div class="pro-card primary">
           <div class="card-label">活跃节点数</div>
-          <div class="card-val">{{ stats.onlineCount }} <small>Nodes</small></div>
+          <div class="card-val">{{ stats.onlineCount }} <small>台</small></div>
           <el-icon class="card-icon"><Connection /></el-icon>
         </div>
       </el-col>
-      <el-col :xs="24" :sm="12" :lg="6">
-        <div class="pro-card success">
-          <div class="card-label">集群总 Token</div>
-          <div class="card-val">{{ Number(stats.totalTokens || 0).toLocaleString() }} <small>Tokens</small></div>
-          <el-icon class="card-icon"><Cpu /></el-icon>
-        </div>
-      </el-col>
-      <el-col :xs="24" :sm="12" :lg="6">
+      <el-col :xs="24" :sm="8" :lg="8">
         <div class="pro-card warning">
           <div class="card-label">集群平均负载 (GPU)</div>
           <div class="card-val">{{ stats.avgGpuLoad || 0 }}<small>%</small></div>
           <el-icon class="card-icon"><Histogram /></el-icon>
         </div>
       </el-col>
-      <el-col :xs="24" :sm="12" :lg="6">
+      <el-col :xs="24" :sm="8" :lg="8">
         <div class="pro-card indigo">
           <div class="card-label">内存使用水位</div>
           <div class="card-val">{{ stats.avgMemLoad || 0 }}<small>%</small></div>
@@ -53,7 +46,7 @@
       <el-radio-group v-model="statusFilter" @change="fetchDevices">
         <el-radio-button value="">全部节点</el-radio-button>
         <el-radio-button :value="1">在线</el-radio-button>
-        <el-radio-button :value="0">离线</el-radio-button>
+        <el-radio-button :value="0">不在线</el-radio-button>
       </el-radio-group>
       <el-button type="primary" @click="fetchDevices">刷新集群数据</el-button>
     </div>
@@ -64,7 +57,15 @@
         <el-table-column label="运行状态" width="120" align="center">
           <template #default="{ row }">
             <el-tag :type="row.status === 1 ? 'success' : 'danger'" effect="plain">
-              {{ row.status === 1 ? 'ONLINE' : 'OFFLINE' }}
+              {{ row.status === 1 ? '在线' : '不在线' }}
+            </el-tag>
+          </template>
+        </el-table-column>
+
+        <el-table-column label="绑定状态" width="130" align="center">
+          <template #default="{ row }">
+            <el-tag :type="row.userId != null ? 'success' : 'info'" effect="plain">
+              {{ row.userId != null ? '已绑定' : '未绑定' }}
             </el-tag>
           </template>
         </el-table-column>
@@ -136,20 +137,13 @@
           </template>
         </el-table-column>
 
-        <el-table-column label="贡献 Token" width="160" align="right">
-          <template #default="{ row }">
-            <span style="font-weight: 800; color: #1890ff; font-size: 16px;">{{ Number(row.totalTokens || 0).toLocaleString() }}</span>
-            <span style="color: #999; margin-left: 4px;">Tokens</span>
-          </template>
-        </el-table-column>
-
         <el-table-column prop="lastHeartbeatTime" label="最后心跳" width="180">
           <template #default="{ row }">
             <span style="color: #666; font-size: 12px;">{{ formatTime(row.lastHeartbeatTime) }}</span>
           </template>
         </el-table-column>
 
-        <el-table-column label="节点操作" width="200" fixed="right" align="center">
+        <el-table-column label="节点操作" width="280" fixed="right" align="center">
           <template #default="{ row }">
             <el-button type="primary" size="small" @click="viewDetail(row)">管理</el-button>
             <el-button 
@@ -159,6 +153,15 @@
               @click="openTerminal(row)"
               :disabled="row.status !== 1"
             >终端</el-button>
+            <el-button
+              v-if="row.userId != null"
+              type="danger"
+              size="small"
+              plain
+              :icon="Unlock"
+              :loading="unbindingId === row.id"
+              @click="unbindDevice(row)"
+            >解绑</el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -188,8 +191,14 @@
         <div class="detail-item">
           <span class="detail-label">运行状态</span>
           <el-tag :type="detailData.status === 1 ? 'success' : 'danger'" effect="plain">
-            {{ detailData.status === 1 ? 'ONLINE' : 'OFFLINE' }}
+            {{ detailData.status === 1 ? '在线' : '不在线' }}
           </el-tag>
+        </div>
+        <div class="detail-item">
+          <span class="detail-label">绑定状态</span>
+          <span class="detail-value">
+            {{ detailData.userId != null ? `已绑定（用户 ${detailData.userId}）` : '未绑定' }}
+          </span>
         </div>
         <div class="detail-item">
           <span class="detail-label">设备名称</span>
@@ -249,10 +258,6 @@
           <span class="detail-value">{{ detailData.gpuTemperature ?? '-' }}°C / {{ detailData.powerWatts ?? '-' }}W</span>
         </div>
         <div class="detail-item">
-          <span class="detail-label">累计 Token</span>
-          <span class="detail-value accent">{{ Number(detailData.totalTokens || 0).toLocaleString() }}</span>
-        </div>
-        <div class="detail-item">
           <span class="detail-label">最后心跳</span>
           <span class="detail-value">{{ formatTime(detailData.lastHeartbeatTime) }}</span>
         </div>
@@ -269,8 +274,8 @@
 import { ref, onMounted, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import request from '../utils/request'
-import { Connection, Cpu, Monitor, Histogram, Location, Search } from '@element-plus/icons-vue'
-import { ElMessage } from 'element-plus'
+import { Connection, Monitor, Histogram, Location, Search, Unlock } from '@element-plus/icons-vue'
+import { ElMessage, ElMessageBox } from 'element-plus'
 
 const router = useRouter()
 const loading = ref(false)
@@ -285,10 +290,10 @@ const locationOptions = ref([])
 const detailVisible = ref(false)
 const detailLoading = ref(false)
 const detailData = ref({})
+const unbindingId = ref(null)
 
 const stats = reactive({
   onlineCount: 0,
-  totalTokens: 0,
   totalCount: 0,
   avgCpuLoad: 0,
   avgMemLoad: 0
@@ -417,6 +422,37 @@ const openTerminal = (device) => {
   })
 }
 
+const unbindDevice = async (device) => {
+  if (device.userId == null) return
+
+  try {
+    await ElMessageBox.confirm(
+      `确定解绑节点 ${device.sn} 吗？解绑后该设备将不再属于当前用户。`,
+      '解绑设备',
+      {
+        confirmButtonText: '确认解绑',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }
+    )
+  } catch (e) {
+    return
+  }
+
+  unbindingId.value = device.id
+  try {
+    const res = await request.post('/api/device/batch-unbind', { ids: [device.id] })
+    if (res.data.code === 200) {
+      ElMessage.success('设备解绑成功')
+      await Promise.all([fetchDevices(), fetchStats()])
+    } else {
+      ElMessage.error(res.data.msg || '解绑失败')
+    }
+  } finally {
+    unbindingId.value = null
+  }
+}
+
 onMounted(() => {
   fetchStats()
   fetchLocations()
@@ -524,7 +560,7 @@ onMounted(() => {
 }
 
 .filter-bar :deep(.el-radio-button.is-active .el-radio-button__inner) {
-  color: var(--orin-canvas);
+  color: #ffffff;
   background: var(--orin-green);
   border-color: var(--orin-green);
   box-shadow: -1px 0 0 0 var(--orin-green);

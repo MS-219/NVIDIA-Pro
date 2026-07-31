@@ -86,10 +86,6 @@
         </el-menu-item>
 
         <div class="nav-label">平台运维</div>
-        <el-menu-item index="/operations">
-          <el-icon><Odometer /></el-icon>
-          <span>远程运维</span>
-        </el-menu-item>
         <el-menu-item index="/device-upgrades">
           <el-icon><UploadFilled /></el-icon>
           <span>版本升级</span>
@@ -175,7 +171,6 @@ import {
   Menu,
   Money,
   Monitor,
-  Odometer,
   Operation,
   Platform,
   Promotion,
@@ -217,10 +212,10 @@ const handleCommand = (command) => {
   flex: 0 0 252px;
   display: flex;
   flex-direction: column;
-  color: #f7f8f5;
+  color: var(--orin-text-soft);
   background: var(--orin-sidebar);
   border-right: 1px solid var(--orin-border-soft);
-  box-shadow: 12px 0 32px rgba(0, 0, 0, 0.18);
+  box-shadow: 8px 0 24px rgba(31, 41, 55, 0.06);
   z-index: 20;
 }
 
@@ -282,9 +277,9 @@ const handleCommand = (command) => {
   overflow-y: auto;
   border-right: 0;
   background: transparent;
-  --el-menu-text-color: #a5aca1;
-  --el-menu-hover-bg-color: #191d18;
-  --el-menu-active-color: #ffffff;
+  --el-menu-text-color: #475569;
+  --el-menu-hover-bg-color: #f2f6ed;
+  --el-menu-active-color: #315600;
   --el-menu-bg-color: transparent;
 }
 
@@ -296,8 +291,8 @@ const handleCommand = (command) => {
 }
 
 .nav-menu :deep(.el-menu-item.is-active) {
-  color: var(--orin-text) !important;
-  background: #20281c;
+  color: #315600 !important;
+  background: #eaf3df;
   box-shadow: inset 3px 0 var(--orin-green);
 }
 
@@ -317,7 +312,7 @@ const handleCommand = (command) => {
   align-items: center;
   justify-content: space-between;
   border-top: 1px solid var(--orin-border-soft);
-  color: #777d73;
+  color: var(--orin-muted);
   font-size: 10px;
 }
 
@@ -338,9 +333,9 @@ const handleCommand = (command) => {
   align-items: center;
   justify-content: space-between;
   position: relative;
-  background: #111411;
+  background: #ffffff;
   border-bottom: 1px solid var(--orin-border-soft);
-  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.14);
+  box-shadow: 0 6px 18px rgba(31, 41, 55, 0.06);
 }
 
 .topbar::before {
@@ -421,7 +416,7 @@ const handleCommand = (command) => {
     z-index: 15;
     display: block;
     border: 0;
-    background: rgba(2, 4, 2, 0.72);
+    background: rgba(15, 23, 42, 0.36);
     backdrop-filter: blur(2px);
   }
   .mobile-menu { display: inline-flex; }

@@ -56,12 +56,6 @@ const routes = [
                 meta: { title: '智能调度策略' }
             },
             {
-                path: 'operations',
-                name: 'Operations',
-                component: () => import('../views/Operations.vue'),
-                meta: { title: '集群远程运维' }
-            },
-            {
                 path: 'device-upgrades',
                 name: 'DeviceUpgrades',
                 component: () => import('../views/DeviceUpgrades.vue'),

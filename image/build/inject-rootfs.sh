@@ -85,6 +85,7 @@ ORIN_API_BASE_URL=${API_URL}
 ORIN_AGENT_VERSION=${AGENT_VERSION}
 ORIN_IMAGE_VERSION=${IMAGE_VERSION}
 ORIN_HEARTBEAT_INTERVAL=60
+ORIN_RECONNECT_INTERVAL=5
 ORIN_TASK_POLL_INTERVAL=60
 ORIN_TASK_TIMEOUT=240
 ORIN_REQUEST_RETRIES=2
@@ -175,6 +176,7 @@ rm -f \
   "$ROOTFS/etc/juxin-orin/agent.env" \
   "$ROOTFS/var/lib/juxin-orin/device-sn" \
   "$ROOTFS/var/lib/juxin-orin/hardware-fingerprint" \
+  "$ROOTFS/var/lib/juxin-orin/bind-code" \
   "$ROOTFS/var/lib/juxin-orin/device-token" \
   "$ROOTFS/var/lib/juxin-orin/display-status.json" \
   "$ROOTFS/var/lib/juxin-orin/device-seed" \

@@ -249,7 +249,7 @@ public class EdgeDeviceAccessServiceImpl implements IEdgeDeviceAccessService {
     private String generateAvailableBindCode(String sn) {
         String seed = sn;
         for (int attempt = 0; attempt < 10; attempt++) {
-            String candidate = "JX" + sha256(seed).substring(0, 10).toUpperCase(Locale.ROOT);
+            String candidate = "Orin-" + sha256(seed).substring(0, 6).toUpperCase(Locale.ROOT);
             Device owner = deviceMapper.selectOne(new LambdaQueryWrapper<Device>()
                     .eq(Device::getBindCode, candidate)
                     .last("LIMIT 1"));

@@ -26,17 +26,22 @@ SN_FILE = Path(os.getenv("ORIN_DEVICE_SN_FILE", str(STATE_DIR / "device-sn")))
 FINGERPRINT_FILE = Path(
     os.getenv("ORIN_HARDWARE_FINGERPRINT_FILE", str(STATE_DIR / "hardware-fingerprint"))
 )
+BIND_CODE_FILE = Path(os.getenv("ORIN_DEVICE_BIND_CODE_FILE", str(STATE_DIR / "bind-code")))
 TOKEN_FILE = Path(os.getenv("ORIN_DEVICE_TOKEN_FILE", str(STATE_DIR / "device-token")))
 DISPLAY_STATUS_FILE = Path(
     os.getenv("ORIN_DISPLAY_STATUS_FILE", str(STATE_DIR / "display-status.json"))
 )
 DEFAULT_INTERVAL = max(10, int(os.getenv("ORIN_HEARTBEAT_INTERVAL", "60")))
-DEFAULT_TASK_POLL_INTERVAL = max(10, int(os.getenv("ORIN_TASK_POLL_INTERVAL", "60")))
+DEFAULT_TASK_POLL_INTERVAL = max(5, int(os.getenv("ORIN_TASK_POLL_INTERVAL", "60")))
+DEFAULT_OFFLINE_THRESHOLD = max(
+    30, int(os.getenv("ORIN_OFFLINE_THRESHOLD", str(max(180, DEFAULT_INTERVAL * 3))))
+)
 COMMAND_TIMEOUT = max(30, int(os.getenv("ORIN_COMMAND_TIMEOUT", "90")))
 TASK_TIMEOUT = min(240, max(30, int(os.getenv("ORIN_TASK_TIMEOUT", "240"))))
 REQUEST_TIMEOUT = max(5, int(os.getenv("ORIN_REQUEST_TIMEOUT", "20")))
 REQUEST_RETRIES = min(5, max(0, int(os.getenv("ORIN_REQUEST_RETRIES", "2"))))
 RETRY_BASE_SECONDS = max(0.1, float(os.getenv("ORIN_RETRY_BASE_SECONDS", "1")))
+RECONNECT_INTERVAL = min(60, max(1, int(os.getenv("ORIN_RECONNECT_INTERVAL", "5"))))
 OUTBOX_RETRY_INTERVAL = max(5, int(os.getenv("ORIN_OUTBOX_RETRY_INTERVAL", "15")))
 OUTBOX_DIR = Path(os.getenv("ORIN_OUTBOX_DIR", str(STATE_DIR / "outbox")))
 RUNTIME_DIR = Path(os.getenv("ORIN_RUNTIME_DIR", "/opt/juxin-orin/runtime"))
@@ -60,8 +65,14 @@ DISPLAY_STATE: dict[str, Any] = {
     "schemaVersion": 1,
     "phase": "initializing",
     "connected": False,
+    "bindCode": "",
     "agentVersion": AGENT_VERSION,
     "imageVersion": IMAGE_VERSION,
+    "runtimeConfig": {
+        "heartbeatInterval": DEFAULT_INTERVAL,
+        "taskPollInterval": DEFAULT_TASK_POLL_INTERVAL,
+        "offlineThreshold": DEFAULT_OFFLINE_THRESHOLD,
+    },
     "telemetry": {},
     "task": None,
     "error": "",
@@ -84,10 +95,10 @@ def read_text(path: str | Path) -> str:
         return ""
 
 
-def atomic_write_secret(path: Path, value: str) -> None:
+def atomic_write_text(path: Path, value: str, mode: int) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     temporary = path.with_name(f".{path.name}.tmp")
-    descriptor = os.open(temporary, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+    descriptor = os.open(temporary, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, mode)
     try:
         with os.fdopen(descriptor, "w", encoding="utf-8") as handle:
             handle.write(value)
@@ -95,12 +106,16 @@ def atomic_write_secret(path: Path, value: str) -> None:
             handle.flush()
             os.fsync(handle.fileno())
         os.replace(temporary, path)
-        os.chmod(path, 0o600)
+        os.chmod(path, mode)
     finally:
         try:
             temporary.unlink()
         except FileNotFoundError:
             pass
+
+
+def atomic_write_secret(path: Path, value: str) -> None:
+    atomic_write_text(path, value, 0o600)
 
 
 def device_sn() -> str:
@@ -121,6 +136,10 @@ def hardware_fingerprint() -> str:
 
 def device_token() -> str:
     return read_text(TOKEN_FILE)
+
+
+def device_bind_code() -> str:
+    return read_text(BIND_CODE_FILE)
 
 
 def request(
@@ -293,11 +312,15 @@ def ensure_enrolled(payload: dict[str, Any]) -> None:
     response = request("/api/edge/enroll", "POST", enrollment, authenticated=False)
     data = response.get("data") or {}
     token = str(data.get("deviceToken") or "").strip()
+    bind_code = str(data.get("bindCode") or "").strip()
     enrolled_sn = str(data.get("deviceSn") or "").strip()
     if enrolled_sn and enrolled_sn != device_sn():
         raise ApiError("enrollment returned a mismatched device identity")
     if len(token) < 32:
         raise ApiError("enrollment did not return a valid device token")
+    if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._:-]{3,31}", bind_code):
+        raise ApiError("enrollment did not return a valid binding code")
+    atomic_write_text(BIND_CODE_FILE, bind_code, 0o644)
     atomic_write_secret(TOKEN_FILE, token)
 
 
@@ -355,11 +378,17 @@ def publish_display_status(
         DISPLAY_STATE["sn"] = device_sn()
     except RuntimeError:
         DISPLAY_STATE["sn"] = ""
+    DISPLAY_STATE["bindCode"] = device_bind_code()
     DISPLAY_STATE["updatedAt"] = int(time.time())
     try:
         atomic_write_json(DISPLAY_STATUS_FILE, DISPLAY_STATE)
     except OSError as status_error:
         print(f"display status update failed: {status_error}", flush=True)
+
+
+def publish_connection_recovered() -> None:
+    if not DISPLAY_STATE.get("connected"):
+        publish_display_status(phase="idle", connected=True, error=None)
 
 
 def queue_outbox(kind: str, key: str, payload: dict[str, Any]) -> Path:
@@ -621,14 +650,44 @@ def next_interval(response: dict[str, Any], current: int) -> int:
 def next_task_interval(response: dict[str, Any], current: int) -> int:
     value = (response.get("data") or {}).get("taskPollInterval")
     try:
-        return min(3600, max(10, int(value)))
+        return min(3600, max(5, int(value)))
     except (TypeError, ValueError):
         return current
+
+
+def next_offline_threshold(response: dict[str, Any], current: int) -> int:
+    value = (response.get("data") or {}).get("offlineThreshold")
+    try:
+        return min(7200, max(30, int(value)))
+    except (TypeError, ValueError):
+        return current
+
+
+def apply_runtime_config(
+    response: dict[str, Any],
+    heartbeat_interval: int,
+    task_poll_interval: int,
+    offline_threshold: int,
+) -> tuple[int, int, int]:
+    heartbeat_interval = next_interval(response, heartbeat_interval)
+    task_poll_interval = next_task_interval(response, task_poll_interval)
+    offline_threshold = next_offline_threshold(response, offline_threshold)
+    DISPLAY_STATE["runtimeConfig"] = {
+        "heartbeatInterval": heartbeat_interval,
+        "taskPollInterval": task_poll_interval,
+        "offlineThreshold": offline_threshold,
+    }
+    return heartbeat_interval, task_poll_interval, offline_threshold
+
+
+def next_attempt_delay(succeeded: bool, normal_interval: int) -> int:
+    return normal_interval if succeeded else min(normal_interval, RECONNECT_INTERVAL)
 
 
 def loop() -> None:
     heartbeat_interval = DEFAULT_INTERVAL
     task_poll_interval = DEFAULT_TASK_POLL_INTERVAL
+    offline_threshold = DEFAULT_OFFLINE_THRESHOLD
     next_heartbeat = 0.0
     next_task_poll = 0.0
     next_outbox_retry = 0.0
@@ -644,6 +703,7 @@ def loop() -> None:
 
         now = time.monotonic()
         if now >= next_heartbeat:
+            report_succeeded = False
             try:
                 payload = report_payload()
                 if not device_token():
@@ -652,28 +712,40 @@ def loop() -> None:
                     )
                 ensure_enrolled(payload)
                 response = request("/api/edge/report", "POST", payload)
-                heartbeat_interval = next_interval(response, heartbeat_interval)
-                task_poll_interval = next_task_interval(response, task_poll_interval)
+                heartbeat_interval, task_poll_interval, offline_threshold = apply_runtime_config(
+                    response,
+                    heartbeat_interval,
+                    task_poll_interval,
+                    offline_threshold,
+                )
                 publish_display_status(
                     phase="idle", connected=True, telemetry=payload, task=None, error=None
                 )
                 data = response.get("data") or {}
                 if data.get("action") == "execute_command":
                     submit_command(data)
+                report_succeeded = True
             except (ApiError, OSError, RuntimeError, ValueError) as error:
                 print(f"report failed: {error}", flush=True)
                 publish_display_status(phase="offline", connected=False, error=error)
-            next_heartbeat = time.monotonic() + heartbeat_interval
+            next_heartbeat = time.monotonic() + next_attempt_delay(
+                report_succeeded, heartbeat_interval
+            )
 
         now = time.monotonic()
         if now >= next_task_poll:
+            task_poll_succeeded = False
             try:
                 poll_task_once()
+                publish_connection_recovered()
+                task_poll_succeeded = True
             except (ApiError, OSError, RuntimeError, ValueError) as error:
                 print(f"task poll failed: {error}", flush=True)
                 if isinstance(error, ApiError):
                     publish_display_status(phase="offline", connected=False, error=error)
-            next_task_poll = time.monotonic() + task_poll_interval
+            next_task_poll = time.monotonic() + next_attempt_delay(
+                task_poll_succeeded, task_poll_interval
+            )
 
         next_event = min(next_heartbeat, next_outbox_retry, next_task_poll)
         time.sleep(max(0.2, min(1.0, next_event - time.monotonic())))

@@ -677,7 +677,7 @@ onMounted(refreshAll)
 }
 
 .target-scope :deep(.el-radio-button.is-active .el-radio-button__inner) {
-  color: var(--orin-canvas);
+  color: #ffffff;
   background: var(--orin-green);
   border-color: var(--orin-green);
   box-shadow: -1px 0 0 0 var(--orin-green);

@@ -34,6 +34,9 @@ public class EdgeDeviceController {
 
     private static final String EDGE_PROTOCOL_VERSION = "2";
     private static final String MINIMUM_AGENT_VERSION = "0.5.0-orin";
+    private static final String HEARTBEAT_INTERVAL_KEY = "device.heartbeatInterval";
+    private static final String TASK_POLL_INTERVAL_KEY = "device.taskPollInterval";
+    private static final String OFFLINE_THRESHOLD_KEY = "device.offlineThreshold";
 
     @Autowired
     private IDeviceService deviceService;
@@ -158,14 +161,16 @@ public class EdgeDeviceController {
         response.put("action", "none");
 
         // 下发心跳间隔配置（秒），Agent 收到后动态调整
-        int heartbeatInterval = Integer.parseInt(
-                configService.getConfig("device.heartbeatInterval", "60"));
+        int heartbeatInterval = boundedConfig(HEARTBEAT_INTERVAL_KEY, 60, 10, 300);
         response.put("heartbeatInterval", heartbeatInterval);
 
         // 下发任务轮询间隔配置（秒）
-        int taskPollInterval = Integer.parseInt(
-                configService.getConfig("device.taskPollInterval", "60"));
+        int taskPollInterval = boundedConfig(TASK_POLL_INTERVAL_KEY, 60, 5, 300);
         response.put("taskPollInterval", taskPollInterval);
+
+        // 屏幕与后台使用同一离线判定阈值，避免设备在正常心跳间隔内误显示重连。
+        int offlineThreshold = boundedConfig(OFFLINE_THRESHOLD_KEY, 180, 30, 600);
+        response.put("offlineThreshold", offlineThreshold);
 
         if (device != null) {
             DeviceCommand command = deviceCommandService.takePendingCommand(device.getSn());
@@ -189,6 +194,15 @@ public class EdgeDeviceController {
         }
 
         return Result.success(response);
+    }
+
+    private int boundedConfig(String key, int defaultValue, int minimum, int maximum) {
+        String value = configService.getConfig(key, String.valueOf(defaultValue));
+        try {
+            return Math.min(maximum, Math.max(minimum, Integer.parseInt(value)));
+        } catch (NumberFormatException ignored) {
+            return defaultValue;
+        }
     }
 
     private boolean applyOrinTelemetry(Device device, Map<String, Object> report) {

@@ -48,10 +48,12 @@ read_first_identifier() {
   return 1
 }
 
-read_first_mac() {
+read_mac() {
+  local require_device="$1"
   local interface value
   while IFS= read -r interface; do
     [[ "$(basename "$interface")" == "lo" ]] && continue
+    [[ "$require_device" != "1" || -e "$interface/device" ]] || continue
     [[ -r "$interface/address" ]] || continue
     value="$(tr '[:lower:]' '[:upper:]' <"$interface/address" | tr -d ':\r\n ')"
     if [[ "$value" =~ ^[A-F0-9]{12}$ && "$value" != "000000000000" ]]; then
@@ -60,6 +62,10 @@ read_first_mac() {
     fi
   done < <(find "${SYS_ROOT}/class/net" -mindepth 1 -maxdepth 1 \( -type l -o -type d \) 2>/dev/null | sort)
   return 1
+}
+
+read_first_mac() {
+  read_mac 1 || read_mac 0
 }
 
 platform_check() {
@@ -71,19 +77,24 @@ platform_check() {
 generate_identity() {
   local hardware_id="" mac="" seed="" digest=""
   hardware_id="$(read_first_identifier || true)"
-  mac="$(read_first_mac || true)"
 
-  if [[ -z "$hardware_id" && -z "$mac" ]]; then
+  if [[ -n "$hardware_id" ]]; then
+    seed="serial:${hardware_id}"
+  else
+    mac="$(read_first_mac || true)"
+  fi
+
+  if [[ -z "$seed" && -n "$mac" ]]; then
+    seed="mac:${mac}"
+  elif [[ -z "$seed" ]]; then
     if [[ ! -s "${STATE_DIR}/device-seed" ]]; then
       od -An -N32 -tx1 /dev/urandom | tr -d ' \n' >"${STATE_DIR}/device-seed"
     fi
-    seed="$(cat "${STATE_DIR}/device-seed")"
-  else
-    seed="${hardware_id}|${mac}"
+    seed="random:$(cat "${STATE_DIR}/device-seed")"
   fi
 
-  digest="$(printf 'juxin-orin-v1|%s' "$seed" | sha256sum | awk '{print toupper($1)}')"
-  printf 'ORIN-%s\n%s\n' "${digest:0:12}" "$digest"
+  digest="$(printf 'juxin-orin-v2|%s' "$seed" | sha256sum | awk '{print toupper($1)}')"
+  printf 'ORIN-%s\n%s\n' "${digest:0:16}" "$digest"
 }
 
 configure_hostname() {
@@ -111,7 +122,8 @@ initialize_host_identity() {
 }
 
 main() {
-  local api_url agent_version image_version interval task_interval task_timeout request_retries
+  local api_url agent_version image_version interval reconnect_interval
+  local task_interval task_timeout request_retries
   local identity sn fingerprint
 
   platform_check
@@ -122,6 +134,7 @@ main() {
   agent_version="$(read_value ORIN_AGENT_VERSION 0.5.0-orin)"
   image_version="$(read_value ORIN_IMAGE_VERSION orin-l4t-36.4.7-v1)"
   interval="$(read_value ORIN_HEARTBEAT_INTERVAL 60)"
+  reconnect_interval="$(read_value ORIN_RECONNECT_INTERVAL 5)"
   task_interval="$(read_value ORIN_TASK_POLL_INTERVAL 60)"
   task_timeout="$(read_value ORIN_TASK_TIMEOUT 240)"
   request_retries="$(read_value ORIN_REQUEST_RETRIES 2)"
@@ -130,6 +143,9 @@ main() {
   [[ "$agent_version" =~ ^[A-Za-z0-9._-]+$ ]] || die "agent version format is invalid"
   [[ "$image_version" =~ ^[A-Za-z0-9._-]+$ ]] || die "image version format is invalid"
   [[ "$interval" =~ ^[0-9]+$ ]] || die "heartbeat interval is invalid"
+  [[ "$reconnect_interval" =~ ^[0-9]+$ ]] || die "reconnect interval is invalid"
+  (( reconnect_interval >= 1 && reconnect_interval <= 60 )) \
+    || die "reconnect interval must be 1..60 seconds"
   [[ "$task_interval" =~ ^[0-9]+$ ]] || die "task poll interval is invalid"
   [[ "$task_timeout" =~ ^[0-9]+$ ]] || die "task timeout is invalid"
   [[ "$request_retries" =~ ^[0-9]+$ ]] || die "request retries is invalid"
@@ -145,7 +161,7 @@ main() {
     printf '%s\n' "$fingerprint" >"${STATE_DIR}/hardware-fingerprint"
   fi
 
-  [[ "$sn" =~ ^ORIN-[A-F0-9]{12}$ ]] || die "generated device SN is invalid"
+  [[ "$sn" =~ ^ORIN-([A-F0-9]{12}|[A-F0-9]{16})$ ]] || die "generated device SN is invalid"
   [[ "$fingerprint" =~ ^[A-F0-9]{64}$ ]] || die "generated fingerprint is invalid"
 
   cat >"$AGENT_ENV" <<EOF
@@ -155,6 +171,7 @@ ORIN_HARDWARE_FINGERPRINT=${fingerprint}
 ORIN_AGENT_VERSION=${agent_version}
 ORIN_IMAGE_VERSION=${image_version}
 ORIN_HEARTBEAT_INTERVAL=${interval}
+ORIN_RECONNECT_INTERVAL=${reconnect_interval}
 ORIN_TASK_POLL_INTERVAL=${task_interval}
 ORIN_TASK_TIMEOUT=${task_timeout}
 ORIN_REQUEST_RETRIES=${request_retries}

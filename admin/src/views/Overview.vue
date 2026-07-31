@@ -26,8 +26,8 @@
     <section class="content-grid">
       <article class="panel throughput-panel">
         <header class="panel-header">
-          <div><span class="section-kicker">TASK THROUGHPUT</span><h3>任务处理趋势</h3></div>
-          <el-segmented v-model="trendTimeRange" :options="trendOptions" size="small" />
+          <div><span class="section-kicker">DATA TREND</span><h3>数据趋势分析</h3></div>
+          <el-tag type="success" effect="plain">近 14 日</el-tag>
         </header>
         <div ref="trendChartRef" class="trend-chart"></div>
       </article>
@@ -78,29 +78,27 @@
 </template>
 
 <script setup>
-import { computed, markRaw, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
+import { computed, markRaw, onMounted, onUnmounted, reactive, ref } from 'vue'
 import * as echarts from 'echarts'
-import { Coin, Cpu, DataLine, Monitor, Odometer, Refresh, SetUp, Timer } from '@element-plus/icons-vue'
+import { Coin, Connection, Cpu, Monitor, Refresh, SetUp, Timer, UserFilled } from '@element-plus/icons-vue'
 import request from '../utils/request'
 
 const trendChartRef = ref(null)
 const healthChartRef = ref(null)
 const loading = ref(false)
 const lastUpdated = ref('--:--:--')
-const trendTimeRange = ref('24h')
-const trendOptions = [{ label: '24小时', value: '24h' }, { label: '7天', value: '7d' }]
-const deviceStats = reactive({ onlineCount: 0, offlineCount: 0, totalCount: 0, avgCpuLoad: 0, avgMemLoad: 0, avgGpuLoad: 0, avgGpuTemperature: 0, totalPowerWatts: 0, totalTokens: 0 })
-const taskStats = reactive({ totalTasks: 0, avgLatency: 0 })
-const trendData = reactive({ labels: [], values: [] })
+const deviceStats = reactive({ onlineCount: 0, offlineCount: 0, totalCount: 0, avgCpuLoad: 0, avgMemLoad: 0, avgGpuLoad: 0, avgGpuTemperature: 0, totalPowerWatts: 0 })
+const businessStats = reactive({ totalUsers: 0, hasDeviceCount: 0, totalEarnings: 0, todayEarnings: 0 })
+const trendData = reactive({ dates: [], earnings: [], users: [], devices: [] })
 const taskLogs = ref([])
 let trendChart
 let healthChart
 
 const kpis = computed(() => [
-  { label: '在线节点', value: deviceStats.onlineCount, unit: `/ ${deviceStats.totalCount}`, note: deviceStats.totalCount ? `${Math.round(deviceStats.onlineCount / deviceStats.totalCount * 100)}% 在线率` : '等待节点注册', icon: markRaw(Cpu), tone: 'green', state: 'good' },
-  { label: '累计任务', value: Number(taskStats.totalTasks || 0).toLocaleString(), unit: 'Tasks', note: `${Number(deviceStats.totalTokens || 0).toLocaleString()} Tokens`, icon: markRaw(DataLine), tone: 'graphite', state: 'neutral' },
-  { label: '平均 GPU', value: deviceStats.avgGpuLoad || 0, unit: '%', note: deviceStats.avgGpuTemperature ? `平均温度 ${deviceStats.avgGpuTemperature}°C` : '等待 GPU 遥测', icon: markRaw(Odometer), tone: 'amber', state: deviceStats.avgGpuTemperature > 80 ? 'warn' : 'good' },
-  { label: '平均内存', value: deviceStats.avgMemLoad || 0, unit: '%', note: deviceStats.totalPowerWatts ? `在线功耗 ${deviceStats.totalPowerWatts} W` : '统一内存水位', icon: markRaw(Monitor), tone: 'cyan', state: deviceStats.avgMemLoad > 85 ? 'warn' : 'good' },
+  { label: '设备总数', value: Number(deviceStats.totalCount || 0).toLocaleString(), unit: '台', note: `${deviceStats.onlineCount || 0} 台当前在线`, icon: markRaw(Monitor), tone: 'green', state: deviceStats.totalCount > 0 ? 'good' : 'neutral' },
+  { label: '注册用户', value: Number(businessStats.totalUsers || 0).toLocaleString(), unit: '人', note: `${businessStats.hasDeviceCount || 0} 位用户已绑定设备`, icon: markRaw(UserFilled), tone: 'graphite', state: businessStats.totalUsers > 0 ? 'good' : 'neutral' },
+  { label: '累计收益', value: `¥${formatMoney(businessStats.totalEarnings)}`, unit: '', note: `今日收益 ¥${formatMoney(businessStats.todayEarnings)}`, icon: markRaw(Coin), tone: 'amber', state: 'good' },
+  { label: '在线设备', value: Number(deviceStats.onlineCount || 0).toLocaleString(), unit: '台', note: deviceStats.totalCount ? `${Math.round(deviceStats.onlineCount / deviceStats.totalCount * 100)}% 在线率` : '暂无设备', icon: markRaw(Connection), tone: 'cyan', state: deviceStats.onlineCount > 0 ? 'good' : 'neutral' },
 ])
 
 const runtimeBaseline = [
@@ -111,18 +109,21 @@ const runtimeBaseline = [
 ]
 
 const formatDateToTime = (value) => value ? String(value).substring(11, 19) : '-'
+const formatMoney = (value) => Number(value || 0).toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 
 const getChartTheme = () => {
   const styles = getComputedStyle(document.documentElement)
   const color = (name, fallback) => styles.getPropertyValue(name).trim() || fallback
 
   return {
-    surface: color('--orin-surface', '#141714'),
-    surfaceRaised: color('--orin-surface-raised', '#1b1f1b'),
-    border: color('--orin-border', '#30352f'),
-    text: color('--orin-text', '#f2f5ef'),
-    muted: color('--orin-muted', '#939b90'),
-    green: color('--orin-green', '#76b900'),
+    surface: color('--orin-surface', '#ffffff'),
+    surfaceRaised: color('--orin-surface-raised', '#ffffff'),
+    border: color('--orin-border', '#d7ddd2'),
+    text: color('--orin-text', '#1f2937'),
+    muted: color('--orin-muted', '#6b7280'),
+    green: color('--orin-green', '#5f9800'),
+    cyan: color('--orin-cyan', '#187f7b'),
+    amber: color('--orin-amber', '#a66f12'),
   }
 }
 
@@ -131,7 +132,16 @@ const renderCharts = () => {
   const theme = getChartTheme()
 
   trendChart.setOption({
-    grid: { top: 28, right: 18, bottom: 28, left: 44 },
+    color: [theme.green, theme.cyan, theme.amber],
+    grid: { top: 48, right: 52, bottom: 28, left: 58 },
+    legend: {
+      top: 4,
+      right: 0,
+      itemWidth: 18,
+      itemHeight: 3,
+      textStyle: { color: theme.muted, fontSize: 10 },
+      data: ['收益', '新增用户', '新增设备'],
+    },
     tooltip: {
       trigger: 'axis',
       backgroundColor: theme.surfaceRaised,
@@ -143,26 +153,67 @@ const renderCharts = () => {
     xAxis: {
       type: 'category',
       boundaryGap: false,
-      data: trendData.labels,
+      data: trendData.dates.map(date => String(date).substring(5)),
       axisTick: { show: false },
       axisLine: { lineStyle: { color: theme.border } },
       axisLabel: { color: theme.muted, fontSize: 10 },
     },
-    yAxis: {
-      type: 'value',
-      splitLine: { lineStyle: { color: theme.border, opacity: 0.55 } },
-      axisLabel: { color: theme.muted, fontSize: 10 },
-    },
-    series: [{
-      type: 'line',
-      smooth: true,
-      symbol: 'circle',
-      symbolSize: 5,
-      data: trendData.values,
-      lineStyle: { width: 2, color: theme.green },
-      itemStyle: { color: theme.green, borderColor: theme.surface, borderWidth: 2 },
-      areaStyle: { color: theme.green, opacity: 0.08 },
-    }],
+    yAxis: [
+      {
+        type: 'value',
+        name: '收益（元）',
+        nameTextStyle: { color: theme.muted, fontSize: 10 },
+        splitLine: { lineStyle: { color: theme.border, opacity: 0.55 } },
+        axisLabel: { color: theme.muted, fontSize: 10, formatter: value => `¥${value}` },
+      },
+      {
+        type: 'value',
+        name: '数量',
+        minInterval: 1,
+        nameTextStyle: { color: theme.muted, fontSize: 10 },
+        splitLine: { show: false },
+        axisLabel: { color: theme.muted, fontSize: 10 },
+      },
+    ],
+    series: [
+      {
+        name: '收益',
+        type: 'line',
+        smooth: true,
+        symbol: 'circle',
+        symbolSize: 5,
+        yAxisIndex: 0,
+        data: trendData.earnings,
+        lineStyle: { width: 2, color: theme.green },
+        itemStyle: { color: theme.green, borderColor: theme.surface, borderWidth: 2 },
+        areaStyle: { color: theme.green, opacity: 0.08 },
+        tooltip: { valueFormatter: value => `¥${formatMoney(value)}` },
+      },
+      {
+        name: '新增用户',
+        type: 'line',
+        smooth: true,
+        symbol: 'circle',
+        symbolSize: 5,
+        yAxisIndex: 1,
+        data: trendData.users,
+        lineStyle: { width: 2, color: theme.cyan },
+        itemStyle: { color: theme.cyan, borderColor: theme.surface, borderWidth: 2 },
+        tooltip: { valueFormatter: value => `${value} 人` },
+      },
+      {
+        name: '新增设备',
+        type: 'line',
+        smooth: true,
+        symbol: 'circle',
+        symbolSize: 5,
+        yAxisIndex: 1,
+        data: trendData.devices,
+        lineStyle: { width: 2, color: theme.amber },
+        itemStyle: { color: theme.amber, borderColor: theme.surface, borderWidth: 2 },
+        tooltip: { valueFormatter: value => `${value} 台` },
+      },
+    ],
   })
 
   healthChart.setOption({
@@ -177,18 +228,28 @@ const renderCharts = () => {
 const fetchData = async () => {
   loading.value = true
   try {
-    const [statsRes, tasksRes, latestRes, trendRes] = await Promise.allSettled([
+    const [statsRes, usersRes, earningsRes, latestRes, trendRes] = await Promise.allSettled([
       request.get('/api/admin/sl/devices/stats', { silent: true }),
-      request.get('/api/admin/device-tasks/statistics', { silent: true }),
+      request.get('/api/user/stats', { silent: true }),
+      request.get('/api/earnings/stats', { silent: true }),
       request.get('/api/admin/device-tasks/latest', { params: { limit: 6 }, silent: true }),
-      request.get('/api/admin/device-tasks/trend', { params: { range: trendTimeRange.value }, silent: true }),
+      request.get('/api/statistics/trend', { params: { days: 14 }, silent: true }),
     ])
 
     const stats = statsRes.status === 'fulfilled' ? statsRes.value.data : null
     if (stats?.code === 200) Object.assign(deviceStats, { ...stats.data, offlineCount: stats.data.offlineCount ?? Math.max(0, stats.data.totalCount - stats.data.onlineCount) })
 
-    const tasks = tasksRes.status === 'fulfilled' ? tasksRes.value.data : null
-    if (tasks?.code === 200) Object.assign(taskStats, tasks.data)
+    const users = usersRes.status === 'fulfilled' ? usersRes.value.data : null
+    if (users?.code === 200) {
+      businessStats.totalUsers = Number(users.data.totalUsers || 0)
+      businessStats.hasDeviceCount = Number(users.data.hasDeviceCount || 0)
+    }
+
+    const earnings = earningsRes.status === 'fulfilled' ? earningsRes.value.data : null
+    if (earnings?.code === 200) {
+      businessStats.totalEarnings = Number(earnings.data.totalEarnings || 0)
+      businessStats.todayEarnings = Number(earnings.data.todayEarnings || 0)
+    }
 
     const latest = latestRes.status === 'fulfilled' ? latestRes.value.data : null
     if (latest?.code === 200 && Array.isArray(latest.data)) {
@@ -203,8 +264,10 @@ const fetchData = async () => {
 
     const trend = trendRes.status === 'fulfilled' ? trendRes.value.data : null
     if (trend?.code === 200) {
-      trendData.labels = trend.data.labels || []
-      trendData.values = trend.data.values || []
+      trendData.dates = trend.data.dates || []
+      trendData.earnings = trend.data.earnings || []
+      trendData.users = trend.data.users || []
+      trendData.devices = trend.data.devices || []
     }
     lastUpdated.value = new Date().toLocaleTimeString('zh-CN', { hour12: false })
     renderCharts()
@@ -214,7 +277,6 @@ const fetchData = async () => {
 }
 
 const resizeCharts = () => { trendChart?.resize(); healthChart?.resize() }
-watch(trendTimeRange, fetchData)
 
 onMounted(() => {
   trendChart = echarts.init(trendChartRef.value)

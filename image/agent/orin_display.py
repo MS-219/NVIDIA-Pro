@@ -65,6 +65,29 @@ PIXEL_GLYPHS = {
     "V": ("10001", "10001", "10001", "10001", "10001", "01010", "00100"),
 }
 
+NVIDIA_MARK = (
+    "00000000000000000000",
+    "00000000000000000000",
+    "00000000000000000000",
+    "00000001111111111111",
+    "00000001111111111111",
+    "00000111001111111111",
+    "00011101110011111111",
+    "01110011111100111111",
+    "11101111000110011111",
+    "11001101100110011111",
+    "01101101111101111111",
+    "01110111111011100011",
+    "00110011001111000111",
+    "00011101111100011111",
+    "00000111000111111111",
+    "00000001111111111111",
+    "00000001111111111111",
+    "00000000000000000000",
+    "00000000000000000000",
+    "00000000000000000000",
+)
+
 
 class FbBitField(ctypes.Structure):
     _fields_ = [
@@ -163,8 +186,10 @@ def default_state() -> dict[str, Any]:
         "phase": "initializing",
         "connected": False,
         "sn": read_sn(),
+        "bindCode": "",
         "agentVersion": "",
         "imageVersion": "",
+        "runtimeConfig": {},
         "updatedAt": 0,
         "telemetry": {},
         "task": None,
@@ -182,6 +207,7 @@ def load_state(path: Path = STATE_FILE, now: float | None = None) -> dict[str, A
         return state
 
     state["sn"] = clean_text(state.get("sn"), 40) or read_sn()
+    state["bindCode"] = clean_text(state.get("bindCode"), 32)
     state["phase"] = clean_text(state.get("phase"), 32) or "initializing"
     state["agentVersion"] = clean_text(state.get("agentVersion"), 32)
     state["imageVersion"] = clean_text(state.get("imageVersion"), 48)
@@ -190,10 +216,22 @@ def load_state(path: Path = STATE_FILE, now: float | None = None) -> dict[str, A
         state["telemetry"] = {}
     if not isinstance(state.get("task"), dict):
         state["task"] = None
+    if not isinstance(state.get("runtimeConfig"), dict):
+        state["runtimeConfig"] = {}
 
     current = time.time() if now is None else now
     updated_at = safe_number(state.get("updatedAt"))
-    stale_limit = TASK_STALE_AFTER_SECONDS if state["phase"] == "task" else STALE_AFTER_SECONDS
+    runtime_config = state["runtimeConfig"]
+    offline_threshold = safe_number(runtime_config.get("offlineThreshold"))
+    if offline_threshold <= 0:
+        heartbeat_interval = safe_number(runtime_config.get("heartbeatInterval"))
+        offline_threshold = heartbeat_interval * 3 if heartbeat_interval > 0 else STALE_AFTER_SECONDS
+    configured_stale_limit = min(7200, max(30, int(offline_threshold)))
+    stale_limit = (
+        max(TASK_STALE_AFTER_SECONDS, configured_stale_limit)
+        if state["phase"] == "task"
+        else configured_stale_limit
+    )
     if updated_at and current - updated_at > stale_limit:
         state["connected"] = False
         if state["phase"] != "task":
@@ -260,6 +298,10 @@ def display_copy(state: dict[str, Any], now: float | None = None) -> dict[str, s
     }
 
 
+def display_identity(state: dict[str, Any]) -> str:
+    return clean_text(state.get("bindCode"), 32) or clean_text(state.get("sn"), 40)
+
+
 @lru_cache(maxsize=2)
 def locate_font(bold: bool = False) -> str:
     names = (
@@ -319,6 +361,80 @@ def draw_pixel_word(draw, x: int, y: int, word: str, cell: int, fill: str) -> in
     return cursor
 
 
+def draw_nvidia_brand(draw, x: int, y: int, cell: int, fill: str) -> int:
+    for row, bits in enumerate(NVIDIA_MARK):
+        for column, bit in enumerate(bits):
+            if bit == "1":
+                left = x + column * cell
+                top = y + row * cell
+                draw.rectangle((left, top, left + cell - 1, top + cell - 1), fill=fill)
+
+    mark_width = len(NVIDIA_MARK[0]) * cell
+    word_y = y + (len(NVIDIA_MARK) * cell - 7 * cell) // 2
+    return draw_pixel_word(draw, x + mark_width + 2 * cell, word_y, "NVIDIA", cell, fill)
+
+
+def draw_pixel_text(
+    draw,
+    canvas_width: int,
+    y: int,
+    value: str,
+    selected_font,
+    pixel_size: int,
+    fill: str,
+) -> tuple[int, int, int, int]:
+    if Image is None or ImageDraw is None:
+        raise RuntimeError("Pillow is not installed")
+
+    bounds = selected_font.getbbox(value)
+    mask_width = max(1, bounds[2] - bounds[0])
+    mask_height = max(1, bounds[3] - bounds[1])
+    mask = Image.new("1", (mask_width, mask_height), 0)
+    mask_draw = ImageDraw.Draw(mask)
+    mask_draw.text((-bounds[0], -bounds[1]), value, font=selected_font, fill=1)
+
+    left = (canvas_width - mask_width * pixel_size) // 2
+    pixels = mask.load()
+    for row in range(mask_height):
+        run_start = None
+        for column in range(mask_width + 1):
+            active = column < mask_width and bool(pixels[column, row])
+            if active and run_start is None:
+                run_start = column
+            elif not active and run_start is not None:
+                draw.rectangle(
+                    (
+                        left + run_start * pixel_size,
+                        y + row * pixel_size,
+                        left + column * pixel_size - 1,
+                        y + (row + 1) * pixel_size - 1,
+                    ),
+                    fill=fill,
+                )
+                run_start = None
+
+    return left, y, mask_width * pixel_size, mask_height * pixel_size
+
+
+def draw_header_title(
+    draw, canvas_width: int, y: int, *, large: bool, medium: bool
+) -> None:
+    source_size = 19 if large else 14 if medium else 11
+    draw_pixel_text(
+        draw,
+        canvas_width,
+        y,
+        "聚芯Orin边缘算力节点",
+        font(source_size, bold=True),
+        2,
+        COLORS["green"],
+    )
+
+
+def node_access_status(connected: bool) -> str:
+    return "节点已接入" if connected else "节点接入中"
+
+
 def draw_compute_field(draw, width: int, y: int, frame: int, active: bool) -> None:
     field_width = min(820, width - 240)
     left = (width - field_width) // 2
@@ -367,7 +483,6 @@ def render_frame(
     telemetry = state.get("telemetry") or {}
     large = height >= 900
     medium = height >= 650
-    title_font = font(38 if large else 28 if medium else 22, bold=True)
     main_font = font(52 if large else 38 if medium else 30, bold=True)
     body_font = font(30 if large else 23 if medium else 18)
     small_font = font(22 if large else 17 if medium else 14)
@@ -378,9 +493,11 @@ def render_frame(
     scan_y = margin + ((frame * (4 if large else 3)) % max(1, height - margin * 2))
     draw.line((margin + 2, scan_y, width - margin - 2, scan_y), fill="#0D1711", width=1)
 
-    cell = 5 if large else 4 if medium else 3
-    draw_pixel_word(draw, margin + 36, margin + 28, "NVIDIA", cell, COLORS["green"])
-    centered_text(draw, width, margin + 23, "聚芯边缘算力节点", title_font, COLORS["white"])
+    brand_cell = 4 if large else 3 if medium else 2
+    brand_y = margin + (12 if large or medium else 20)
+    draw_nvidia_brand(draw, margin + 36, brand_y, brand_cell, COLORS["green"])
+    title_y = margin + 23
+    draw_header_title(draw, width, title_y, large=large, medium=medium)
 
     pulse = 0.55 + 0.45 * ((math.sin(frame / 4) + 1) / 2)
     badge_color = copy["color"] if pulse > 0.72 else COLORS["green_dim"]
@@ -402,11 +519,11 @@ def render_frame(
     link_y = int(height * 0.52)
     centered_text(draw, width, link_y, copy["link"], body_font, copy["color"])
     sn_y = int(height * 0.61)
-    centered_text(draw, width, sn_y, clean_text(state.get("sn"), 40), sn_font, COLORS["white"])
+    centered_text(draw, width, sn_y, display_identity(state), sn_font, COLORS["white"])
 
     status_y = int(height * 0.72)
-    scheduler = "调度中心已同步" if state.get("connected") else "调度中心连接中"
-    status = f"GPU 已就绪    |    MAXN_SUPER    |    {scheduler}"
+    access_status = node_access_status(bool(state.get("connected")))
+    status = f"GPU 已就绪    |    MAXN_SUPER    |    {access_status}"
     centered_text(draw, width, status_y, status, body_font, COLORS["muted"])
 
     gpu = safe_number(telemetry.get("gpu_usage"))
@@ -439,9 +556,6 @@ def render_frame(
     footer = f"{ip}    Agent {version}" if version else ip
     footer_y = height - margin - (38 if large else 28)
     draw.text((margin + 36, footer_y), footer, font=small_font, fill=COLORS["muted"])
-    maintenance = "远程维护：SSH    本地终端：Ctrl+Alt+F2"
-    maintenance_x = width - margin - 36 - text_width(draw, maintenance, small_font)
-    draw.text((maintenance_x, footer_y), maintenance, font=small_font, fill=COLORS["muted"])
     return image
 
 
@@ -469,14 +583,12 @@ def terminal_frame(state: dict[str, Any], frame: int) -> str:
             f"{moving:^62}",
             f"{engine:^62}",
             "",
-            f"{clean_text(state.get('sn'), 40):^62}",
+            f"{display_identity(state):^62}",
             "",
-            "GPU READY  |  MAXN_SUPER  |  ORCHESTRATOR SYNCED",
+            "GPU READY  |  MAXN_SUPER  |  NODE ATTACHED",
             f"GPU {safe_number(telemetry.get('gpu_usage')):3.0f}%   "
             f"TEMP {safe_number(telemetry.get('gpu_temperature')):3.0f}C   "
             f"POWER {safe_number(telemetry.get('power_watts')):4.1f}W",
-            "",
-            "Maintenance: SSH or Ctrl+Alt+F2",
         ]
     )
 

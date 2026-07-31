@@ -22,6 +22,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.doAnswer;
@@ -72,6 +73,8 @@ class EdgeDeviceAccessServiceImplTest {
 
         assertEquals("ORIN-001", response.deviceSn());
         assertEquals(42L, response.deviceId());
+        assertTrue(response.bindCode().matches("Orin-[A-F0-9]{6}"));
+        assertEquals(response.bindCode(), stored.getBindCode());
         assertNotNull(response.deviceToken());
         assertEquals(43, response.deviceToken().length());
         assertEquals(64, stored.getDeviceTokenHash().length());
@@ -81,6 +84,29 @@ class EdgeDeviceAccessServiceImplTest {
         assertEquals("0123456789abcdef", stored.getHardwareFingerprint());
         assertEquals("aarch64", stored.getArchitecture());
         assertEquals(42.5, stored.getGpuTemperature());
+    }
+
+    @Test
+    void enrollRetriesWhenFirstShortCodeIsOwnedByAnotherDevice() {
+        String sn = "ORIN-0123456789ABCDEF";
+        String firstCandidate = "Orin-" + EdgeDeviceAccessServiceImpl.sha256(sn)
+                .substring(0, 6).toUpperCase();
+        Device owner = new Device();
+        owner.setSn("ORIN-OTHER");
+        owner.setBindCode(firstCandidate);
+        when(deviceMapper.selectOne(any(LambdaQueryWrapper.class)))
+                .thenReturn(null, null, owner, null);
+        doAnswer(invocation -> {
+            Device device = invocation.getArgument(0);
+            device.setId(43L);
+            return 1;
+        }).when(deviceMapper).insert(any(Device.class));
+
+        EdgeEnrollResponse response = service.enroll(
+                enrollmentRequest(sn), "203.0.113.20");
+
+        assertTrue(response.bindCode().matches("Orin-[A-F0-9]{6}"));
+        assertNotEquals(firstCandidate, response.bindCode());
     }
 
     @Test

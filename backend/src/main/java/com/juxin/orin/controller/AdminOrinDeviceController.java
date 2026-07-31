@@ -55,12 +55,6 @@ public class AdminOrinDeviceController {
         // 获取对应类型的设备全量数据用于计算
         java.util.List<Device> deviceList = deviceService.list(baseWrapper);
 
-        // 集群累计 Token
-        fillDeviceTokenStats(deviceList);
-        long totalTokens = deviceList.stream()
-                .mapToLong(d -> d.getTotalTokens() != null ? d.getTotalTokens() : 0L)
-                .sum();
-
         // 核心：计算真实平均负载 (仅限在线节点)
         long onlineNodes = deviceList.stream().filter(d -> d.getStatus() != null && d.getStatus() == 1).count();
         double avgCpu = 0;
@@ -94,7 +88,6 @@ public class AdminOrinDeviceController {
         stats.put("totalCount", totalCount);
         stats.put("onlineCount", onlineCount);
         stats.put("offlineCount", totalCount - onlineCount);
-        stats.put("totalTokens", totalTokens);
         stats.put("avgCpuLoad", Math.round(avgCpu));
         stats.put("avgMemLoad", Math.round(avgMem));
         stats.put("avgGpuLoad", Math.round(avgGpu));
@@ -146,7 +139,7 @@ public class AdminOrinDeviceController {
         wrapper.orderByDesc(Device::getLastHeartbeatTime);
 
         IPage<Device> result = deviceService.page(pageObj, wrapper);
-        fillDeviceTokenStats(result.getRecords());
+        fillDeviceRuntimeStats(result.getRecords());
         fillDeviceEnvStats(result.getRecords());
         return Result.success(result);
     }
@@ -223,7 +216,7 @@ public class AdminOrinDeviceController {
         wrapper.eq(Device::getType, 2);
     }
 
-    private void fillDeviceTokenStats(List<Device> devices) {
+    private void fillDeviceRuntimeStats(List<Device> devices) {
         if (devices == null || devices.isEmpty()) {
             return;
         }
@@ -242,13 +235,6 @@ public class AdminOrinDeviceController {
                 .orderByDesc(ComputeJob::getCreateTime)
                 .list();
 
-        Map<String, Long> tokenMap = tasks.stream()
-                .filter(task -> "completed".equals(task.getStatus()))
-                .collect(Collectors.groupingBy(
-                        ComputeJob::getDeviceSn,
-                        Collectors.summingLong(
-                                task -> task.getGenerateTokens() == null ? 0L : task.getGenerateTokens().longValue())));
-
         Map<String, String> runtimeModelMap = new HashMap<>();
         for (ComputeJob task : tasks) {
             if (task.getDeviceSn() == null || task.getDeviceSn().isEmpty()) {
@@ -263,7 +249,6 @@ public class AdminOrinDeviceController {
         }
 
         for (Device device : devices) {
-            device.setTotalTokens(tokenMap.getOrDefault(device.getSn(), 0L));
             device.setRuntimeModel(runtimeModelMap.getOrDefault(device.getSn(), "未执行任务"));
         }
     }

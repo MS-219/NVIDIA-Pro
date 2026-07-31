@@ -1,10 +1,14 @@
 <scroll-view class="my-scroll" scroll-y type="list">
   <view class="my-page">
     <view class="account-nav" style="padding-top: {{navBarTop}}px; height: {{navBarHeight}}px;">
-      <view><text class="nav-title">我的</text><text class="nav-subtitle">账户与服务</text></view>
+      <view class="nav-copy">
+        <text class="nav-title">我的</text>
+        <text class="nav-subtitle">账户与服务</text>
+      </view>
     </view>
 
     <view class="profile-card" bindtap="onProfileCardTap" hover-class="profile-card-pressed">
+      <view class="profile-accent"></view>
       <view class="avatar-wrap">
         <button class="avatar-trigger" open-type="chooseAvatar" bindchooseavatar="onChooseAvatar" catchtap="stopPropagation" wx:if="{{isLoggedIn}}">
           <image class="avatar-image" src="{{userInfo.avatarUrl}}" mode="aspectFill" wx:if="{{userInfo.avatarUrl}}"></image>
@@ -13,50 +17,119 @@
         <view class="avatar-fallback" wx:else>JX</view>
         <view class="avatar-status" wx:if="{{isLoggedIn}}"></view>
       </view>
+
       <view class="profile-copy" wx:if="{{isLoggedIn}}">
         <view class="name-line">
           <input class="nick-input" type="nickname" placeholder="设置昵称" value="{{userInfo.nickname}}" bindchange="onNicknameInput" catchtap="stopPropagation" wx:if="{{!userInfo.nickname || userInfo.nickname === '微信用户'}}" />
           <text class="profile-name" catchtap="onEditNickname" wx:else>{{userInfo.nickname}}</text>
           <text class="level-badge">L{{userInfo.level || 0}}</text>
         </view>
-        <text class="account-id">用户 ID {{userInfo.id}}</text>
+        <text class="account-id">ID {{userInfo.id}}</text>
         <view class="phone-line" wx:if="{{userInfo.phone}}">{{userInfo.phone}}</view>
         <button class="bind-phone" open-type="getPhoneNumber" bindgetphonenumber="onGetPhoneNumber" catchtap="stopPropagation" wx:else>绑定手机号</button>
       </view>
-      <view class="profile-copy" wx:else><text class="profile-name">登录聚芯 Orin</text><text class="account-id">管理设备、收益和结算信息</text><text class="login-link">微信快捷登录 ›</text></view>
+
+      <view class="profile-copy profile-copy-guest" wx:else>
+        <text class="profile-name">登录聚芯 Orin</text>
+        <text class="account-id">管理设备、收益和结算信息</text>
+        <text class="login-link">微信快捷登录</text>
+      </view>
       <text class="profile-arrow">›</text>
     </view>
 
-    <navigator class="complete-notice" url="/pages/complete-profile/complete-profile" wx:if="{{isLoggedIn && needCompleteInfo}}"><view>!</view><text>完善账户资料，便于收益结算</text><text>去完善 ›</text></navigator>
+    <navigator class="complete-notice" url="/pages/complete-profile/complete-profile" hover-class="notice-pressed" wx:if="{{isLoggedIn && needCompleteInfo}}">
+      <view class="notice-mark">!</view>
+      <text class="notice-copy">完善账户资料，便于收益结算</text>
+      <text class="notice-action">去完善</text>
+      <text class="notice-arrow">›</text>
+    </navigator>
 
     <block wx:if="{{isLoggedIn}}">
-      <view class="wallet-card">
-        <view class="wallet-head"><text>我的收益</text><view bindtap="onWalletDetail">查看明细 ›</view></view>
-        <view class="wallet-main" bindtap="onWalletDetail" hover-class="wallet-main-pressed"><text>可提现余额（元）</text><view><text>¥</text><text>{{walletInfo.balance}}</text></view></view>
-        <view class="wallet-stats"><view><text>累计收益</text><text>¥{{walletInfo.totalEarnings}}</text></view><view><text>节点权益</text><text>{{walletInfo.displayHashrate || 0}}</text></view></view>
-        <view class="wallet-actions"><button bindtap="onWithdraw">申请提现</button><button bindtap="onWithdrawRecord">提现记录</button></view>
+      <view class="section-head section-head-first">
+        <text>收益账户</text>
+        <view bindtap="onWalletDetail">查看明细 <text>›</text></view>
       </view>
 
-      <view class="section-head"><text>设备概况</text><view bindtap="goToDevicePage">设备中心 ›</view></view>
-      <view class="node-card" bindtap="goToDevicePage">
-        <view><text>{{deviceStats.total}}</text><text>全部设备</text></view>
-        <view><text class="online-num">{{deviceStats.online}}</text><text>在线运行</text></view>
-        <view><text class="offline-num">{{deviceStats.offline}}</text><text>已离线</text></view>
+      <view class="wallet-card">
+        <view class="wallet-main" bindtap="onWalletDetail" hover-class="wallet-main-pressed">
+          <view class="wallet-label-row">
+            <text>可提现余额</text>
+            <text>CNY</text>
+          </view>
+          <view class="wallet-amount">
+            <text class="wallet-currency">¥</text>
+            <text class="wallet-number jx-number">{{walletInfo.balance}}</text>
+          </view>
+        </view>
+
+        <view class="wallet-stats">
+          <view class="wallet-stat">
+            <text>累计收益</text>
+            <text class="jx-number">¥{{walletInfo.totalEarnings}}</text>
+          </view>
+          <view class="wallet-stat">
+            <text>节点权益</text>
+            <text class="jx-number">{{walletInfo.displayHashrate || 0}}</text>
+          </view>
+        </view>
+
+        <view class="wallet-actions">
+          <button class="withdraw-primary" bindtap="onWithdraw">申请提现</button>
+          <button class="withdraw-secondary" bindtap="onWithdrawRecord">提现记录</button>
+        </view>
+      </view>
+
+      <view class="section-head">
+        <text>设备概况</text>
+        <view bindtap="goToDevicePage">设备中心 <text>›</text></view>
+      </view>
+
+      <view class="node-card" bindtap="goToDevicePage" hover-class="node-card-pressed">
+        <view class="node-stat">
+          <view class="node-value-row">
+            <text class="node-value jx-number">{{deviceStats.total}}</text>
+            <view class="node-dot node-dot-total"></view>
+          </view>
+          <text class="node-label">全部设备</text>
+        </view>
+        <view class="node-stat">
+          <view class="node-value-row">
+            <text class="node-value online-num jx-number">{{deviceStats.online}}</text>
+            <view class="node-dot node-dot-online"></view>
+          </view>
+          <text class="node-label">在线运行</text>
+        </view>
+        <view class="node-stat">
+          <view class="node-value-row">
+            <text class="node-value offline-num jx-number">{{deviceStats.offline}}</text>
+            <view class="node-dot node-dot-offline"></view>
+          </view>
+          <text class="node-label">已离线</text>
+        </view>
       </view>
     </block>
 
     <block wx:for="{{menuList}}" wx:for-item="group" wx:key="index">
-      <view class="section-head"><text>{{index === 0 ? '常用服务' : '帮助与支持'}}</text></view>
-      <view class="menu-list">
-        <view class="menu-row" wx:for="{{group}}" wx:for-item="item" wx:key="id" bindtap="onMenuTap" data-id="{{item.id}}">
-          <view class="menu-code {{item.iconClass}}"><image src="{{item.iconPath}}" mode="aspectFit"></image></view>
-          <view class="menu-copy"><text>{{item.text}}</text><text>{{item.desc}}</text></view>
+      <view class="section-head service-section-head">
+        <text>{{index === 0 ? '常用服务' : '帮助与支持'}}</text>
+      </view>
+      <view class="menu-grid">
+        <view class="menu-tile" wx:for="{{group}}" wx:for-item="item" wx:key="id" bindtap="onMenuTap" data-id="{{item.id}}" hover-class="menu-tile-pressed">
+          <view class="menu-code {{item.iconClass}}">
+            <image src="{{item.iconPath}}" mode="aspectFit"></image>
+          </view>
+          <view class="menu-copy">
+            <text>{{item.text}}</text>
+            <text>{{item.desc}}</text>
+          </view>
           <text class="menu-arrow">›</text>
         </view>
       </view>
     </block>
 
-    <view class="logout-section" wx:if="{{isLoggedIn}}"><button bindtap="onLogout">退出当前账户</button></view>
+    <view class="logout-section" wx:if="{{isLoggedIn}}">
+      <button bindtap="onLogout">退出当前账户</button>
+    </view>
     <view class="safe-space"></view>
   </view>
 </scroll-view>

@@ -111,8 +111,8 @@ onMounted(() => {
 <style scoped>
 .login-page {
   min-height: 100vh;
-  color: #f6f7f3;
-  background: #10120f;
+  color: #1f2937;
+  background: #f4f6f2;
   position: relative;
   overflow: hidden;
 }
@@ -121,8 +121,8 @@ onMounted(() => {
   content: '';
   position: absolute;
   inset: 0;
-  opacity: 0.16;
-  background-image: linear-gradient(#686e641f 1px, transparent 1px), linear-gradient(90deg, #686e641f 1px, transparent 1px);
+  opacity: 0.55;
+  background-image: linear-gradient(#dfe5da 1px, transparent 1px), linear-gradient(90deg, #dfe5da 1px, transparent 1px);
   background-size: 48px 48px;
   pointer-events: none;
 }
@@ -145,15 +145,16 @@ onMounted(() => {
   justify-content: space-between;
   position: relative;
   z-index: 1;
-  border-bottom: 1px solid #30332e;
+  background: #ffffff;
+  border-bottom: 1px solid #e1e6dd;
 }
 
 .brand-lockup { display: flex; align-items: center; gap: 12px; }
 .brand-mark { width: 38px; height: 38px; display: grid; place-items: center; color: #11130f; background: #76b900; border-radius: 5px; font-size: 21px; }
 .brand-lockup div { display: flex; flex-direction: column; }
 .brand-lockup strong { font-size: 14px; }
-.brand-lockup span:last-child { color: #8e9489; font-size: 10px; }
-.environment { color: #8e9489; font-size: 11px; }
+.brand-lockup span:last-child { color: #6b7280; font-size: 10px; }
+.environment { color: #6b7280; font-size: 11px; }
 
 .login-content {
   min-height: calc(100vh - 78px);
@@ -169,16 +170,16 @@ onMounted(() => {
 .system-brief { max-width: 650px; }
 .eyebrow { display: block; margin-bottom: 20px; color: #76b900; font-size: 11px; font-weight: 800; }
 .system-brief h1 { margin: 0; font-size: clamp(38px, 5vw, 66px); line-height: 1.12; letter-spacing: 0; }
-.system-brief p { max-width: 520px; margin: 22px 0 0; color: #a3a99e; font-size: 15px; line-height: 1.8; }
+.system-brief p { max-width: 520px; margin: 22px 0 0; color: #64748b; font-size: 15px; line-height: 1.8; }
 
-.runtime-facts { margin: 42px 0 0; display: grid; grid-template-columns: repeat(3, 1fr); border-top: 1px solid #343832; border-bottom: 1px solid #343832; }
+.runtime-facts { margin: 42px 0 0; display: grid; grid-template-columns: repeat(3, 1fr); border-top: 1px solid #d7ddd2; border-bottom: 1px solid #d7ddd2; }
 .runtime-facts div { padding: 18px 16px 18px 0; }
-.runtime-facts div + div { padding-left: 18px; border-left: 1px solid #343832; }
-.runtime-facts dt { margin-bottom: 7px; color: #70766c; font-size: 10px; }
-.runtime-facts dd { margin: 0; color: #e9ebe6; font-size: 13px; font-weight: 700; }
+.runtime-facts div + div { padding-left: 18px; border-left: 1px solid #d7ddd2; }
+.runtime-facts dt { margin-bottom: 7px; color: #6b7280; font-size: 10px; }
+.runtime-facts dd { margin: 0; color: #1f2937; font-size: 13px; font-weight: 700; }
 .online-dot { width: 7px; height: 7px; margin-right: 7px; display: inline-block; border-radius: 50%; background: #76b900; }
 
-.login-panel { padding: 32px; color: #1d201b; background: #f7f8f5; border-radius: 7px; box-shadow: 0 24px 60px rgba(0, 0, 0, 0.28); }
+.login-panel { padding: 32px; color: #1d201b; background: #ffffff; border: 1px solid #d7ddd2; border-radius: 7px; box-shadow: 0 20px 48px rgba(31, 41, 55, 0.12); }
 .panel-heading { display: flex; gap: 14px; margin-bottom: 28px; }
 .panel-index { width: 35px; height: 35px; display: grid; place-items: center; border: 1px solid #cfd3ca; border-radius: 4px; color: #568800; font-size: 11px; font-weight: 800; }
 .panel-heading h2 { margin: 0; font-size: 20px; }

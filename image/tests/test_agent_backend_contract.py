@@ -48,13 +48,18 @@ class ContractHandler(BaseHTTPRequestHandler):
         if self.path == "/api/edge/enroll":
             payload = self.read_json()
             self.__class__.enrollments.append(payload)
-            self.write_result({"deviceSn": VALID_SN, "deviceId": 1, "bindCode": "123456", "deviceToken": DEVICE_TOKEN})
+            self.write_result({"deviceSn": VALID_SN, "deviceId": 1, "bindCode": "Orin-A1B2C3", "deviceToken": DEVICE_TOKEN})
             return
         self.require_token()
         if self.path == "/api/edge/report":
             payload = self.read_json()
             self.__class__.reports.append(payload)
-            self.write_result({"action": "none", "heartbeatInterval": 30, "taskPollInterval": 17})
+            self.write_result({
+                "action": "none",
+                "heartbeatInterval": 30,
+                "taskPollInterval": 17,
+                "offlineThreshold": 95,
+            })
             return
         if self.path == "/api/edge/tasks/submit":
             self.__class__.submissions.append(self.read_json())
@@ -93,12 +98,12 @@ class AgentBackendContractTest(unittest.TestCase):
         self.thread = threading.Thread(target=self.server.serve_forever, daemon=True)
         self.thread.start()
         self.temp = tempfile.TemporaryDirectory()
-        state_dir = Path(self.temp.name)
+        self.state_dir = Path(self.temp.name)
         environment = {
             "ORIN_API_BASE_URL": f"http://127.0.0.1:{self.server.server_port}",
-            "ORIN_STATE_DIR": str(state_dir),
-            "ORIN_OUTBOX_DIR": str(state_dir / "outbox"),
-            "ORIN_RUNTIME_DIR": str(state_dir / "runtime"),
+            "ORIN_STATE_DIR": str(self.state_dir),
+            "ORIN_OUTBOX_DIR": str(self.state_dir / "outbox"),
+            "ORIN_RUNTIME_DIR": str(self.state_dir / "runtime"),
             "ORIN_DEVICE_SN": VALID_SN,
             "ORIN_HARDWARE_FINGERPRINT": VALID_FINGERPRINT,
             "ORIN_REQUEST_RETRIES": "0",
@@ -125,6 +130,7 @@ class AgentBackendContractTest(unittest.TestCase):
             "cpu_load": "1.0",
         }
         self.agent.ensure_enrolled(telemetry)
+        self.assertEqual("Orin-A1B2C3", (self.state_dir / "bind-code").read_text().strip())
         heartbeat = self.agent.request("/api/edge/report", "POST", telemetry)
         with mock.patch.object(
             self.agent,
@@ -135,6 +141,7 @@ class AgentBackendContractTest(unittest.TestCase):
 
         self.assertEqual(30, self.agent.next_interval(heartbeat, 60))
         self.assertEqual(17, self.agent.next_task_interval(heartbeat, 60))
+        self.assertEqual(95, self.agent.next_offline_threshold(heartbeat, 180))
         self.assertNotIn("image_license", ContractHandler.enrollments[0])
         self.assertEqual(VALID_SN, ContractHandler.reports[0]["sn"])
         self.assertEqual(1, len(ContractHandler.submissions))

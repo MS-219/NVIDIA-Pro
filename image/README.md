@@ -16,18 +16,20 @@ old LD-AI agent, models, user data or any per-device identity.
 NVIDIA UEFI logo
   -> Ubuntu multi-user target
   -> juxin-orin-firstboot.service
-  -> derive ORIN-xxxxxxxxxxxx from the Tegra serial/MAC
+  -> derive ORIN-xxxxxxxxxxxxxxxx from the immutable Tegra serial
+     (physical MAC fallback only when no hardware serial is available)
   -> generate machine-id and SSH host keys
   -> enroll with the device SN and hardware fingerprint
-  -> persist the per-device token
+  -> persist the unique Orin-A1B2C3 binding code and per-device token
   -> juxin-orin-display.service takes over tty1
   -> juxin-orin-agent.service heartbeat and task polling
   -> device appears online at nvidia.juxinsuanli.cn
 ```
 
 On first boot, the node enrolls directly with its generated SN and hardware
-fingerprint. The backend returns a unique device token and stores only its hash.
-All later edge requests use that token.
+fingerprint. The backend returns a database-unique short binding code and a
+device token, while storing only the token hash. All later edge requests use
+the full SN and token; the display and user binding flow use the short code.
 
 ## Image contract
 
@@ -170,6 +172,7 @@ Connect wired Ethernet before powering on the node. On the node or through SSH:
 
 ```bash
 cat /var/lib/juxin-orin/device-sn
+cat /var/lib/juxin-orin/bind-code
 cat /etc/juxin-orin/image-release
 systemctl status juxin-orin-firstboot.service --no-pager
 systemctl status juxin-orin-performance.service --no-pager
@@ -185,8 +188,8 @@ docker info
 The expected result is one `ORIN-...` device in the admin console with L4T,
 CUDA, GPU, memory, temperature and power telemetry. A device token must exist at
 `/var/lib/juxin-orin/device-token` with mode `0600`; never print its value. The
-connected display should show the same SN and transition from initialization to
-the online compute animation.
+connected display should show the `Orin-XXXXXX` binding code and transition
+from initialization to the online compute animation.
 
 ## Tests
 

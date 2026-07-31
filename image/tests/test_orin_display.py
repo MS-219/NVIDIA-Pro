@@ -12,7 +12,7 @@ from unittest import mock
 
 
 DISPLAY_PATH = Path(__file__).resolve().parents[1] / "agent" / "orin_display.py"
-VALID_SN = "ORIN-A1B2C3D4E5F6"
+VALID_SN = "ORIN-A1B2C3D4E5F67890"
 
 
 class OrinDisplayTest(unittest.TestCase):
@@ -46,7 +46,9 @@ class OrinDisplayTest(unittest.TestCase):
             "phase": "idle",
             "connected": True,
             "sn": VALID_SN,
+            "bindCode": "",
             "agentVersion": "0.5.0-orin",
+            "runtimeConfig": {},
             "updatedAt": 1000,
             "telemetry": {},
             "task": None,
@@ -96,6 +98,20 @@ class OrinDisplayTest(unittest.TestCase):
         self.assertFalse(state["connected"])
         self.assertEqual("正在恢复网络连接", copy["main"])
 
+    def test_stale_detection_uses_backend_offline_threshold(self):
+        self.write_state(
+            updatedAt=100,
+            runtimeConfig={"heartbeatInterval": 90, "offlineThreshold": 300},
+        )
+
+        connected = self.display.load_state(now=399)
+        stale = self.display.load_state(now=401)
+
+        self.assertTrue(connected["connected"])
+        self.assertEqual("idle", connected["phase"])
+        self.assertFalse(stale["connected"])
+        self.assertEqual("offline", stale["phase"])
+
     def test_completed_state_returns_to_idle_after_six_seconds(self):
         self.write_state(phase="completed", updatedAt=990, task={"id": 7})
 
@@ -103,6 +119,59 @@ class OrinDisplayTest(unittest.TestCase):
 
         self.assertEqual("idle", state["phase"])
         self.assertIsNone(state["task"])
+
+    def test_display_does_not_advertise_maintenance_access(self):
+        self.write_state()
+        state = self.display.load_state(now=1001)
+
+        fallback = self.display.terminal_frame(state, 3)
+        source = DISPLAY_PATH.read_text(encoding="utf-8")
+
+        self.assertNotIn("Maintenance: SSH", fallback)
+        self.assertNotIn("远程维护：SSH", source)
+        self.assertNotIn("本地终端：Ctrl+Alt+F2", source)
+
+    def test_nvidia_brand_draws_eye_mark_before_wordmark(self):
+        draw = mock.Mock()
+
+        with mock.patch.object(self.display, "draw_pixel_word", return_value=999) as wordmark:
+            end = self.display.draw_nvidia_brand(draw, 10, 20, 2, "#76B900")
+
+        self.assertEqual(999, end)
+        self.assertGreater(draw.rectangle.call_count, 0)
+        wordmark.assert_called_once_with(draw, 54, 33, "NVIDIA", 2, "#76B900")
+
+    def test_header_title_uses_green_pixel_text(self):
+        draw = mock.Mock()
+        selected_font = object()
+
+        with mock.patch.object(self.display, "font", return_value=selected_font) as get_font, \
+             mock.patch.object(self.display, "draw_pixel_text") as pixel_text:
+            self.display.draw_header_title(draw, 640, 45, large=False, medium=False)
+
+        get_font.assert_called_once_with(11, bold=True)
+        pixel_text.assert_called_once_with(
+            draw,
+            640,
+            45,
+            "聚芯Orin边缘算力节点",
+            selected_font,
+            2,
+            self.display.COLORS["green"],
+        )
+
+    def test_node_access_status_uses_product_language(self):
+        self.assertEqual("节点已接入", self.display.node_access_status(True))
+        self.assertEqual("节点接入中", self.display.node_access_status(False))
+
+    def test_display_prefers_short_code_and_falls_back_to_machine_sn(self):
+        self.write_state(bindCode="Orin-A1B2C3")
+        state = self.display.load_state(now=1001)
+        self.assertEqual("Orin-A1B2C3", self.display.display_identity(state))
+
+        self.write_state(bindCode="")
+        state = self.display.load_state(now=1001)
+        self.assertEqual(VALID_SN, self.display.display_identity(state))
 
     @unittest.skipIf(os.environ.get("ORIN_TEST_PILLOW") != "1", "Pillow rendering is tested in image CI")
     def test_framebuffer_layout_renders_at_720p(self):

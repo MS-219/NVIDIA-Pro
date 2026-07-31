@@ -46,6 +46,7 @@ class OrinAgentTest(unittest.TestCase):
                 "ORIN_OUTBOX_DIR": str(self.state_dir / "outbox"),
                 "ORIN_REQUEST_RETRIES": "2",
                 "ORIN_RETRY_BASE_SECONDS": "0.001",
+                "ORIN_RECONNECT_INTERVAL": "5",
             },
             clear=False,
         )
@@ -62,7 +63,14 @@ class OrinAgentTest(unittest.TestCase):
     def test_enrollment_persists_device_token(self):
         token = "T" * 48
         self.agent.request = mock.Mock(
-            return_value={"code": 200, "data": {"deviceSn": VALID_SN, "deviceToken": token}}
+            return_value={
+                "code": 200,
+                "data": {
+                    "deviceSn": VALID_SN,
+                    "bindCode": "Orin-A1B2C3",
+                    "deviceToken": token,
+                },
+            }
         )
 
         self.agent.ensure_enrolled(
@@ -76,8 +84,10 @@ class OrinAgentTest(unittest.TestCase):
         )
 
         self.assertEqual(token, self.agent.TOKEN_FILE.read_text().strip())
+        self.assertEqual("Orin-A1B2C3", self.agent.BIND_CODE_FILE.read_text().strip())
         mode = stat.S_IMODE(self.agent.TOKEN_FILE.stat().st_mode)
         self.assertEqual(0o600, mode)
+        self.assertEqual(0o644, stat.S_IMODE(self.agent.BIND_CODE_FILE.stat().st_mode))
         args, kwargs = self.agent.request.call_args
         self.assertEqual("/api/edge/enroll", args[0])
         self.assertNotIn("image_license", args[2])
@@ -86,6 +96,25 @@ class OrinAgentTest(unittest.TestCase):
         self.assertEqual(VALID_FINGERPRINT, args[2]["hardware_fingerprint"])
         self.assertEqual({"cpu_load": "12.5", "gpu_temperature": 42.0}, args[2]["telemetry"])
         self.assertFalse(kwargs["authenticated"])
+
+    def test_enrollment_rejects_response_without_short_code(self):
+        self.agent.request = mock.Mock(
+            return_value={
+                "code": 200,
+                "data": {"deviceSn": VALID_SN, "deviceToken": "T" * 48},
+            }
+        )
+
+        with self.assertRaisesRegex(self.agent.ApiError, "binding code"):
+            self.agent.ensure_enrolled(
+                {
+                    "sn": VALID_SN,
+                    "image_version": "orin-l4t-36.4.7-test",
+                    "hardware_fingerprint": VALID_FINGERPRINT,
+                }
+            )
+
+        self.assertFalse(self.agent.TOKEN_FILE.exists())
 
     def test_display_status_filters_secrets_and_prompts(self):
         task = {
@@ -146,7 +175,46 @@ class OrinAgentTest(unittest.TestCase):
 
         self.assertEqual(90, self.agent.next_interval(response, 60))
         self.assertEqual(15, self.agent.next_task_interval(response, 60))
+        self.assertEqual(5, self.agent.next_task_interval({"data": {"taskPollInterval": 1}}, 60))
         self.assertEqual(3600, self.agent.next_task_interval({"data": {"taskPollInterval": 9999}}, 60))
+
+    def test_backend_runtime_config_is_published_for_the_display(self):
+        response = {
+            "data": {
+                "heartbeatInterval": 90,
+                "taskPollInterval": 15,
+                "offlineThreshold": 240,
+            }
+        }
+
+        intervals = self.agent.apply_runtime_config(response, 60, 60, 180)
+
+        self.assertEqual((90, 15, 240), intervals)
+        self.assertEqual(
+            {
+                "heartbeatInterval": 90,
+                "taskPollInterval": 15,
+                "offlineThreshold": 240,
+            },
+            self.agent.DISPLAY_STATE["runtimeConfig"],
+        )
+
+    def test_failed_backend_attempt_uses_short_reconnect_interval(self):
+        self.assertEqual(5, self.agent.next_attempt_delay(False, 60))
+        self.assertEqual(60, self.agent.next_attempt_delay(True, 60))
+        self.assertEqual(5, self.agent.next_attempt_delay(False, 10))
+
+    def test_successful_backend_retry_restores_online_display(self):
+        self.agent.DISPLAY_STATE.update(
+            {"phase": "offline", "connected": False, "error": "network timeout"}
+        )
+
+        self.agent.publish_connection_recovered()
+
+        status = json.loads(self.agent.DISPLAY_STATUS_FILE.read_text())
+        self.assertEqual("idle", status["phase"])
+        self.assertTrue(status["connected"])
+        self.assertEqual("", status["error"])
 
     def test_retryable_network_error_uses_exponential_retry(self):
         self.agent.atomic_write_secret(self.agent.TOKEN_FILE, "secret-device-token")

@@ -16,7 +16,7 @@ public class Device {
     // 设备唯一SN码 (硬件序列号，用于设备识别)
     private String sn;
 
-    // 绑定码 (8位短码，用于用户扫码绑定，如 JX123456)
+    // 用户绑定短码；Orin 安全入网设备使用 Orin-A1B2C3 格式。
     private String bindCode;
 
     // 业务号 (绑定后生成)

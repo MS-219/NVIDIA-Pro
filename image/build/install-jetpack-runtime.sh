@@ -4,12 +4,15 @@ set -Eeuo pipefail
 ROOTFS=""
 JETPACK_VERSION="6.2.1+b38"
 L4T_VERSION="36.4.7-20250918154033"
+JETSON_SOC="t234"
 MOUNTS=()
 RESOLV_BACKUP=""
 POLICY_BACKUP=""
 QEMU_INSTALLED=0
 RESOLV_INSTALLED=0
 POLICY_INSTALLED=0
+L4T_PREINSTALL_GUARD=""
+L4T_PREINSTALL_GUARD_CREATED=0
 
 usage() {
   echo "Usage: sudo ./install-jetpack-runtime.sh --rootfs PATH [--version 6.2.1+b38] [--l4t-version 36.4.7-20250918154033]"
@@ -38,6 +41,7 @@ cleanup() {
   [[ -z "$POLICY_BACKUP" && "$POLICY_INSTALLED" == "1" ]] \
     && rm -f "$ROOTFS/usr/sbin/policy-rc.d"
   [[ "$QEMU_INSTALLED" == "1" ]] && rm -f "$ROOTFS/usr/bin/qemu-aarch64-static"
+  [[ "$L4T_PREINSTALL_GUARD_CREATED" == "1" ]] && rm -f "$L4T_PREINSTALL_GUARD"
 }
 trap cleanup EXIT
 
@@ -59,6 +63,19 @@ ROOTFS="$(realpath "$ROOTFS")"
 [[ -x /usr/bin/qemu-aarch64-static ]] || die "qemu-user-static is required"
 [[ "$JETPACK_VERSION" =~ ^[0-9.]+\+b[0-9]+$ ]] || die "invalid JetPack runtime version"
 [[ "$L4T_VERSION" =~ ^36\.4\.[0-9]+-[0-9]{14}$ ]] || die "invalid L4T package version"
+
+"$SCRIPT_DIR/configure-jetson-apt-sources.sh" \
+  --rootfs "$ROOTFS" \
+  --soc "$JETSON_SOC"
+
+# NVIDIA's nvidia-l4t-core preinst reads the live device tree unless this
+# official offline-install guard is present. The guard is removed by cleanup.
+L4T_PREINSTALL_GUARD="$ROOTFS/opt/nvidia/l4t-packages/.nv-l4t-disable-boot-fw-update-in-preinstall"
+install -d -m 0755 "$(dirname "$L4T_PREINSTALL_GUARD")"
+if [[ ! -e "$L4T_PREINSTALL_GUARD" ]]; then
+  touch "$L4T_PREINSTALL_GUARD"
+  L4T_PREINSTALL_GUARD_CREATED=1
+fi
 
 install -d -m 0755 "$ROOTFS/etc/apt/preferences.d"
 cat >"$ROOTFS/etc/apt/preferences.d/90-juxin-l4t.pref" <<EOF
@@ -100,6 +117,7 @@ chroot "$ROOTFS" /usr/bin/qemu-aarch64-static /usr/bin/env \
   DEBIAN_FRONTEND=noninteractive /bin/bash -c '
     set -e
     apt-get update
+    apt-get --fix-broken install -y
     apt-get dist-upgrade -y
     apt-get install -y --no-install-recommends \
       "nvidia-jetpack-runtime='"$JETPACK_VERSION"'" \
@@ -115,13 +133,13 @@ chroot "$ROOTFS" /usr/bin/qemu-aarch64-static /usr/bin/env \
     rm -rf /var/lib/apt/lists/*
   '
 
-chroot "$ROOTFS" /usr/bin/qemu-aarch64-static dpkg-query \
+chroot "$ROOTFS" /usr/bin/qemu-aarch64-static /usr/bin/dpkg-query \
   -W -f='${Package} ${Version}\n' \
   nvidia-jetpack-runtime nvidia-l4t-core docker.io nvidia-container-toolkit \
   fonts-noto-cjk python3-pil
 
 installed_l4t="$(chroot "$ROOTFS" /usr/bin/qemu-aarch64-static \
-  dpkg-query -W -f='${Version}' nvidia-l4t-core)"
+  /usr/bin/dpkg-query -W -f='${Version}' nvidia-l4t-core)"
 [[ "$installed_l4t" == "$L4T_VERSION" ]] \
   || die "L4T core version mismatch: expected $L4T_VERSION, got $installed_l4t"
 

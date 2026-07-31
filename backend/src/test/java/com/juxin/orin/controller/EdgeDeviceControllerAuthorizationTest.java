@@ -87,6 +87,48 @@ class EdgeDeviceControllerAuthorizationTest {
     }
 
     @Test
+    void reportReturnsBackendManagedRuntimeIntervals() {
+        Device authenticated = device("ORIN-001");
+        authenticated.setType(2);
+        when(edgeDeviceAccessService.authenticate("token-a")).thenReturn(authenticated);
+        when(deviceService.handleHeartbeat("ORIN-001", "127.0.0.1", "0", "0"))
+                .thenReturn(authenticated);
+        when(configService.getConfig("device.heartbeatInterval", "60")).thenReturn("90");
+        when(configService.getConfig("device.taskPollInterval", "60")).thenReturn("15");
+        when(configService.getConfig("device.offlineThreshold", "180")).thenReturn("240");
+
+        Map<String, Object> response = controller.reportStatus(
+                Map.of("sn", "ORIN-001"),
+                new org.springframework.mock.web.MockHttpServletRequest(),
+                "token-a").getData();
+
+        assertEquals(90, response.get("heartbeatInterval"));
+        assertEquals(15, response.get("taskPollInterval"));
+        assertEquals(240, response.get("offlineThreshold"));
+    }
+
+    @Test
+    void reportFallsBackWhenStoredRuntimeConfigIsInvalid() {
+        Device authenticated = device("ORIN-001");
+        authenticated.setType(2);
+        when(edgeDeviceAccessService.authenticate("token-a")).thenReturn(authenticated);
+        when(deviceService.handleHeartbeat("ORIN-001", "127.0.0.1", "0", "0"))
+                .thenReturn(authenticated);
+        when(configService.getConfig("device.heartbeatInterval", "60")).thenReturn("invalid");
+        when(configService.getConfig("device.taskPollInterval", "60")).thenReturn("9999");
+        when(configService.getConfig("device.offlineThreshold", "180")).thenReturn("1");
+
+        Map<String, Object> response = controller.reportStatus(
+                Map.of("sn", "ORIN-001"),
+                new org.springframework.mock.web.MockHttpServletRequest(),
+                "token-a").getData();
+
+        assertEquals(60, response.get("heartbeatInterval"));
+        assertEquals(300, response.get("taskPollInterval"));
+        assertEquals(30, response.get("offlineThreshold"));
+    }
+
+    @Test
     void taskResultCannotBeSubmittedForAnotherDevice() {
         Device authenticated = device("ORIN-001");
         when(edgeDeviceAccessService.authenticate("token-a")).thenReturn(authenticated);
