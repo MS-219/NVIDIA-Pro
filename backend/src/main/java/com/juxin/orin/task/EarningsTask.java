@@ -15,8 +15,8 @@ public class EarningsTask {
     private IDeviceEarningsService earningsService;
 
     /**
-     * 每分钟检查一次收益结算
-     * 采用滚动时长制：检查每台设备是否已运行满 1 天
+     * 每分钟检查一次，结算已结束的上一个自然日。
+     * 服务在零点后启动时也能自动补上当日结算。
      */
     @Scheduled(fixedRate = 60000)
     public void calculateDailyEarnings() {

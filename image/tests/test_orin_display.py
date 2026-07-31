@@ -164,6 +164,22 @@ class OrinDisplayTest(unittest.TestCase):
         self.assertEqual("节点已接入", self.display.node_access_status(True))
         self.assertEqual("节点接入中", self.display.node_access_status(False))
 
+    def test_terminal_frame_uses_backend_managed_power_mode(self):
+        state = self.display.default_state()
+        state.update(
+            {
+                "connected": True,
+                "phase": "idle",
+                "runtimeConfig": {"powerMode": "25W"},
+                "telemetry": {"power_mode": "25W"},
+            }
+        )
+
+        frame = self.display.terminal_frame(state, 0)
+
+        self.assertIn("GPU READY  |  25W  |  NODE ATTACHED", frame)
+        self.assertNotIn("MAXN_SUPER", frame)
+
     def test_display_prefers_short_code_and_falls_back_to_machine_sn(self):
         self.write_state(bindCode="Orin-A1B2C3")
         state = self.display.load_state(now=1001)

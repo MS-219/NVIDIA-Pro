@@ -22,7 +22,10 @@
         <view class="name-line">
           <input class="nick-input" type="nickname" placeholder="设置昵称" value="{{userInfo.nickname}}" bindchange="onNicknameInput" catchtap="stopPropagation" wx:if="{{!userInfo.nickname || userInfo.nickname === '微信用户'}}" />
           <text class="profile-name" catchtap="onEditNickname" wx:else>{{userInfo.nickname}}</text>
-          <text class="level-badge">L{{userInfo.level || 0}}</text>
+          <text class="level-badge level-badge-elite" wx:if="{{userInfo.level >= 3}}">{{userInfo.levelName || '同步中'}}</text>
+          <text class="level-badge level-badge-2" wx:elif="{{userInfo.level === 2}}">{{userInfo.levelName || '同步中'}}</text>
+          <text class="level-badge level-badge-1" wx:elif="{{userInfo.level === 1}}">{{userInfo.levelName || '同步中'}}</text>
+          <text class="level-badge level-badge-0" wx:else>{{userInfo.levelName || '普通'}}</text>
         </view>
         <text class="account-id">ID {{userInfo.id}}</text>
         <view class="phone-line" wx:if="{{userInfo.phone}}">{{userInfo.phone}}</view>
@@ -79,34 +82,6 @@
         </view>
       </view>
 
-      <view class="section-head">
-        <text>设备概况</text>
-        <view bindtap="goToDevicePage">设备中心 <text>›</text></view>
-      </view>
-
-      <view class="node-card" bindtap="goToDevicePage" hover-class="node-card-pressed">
-        <view class="node-stat">
-          <view class="node-value-row">
-            <text class="node-value jx-number">{{deviceStats.total}}</text>
-            <view class="node-dot node-dot-total"></view>
-          </view>
-          <text class="node-label">全部设备</text>
-        </view>
-        <view class="node-stat">
-          <view class="node-value-row">
-            <text class="node-value online-num jx-number">{{deviceStats.online}}</text>
-            <view class="node-dot node-dot-online"></view>
-          </view>
-          <text class="node-label">在线运行</text>
-        </view>
-        <view class="node-stat">
-          <view class="node-value-row">
-            <text class="node-value offline-num jx-number">{{deviceStats.offline}}</text>
-            <view class="node-dot node-dot-offline"></view>
-          </view>
-          <text class="node-label">已离线</text>
-        </view>
-      </view>
     </block>
 
     <block wx:for="{{menuList}}" wx:for-item="group" wx:key="index">

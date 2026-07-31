@@ -13,11 +13,7 @@ WorkingDirectory=/opt/juxin-orin/agent
 ExecStart=/usr/bin/python3 /opt/juxin-orin/agent/orin_agent.py
 Restart=always
 RestartSec=8
-NoNewPrivileges=true
-ProtectSystem=strict
-ProtectHome=true
 PrivateTmp=true
-ReadWritePaths=/opt/juxin-orin /etc/juxin-orin /etc/systemd/system /var/lib/juxin-orin /var/log/juxin-orin
 UMask=0077
 
 [Install]

@@ -1,5 +1,5 @@
 [Unit]
-Description=Juxin Orin MAXN_SUPER and cooling policy
+Description=Juxin Orin cooling policy
 After=local-fs.target
 Before=juxin-orin-agent.service
 

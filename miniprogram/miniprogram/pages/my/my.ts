@@ -14,19 +14,15 @@ Page({
             avatarUrl: '',
             phone: '',
             quota: 0,
-            level: 0
+            level: 0,
+            levelName: '普通',
+            levelNameLevel: 0
         },
         hashrateRate: 100, // 算力兑换比例
         walletInfo: {
             balance: '0.00',
             totalEarnings: '0.00',
-            deviceCount: 0,
             displayHashrate: 0
-        },
-        deviceStats: {
-            total: 0,
-            online: 0,
-            offline: 0
         },
         menuList: [
             [
@@ -58,7 +54,7 @@ Page({
     onShow() {
         if (typeof this.getTabBar === 'function' && this.getTabBar()) {
             this.getTabBar().setData({
-                selected: 2
+                selected: 3
             })
         }
 
@@ -75,13 +71,16 @@ Page({
             if (!this.data.isLoggedIn) {
                 this.setData({
                     isLoggedIn: true,
-                    userInfo: { id: displayId, nickname: '', avatarUrl: '', phone: '', quota: 0, level: 0 }
+                    userInfo: { id: displayId, nickname: '', avatarUrl: '', phone: '', quota: 0, level: 0, levelName: '普通', levelNameLevel: 0 }
                 });
             }
             return;
         }
 
         const currentUserInfo = this.data.userInfo;
+        const cachedLevel = Number(cachedUserInfo.level ?? currentUserInfo.level) || 0;
+        const cachedLevelName = typeof cachedUserInfo.levelName === 'string' ? cachedUserInfo.levelName.trim() : '';
+        const cachedNameMatchesLevel = Number(cachedUserInfo.levelNameLevel) === cachedLevel;
         this.setData({
             isLoggedIn: true,
             userInfo: {
@@ -89,7 +88,9 @@ Page({
                 ...cachedUserInfo,
                 id: displayId,
                 nickname: cachedUserInfo.nickname || currentUserInfo.nickname || '',
-                avatarUrl: this.formatUrl(cachedUserInfo.avatarUrl || currentUserInfo.avatarUrl || '')
+                avatarUrl: this.formatUrl(cachedUserInfo.avatarUrl || currentUserInfo.avatarUrl || ''),
+                levelName: cachedLevel === 0 ? '普通' : (cachedNameMatchesLevel ? cachedLevelName : ''),
+                levelNameLevel: cachedLevel === 0 ? 0 : (cachedNameMatchesLevel ? cachedLevel : -1)
             }
         });
         this.checkNeedCompleteInfo();
@@ -109,6 +110,13 @@ Page({
         const cachedNickname = cachedUserInfo.nickname || '';
         const cachedAvatarUrl = this.formatUrl(cachedUserInfo.avatarUrl || '');
         const hasRecentNickname = cachedNickname && cachedNickname !== '微信用户';
+        const serverLevel = Number(data.level) || 0;
+        const serverLevelName = typeof data.levelName === 'string' ? data.levelName.trim() : '';
+        const cachedLevelName = typeof cachedUserInfo.levelName === 'string' ? cachedUserInfo.levelName.trim() : '';
+        const cachedNameMatchesLevel = Number(cachedUserInfo.levelNameLevel) === serverLevel;
+        const resolvedLevelName = serverLevelName ||
+            (cachedNameMatchesLevel ? cachedLevelName : '') ||
+            (serverLevel === 0 ? '普通' : '');
 
         return {
             id: String(data.id).padStart(6, '0'),
@@ -120,7 +128,9 @@ Page({
                 : serverAvatarUrl,
             phone: data.phone || '',
             quota: data.quota || 0,
-            level: data.level || 0
+            level: serverLevel,
+            levelName: resolvedLevelName,
+            levelNameLevel: resolvedLevelName ? serverLevel : -1
         };
     },
 
@@ -153,10 +163,13 @@ Page({
 
                 this.setData({ isLoggedIn: true, userInfo: newUserInfo });
                 wx.setStorageSync('userInfo', newUserInfo);
+                if (typeof data.levelName !== 'string' || !data.levelName.trim()) {
+                    this.fetchConfiguredLevelName(userId);
+                }
                 this.checkNeedCompleteInfo();
                 this.fetchSettings();
-                // 获取钱包和设备统计数据
-                this.fetchWalletAndDeviceStats();
+                // 获取钱包收益数据
+                this.fetchWalletStats();
                 this.checkAndRedirectToCompleteProfile();
             } else {
                 // 非正常响应，可能 token 无效
@@ -176,9 +189,8 @@ Page({
         this.setData({
             isLoggedIn: false,
             needCompleteInfo: false,
-            userInfo: { id: '000000', nickname: '', avatarUrl: '', phone: '', quota: 0, level: 0 },
-            walletInfo: { balance: '0.00', totalEarnings: '0.00', deviceCount: 0, displayHashrate: 0 },
-            deviceStats: { total: 0, online: 0, offline: 0 }
+            userInfo: { id: '000000', nickname: '', avatarUrl: '', phone: '', quota: 0, level: 0, levelName: '普通', levelNameLevel: 0 },
+            walletInfo: { balance: '0.00', totalEarnings: '0.00', displayHashrate: 0 }
         });
     },
 
@@ -264,6 +276,44 @@ Page({
         });
     },
 
+    // 兼容尚未返回 levelName 的旧资料接口，按动态等级配置精确匹配名称。
+    fetchConfiguredLevelName(userId: any) {
+        const page = this as any;
+        if (page.levelNameSyncPromise) {
+            return page.levelNameSyncPromise;
+        }
+
+        page.levelNameSyncPromise = request({
+            url: '/api/invite/stats',
+            method: 'GET',
+            data: { userId },
+            showErrorToast: false
+        }).then(res => {
+            const data = res.code === 200 ? res.data : null;
+            const level = Number(data && data.level) || 0;
+            const levelConfigs = data && Array.isArray(data.levelConfigs) ? data.levelConfigs : [];
+            const currentLevel = levelConfigs.find((item: any) => Number(item.index) === level);
+            const levelName = currentLevel && typeof currentLevel.name === 'string'
+                ? currentLevel.name.trim()
+                : '';
+            if (!levelName) return;
+
+            const userInfo = {
+                ...this.data.userInfo,
+                level,
+                levelName,
+                levelNameLevel: level
+            };
+            this.setData({ userInfo });
+            wx.setStorageSync('userInfo', userInfo);
+        }).catch(() => {
+            // 名称同步失败时保留数字等级，不显示错误名称。
+        }).finally(() => {
+            page.levelNameSyncPromise = null;
+        });
+        return page.levelNameSyncPromise;
+    },
+
     // 获取用户数据
     fetchUserData() {
         const userId = wx.getStorageSync('userId');
@@ -283,11 +333,14 @@ Page({
 
                 this.setData({ userInfo: newUserInfo });
                 wx.setStorageSync('userInfo', newUserInfo);
+                if (typeof data.levelName !== 'string' || !data.levelName.trim()) {
+                    this.fetchConfiguredLevelName(userId);
+                }
                 this.checkNeedCompleteInfo();
             }
         });
 
-        // 获取钱包和设备统计
+        // 获取钱包收益数据
         request({
             url: '/api/statistics/earnings',
             method: 'GET',
@@ -299,21 +352,15 @@ Page({
                     walletInfo: {
                         balance: data.currentBalance || '0.00',
                         totalEarnings: data.totalEarnings || data.total || '0.00', // 累计收益
-                        deviceCount: data.deviceCount || 0,
                         displayHashrate: Math.round((parseFloat(data.currentBalance) || 0) * (this.data.hashrateRate || 100)) // 动态计算聚芯 Orin值
-                    },
-                    deviceStats: {
-                        total: data.deviceCount || 0,
-                        online: data.onlineCount || 0,
-                        offline: (data.deviceCount || 0) - (data.onlineCount || 0)
                     }
                 });
             }
         });
     },
 
-    // 获取钱包和设备统计（独立方法，供 verifyLoginStatus 调用）
-    fetchWalletAndDeviceStats() {
+    // 获取钱包收益数据（独立方法，供 verifyLoginStatus 调用）
+    fetchWalletStats() {
         const userId = wx.getStorageSync('userId');
         if (!userId) return;
 
@@ -328,13 +375,7 @@ Page({
                     walletInfo: {
                         balance: data.currentBalance || '0.00',
                         totalEarnings: data.totalEarnings || data.total || '0.00',
-                        deviceCount: data.deviceCount || 0,
                         displayHashrate: Math.round((parseFloat(data.currentBalance) || 0) * (this.data.hashrateRate || 100))
-                    },
-                    deviceStats: {
-                        total: data.deviceCount || 0,
-                        online: data.onlineCount || 0,
-                        offline: (data.deviceCount || 0) - (data.onlineCount || 0)
                     }
                 });
             }
@@ -412,6 +453,8 @@ Page({
 
         if (res.code === 200) {
             const data = res.data;
+            const loginLevel = Number(data.level) || 0;
+            const loginLevelName = typeof data.levelName === 'string' ? data.levelName.trim() : '';
             wx.removeStorageSync('pendingInviteCode');
 
             // 保存登录状态
@@ -423,7 +466,9 @@ Page({
                 avatarUrl: data.avatarUrl || '',
                 phone: data.phone || '',
                 quota: data.quota || 0,
-                level: data.level || 0
+                level: loginLevel,
+                levelName: loginLevelName || (loginLevel === 0 ? '普通' : ''),
+                levelNameLevel: (loginLevelName || loginLevel === 0) ? loginLevel : -1
             };
             wx.setStorageSync('userInfo', savedUserInfo);
 
@@ -644,9 +689,8 @@ Page({
                     this.setData({
                         isLoggedIn: false,
                         needCompleteInfo: false,
-                        userInfo: { id: '000000', nickname: '', avatarUrl: '', phone: '', quota: 0, level: 0 },
-                        walletInfo: { balance: '0.00', totalEarnings: '0.00', deviceCount: 0, displayHashrate: 0 },
-                        deviceStats: { total: 0, online: 0, offline: 0 }
+                        userInfo: { id: '000000', nickname: '', avatarUrl: '', phone: '', quota: 0, level: 0, levelName: '普通', levelNameLevel: 0 },
+                        walletInfo: { balance: '0.00', totalEarnings: '0.00', displayHashrate: 0 }
                     });
                 }
             }
@@ -678,10 +722,6 @@ Page({
         wx.navigateTo({ url: '/pages/earnings-detail/earnings-detail' });
     },
 
-    goToDevicePage() {
-        wx.switchTab({ url: '/pages/device/device' });
-    },
-
     onMenuTap(e: any) {
         const id = e.currentTarget.dataset.id;
         switch (id) {
@@ -698,7 +738,7 @@ Page({
                 wx.navigateTo({ url: '/pages/invite/invite' });
                 break;
             case 'exchange':
-                wx.navigateTo({ url: '/pages/exchange/exchange' });
+                wx.switchTab({ url: '/pages/exchange/exchange' });
                 break;
             case 'exchange-orders':
                 wx.navigateTo({ url: '/pages/exchange-orders/exchange-orders' });

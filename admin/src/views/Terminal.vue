@@ -92,17 +92,26 @@ let term = null
 let fitAddon = null
 let socket = null
 let inputDisposable = null
+let resizeDisposable = null
 let pasteHandler = null
+let connectionAttempt = 0
 
 const sendTerminalInput = (data) => {
   if (socket && socket.readyState === WebSocket.OPEN) {
-    socket.send(data)
+    socket.send(JSON.stringify({ type: 'input', data }))
+  }
+}
+
+const sendTerminalSize = () => {
+  if (socket && socket.readyState === WebSocket.OPEN && term) {
+    socket.send(JSON.stringify({ type: 'resize', cols: term.cols, rows: term.rows }))
   }
 }
 
 const normalizePastedText = (text) => text.replace(/\r\n/g, '\r').replace(/\n/g, '\r')
 
 const disposeTerminal = () => {
+  connectionAttempt += 1
   if (socket) {
     socket.onopen = null
     socket.onmessage = null
@@ -117,6 +126,8 @@ const disposeTerminal = () => {
   pasteHandler = null
   inputDisposable?.dispose()
   inputDisposable = null
+  resizeDisposable?.dispose()
+  resizeDisposable = null
   term?.dispose()
   term = null
   fitAddon = null
@@ -129,6 +140,8 @@ const bindTerminalInput = () => {
     inputDisposable.dispose()
   }
   inputDisposable = term.onData(sendTerminalInput)
+  resizeDisposable?.dispose()
+  resizeDisposable = term.onResize(sendTerminalSize)
 
   if (pasteHandler && terminalRef.value) {
     terminalRef.value.removeEventListener('paste', pasteHandler, true)
@@ -185,39 +198,91 @@ const initTerminal = () => {
   connectWebSocket()
 }
 
-const connectWebSocket = () => {
+const writeSystemMessage = (message, level = 'info') => {
+  const color = level === 'error' ? '31' : level === 'success' ? '32' : '36'
+  term?.writeln(`\r\n\x1b[1;${color}m[系统] ${message}\x1b[0m`)
+}
+
+const handleSocketMessage = (raw) => {
+  let message
+  try {
+    message = JSON.parse(raw)
+  } catch {
+    writeSystemMessage('收到无法识别的终端消息', 'error')
+    return
+  }
+  if (message.type === 'output' && typeof message.data === 'string') {
+    term?.write(message.data)
+  } else if (message.type === 'system') {
+    writeSystemMessage(message.message || '终端状态更新', message.level)
+  } else if (message.type === 'status') {
+    if (message.status === 'ready') {
+      isConnected.value = true
+      loading.value = false
+      writeSystemMessage('维护终端已就绪', 'success')
+      sendTerminalSize()
+    } else if (message.status === 'closed') {
+      isConnected.value = false
+      writeSystemMessage('设备端 Shell 已关闭', 'info')
+    } else if (message.status === 'error') {
+      isConnected.value = false
+      writeSystemMessage(message.message || '设备端 Shell 启动失败', 'error')
+    }
+  }
+}
+
+const connectWebSocket = async () => {
+  const attempt = ++connectionAttempt
   const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
   const host = window.location.host
-  // 根据后端 RemoteTerminalHandler 的监听路径
-  const wsUrl = `${protocol}//${host}/ws/admin/terminal/${sn.value}`
-  
+  loading.value = true
+  isConnected.value = false
+  let ticket
+  try {
+    const response = await request.post(
+      `/api/admin/terminal/ticket/${encodeURIComponent(sn.value)}`,
+      null,
+      { silent: true }
+    )
+    if (response.data.code !== 200 || !response.data.data?.ticket) {
+      throw new Error(response.data.msg || '无法获取终端连接票据')
+    }
+    ticket = response.data.data.ticket
+  } catch (error) {
+    if (attempt !== connectionAttempt) return
+    loading.value = false
+    writeSystemMessage(error.message || '无法获取终端连接票据', 'error')
+    return
+  }
+  if (attempt !== connectionAttempt) return
+
+  const wsUrl = `${protocol}//${host}/ws/admin/terminal/${encodeURIComponent(sn.value)}?ticket=${encodeURIComponent(ticket)}`
   const currentSocket = new WebSocket(wsUrl)
   socket = currentSocket
   
   currentSocket.onopen = () => {
-    if (socket !== currentSocket) return
-    isConnected.value = true
-    loading.value = false
-    term?.writeln('\x1b[1;32m[SUCCESS]\x1b[0m 通信隧道已打通，控制权限已获取。\r\n')
+    if (socket !== currentSocket || attempt !== connectionAttempt) return
+    writeSystemMessage('安全通道已建立，等待设备 Shell', 'info')
+    sendTerminalSize()
   }
 
   currentSocket.onmessage = (event) => {
     if (socket !== currentSocket) return
-    term?.write(event.data)
+    handleSocketMessage(event.data)
   }
 
   currentSocket.onclose = () => {
     if (socket !== currentSocket) return
     isConnected.value = false
     loading.value = false
-    term?.writeln('\r\n\x1b[1;31m[CLOSED] 通信链路已断开，连接超时或节点离线。\x1b[0m')
+    writeSystemMessage('通信链路已断开，连接超时或节点离线', 'error')
   }
 
   currentSocket.onerror = () => {
     if (socket !== currentSocket) return
     isConnected.value = false
     loading.value = false
-    term?.writeln('\r\n\x1b[1;31m[ERROR] 隧道通信发生异常，请检查网络。\x1b[0m')
+    writeSystemMessage('隧道通信发生异常，请检查网络', 'error')
   }
 
 }
@@ -263,7 +328,7 @@ const connectSelectedNode = async () => {
 
 const reconnect = () => {
   if (socket) socket.close()
-  term.writeln('\x1b[1;33m[RETRY]\x1b[0m 正在重新尝试建立连接...')
+  term?.writeln('\x1b[1;33m[RETRY]\x1b[0m 正在重新尝试建立连接...')
   connectWebSocket()
 }
 
@@ -271,7 +336,10 @@ const clearTerminal = () => term?.clear()
 const goBack = () => router.push('/monitor')
 
 const handleResize = () => {
-  if (fitAddon) fitAddon.fit()
+  if (fitAddon) {
+    fitAddon.fit()
+    sendTerminalSize()
+  }
 }
 
 onMounted(() => {

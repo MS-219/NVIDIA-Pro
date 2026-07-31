@@ -48,59 +48,71 @@ grep -qx 'L4T_BASE=36.4.7' "$L4T_DIR/rootfs/etc/juxin-orin/image-release" \
 
 recovery_count="$(lsusb -d 0955:7523 2>/dev/null | wc -l | tr -d ' ')"
 [[ "$recovery_count" == "1" ]] || die "expected exactly one NVIDIA Recovery device (0955), found $recovery_count"
-initial_recovery_device="$(lsusb -d 0955:7523 2>/dev/null)"
+board_config=""
 
-READ_INFO_LOG="$(mktemp)"
-echo "Detecting the connected Jetson module..."
-probe_board_config="jetson-orin-nano-devkit-super-maxn"
-[[ -e "$L4T_DIR/${probe_board_config}.conf" ]] \
-  || die "EEPROM probe board config not found: $probe_board_config"
-set +e
-cd "$L4T_DIR"
-./flash.sh --read-info "$probe_board_config" internal 2>&1 \
-  | tee "$READ_INFO_LOG"
-read_info_status="${PIPESTATUS[0]}"
-set -e
+if [[ -n "$BOARD_CONFIG_OVERRIDE" ]]; then
+  board_config="$BOARD_CONFIG_OVERRIDE"
+  echo "Using explicit NVIDIA board config: ${board_config} (EEPROM probe skipped)"
+else
+  initial_recovery_device="$(lsusb -d 0955:7523 2>/dev/null)"
+  READ_INFO_LOG="$(mktemp)"
+  echo "Detecting the connected Jetson module..."
+  probe_board_config="jetson-orin-nano-devkit-super-maxn"
+  [[ -e "$L4T_DIR/${probe_board_config}.conf" ]] \
+    || die "EEPROM probe board config not found: $probe_board_config"
 
-board_line="$(grep 'Board ID(' "$READ_INFO_LOG" | tail -n 1)"
-board_id="$(sed -nE 's/.*Board ID\(([0-9]+)\).*/\1/p' <<<"$board_line")"
-board_sku="$(sed -nE 's/.*sku\(([0-9]+)\).*/\1/p' <<<"$board_line")"
-board_fab="$(sed -nE 's/.*version\(([0-9]+)\).*/\1/p' <<<"$board_line")"
-[[ -n "$board_id" && -n "$board_sku" && -n "$board_fab" ]] \
-  || die "failed to parse the Jetson module EEPROM"
-if [[ "$read_info_status" != "0" ]]; then
-  echo "EEPROM probe returned status ${read_info_status} after reading board identity; selecting the matching config."
+  # flash.sh writes probe results to fixed paths. Remove the old EEPROM dump so
+  # a failed USB transaction cannot be mistaken for a successful fresh probe.
+  rm -f "$L4T_DIR/bootloader/cvm.bin"
+  set +e
+  cd "$L4T_DIR"
+  ./flash.sh --read-info "$probe_board_config" internal 2>&1 \
+    | tee "$READ_INFO_LOG"
+  read_info_status="${PIPESTATUS[0]}"
+  set -e
+
+  if grep -qE 'ERROR: might be timeout in USB write|Error: Return value 3' "$READ_INFO_LOG"; then
+    die "USB write failed while reading EEPROM; power-cycle the Jetson, enter Recovery mode again, and reconnect APX"
+  fi
+  [[ -s "$L4T_DIR/bootloader/cvm.bin" ]] \
+    || die "EEPROM probe did not produce fresh board data"
+
+  board_line="$(grep 'Board ID(' "$READ_INFO_LOG" | tail -n 1 || true)"
+  board_id="$(sed -nE 's/.*Board ID\(([0-9]+)\).*/\1/p' <<<"$board_line")"
+  board_sku="$(sed -nE 's/.*sku\(([0-9]+)\).*/\1/p' <<<"$board_line")"
+  board_fab="$(sed -nE 's/.*version\(([0-9]+)\).*/\1/p' <<<"$board_line")"
+  [[ -n "$board_id" && -n "$board_sku" && -n "$board_fab" ]] \
+    || die "failed to parse the Jetson module EEPROM"
+  if [[ "$read_info_status" != "0" ]]; then
+    echo "EEPROM probe returned status ${read_info_status} after reading board identity; selecting the matching config."
+  fi
+
+  board_config="$("$SCRIPT_DIR/select-jetson-board-config.sh" \
+    --board-id "$board_id" \
+    --board-sku "$board_sku")"
+  echo "Detected Jetson module: board ${board_id}, SKU ${board_sku}, FAB ${board_fab}"
+  echo "Selected NVIDIA board config: ${board_config}"
+
+  echo "Waiting for the Jetson to re-enumerate in Recovery mode..."
+  reenumerated_recovery_device=""
+  for _ in {1..100}; do
+    current_recovery_device="$(lsusb -d 0955:7523 2>/dev/null || true)"
+    if [[ -n "$current_recovery_device" && "$current_recovery_device" != "$initial_recovery_device" ]]; then
+      reenumerated_recovery_device="$current_recovery_device"
+      break
+    fi
+    sleep 0.1
+  done
+  [[ -n "$reenumerated_recovery_device" ]] \
+    || die "Jetson did not re-enumerate in Recovery mode; reconnect NVIDIA APX to this host"
+  sleep 2
+  [[ "$(lsusb -d 0955:7523 2>/dev/null || true)" == "$reenumerated_recovery_device" ]] \
+    || die "Jetson Recovery USB connection is not stable"
 fi
 
-detected_board_config="$("$SCRIPT_DIR/select-jetson-board-config.sh" \
-  --board-id "$board_id" \
-  --board-sku "$board_sku")"
-board_config="${BOARD_CONFIG_OVERRIDE:-$detected_board_config}"
 [[ "$board_config" =~ ^[A-Za-z0-9._+-]+$ ]] || die "invalid board config: $board_config"
 [[ -f "$L4T_DIR/${board_config}.conf" || -L "$L4T_DIR/${board_config}.conf" ]] \
   || die "board config not found: $board_config"
-
-echo "Detected Jetson module: board ${board_id}, SKU ${board_sku}, FAB ${board_fab}"
-echo "Selected NVIDIA board config: ${board_config}"
-if [[ -n "$BOARD_CONFIG_OVERRIDE" && "$BOARD_CONFIG_OVERRIDE" != "$detected_board_config" ]]; then
-  echo "Using explicit board config override; detected default was ${detected_board_config}."
-fi
-
-echo "Waiting for the Jetson to re-enumerate in Recovery mode..."
-reenumerated_recovery_device=""
-for _ in {1..100}; do
-  current_recovery_device="$(lsusb -d 0955:7523 2>/dev/null || true)"
-  if [[ -n "$current_recovery_device" && "$current_recovery_device" != "$initial_recovery_device" ]]; then
-    reenumerated_recovery_device="$current_recovery_device"
-    break
-  fi
-  sleep 0.1
-done
-[[ -n "$reenumerated_recovery_device" ]] \
-  || die "Jetson did not re-enumerate in Recovery mode; reconnect NVIDIA APX to this host"
-sleep 2
-[[ "$(lsusb -d 0955:7523 2>/dev/null || true)" == "$reenumerated_recovery_device" ]] \
-  || die "Jetson Recovery USB connection is not stable"
 
 if [[ "$ASSUME_YES" != "1" ]]; then
   echo "This will erase the connected Orin Nano NVMe and update its QSPI firmware."

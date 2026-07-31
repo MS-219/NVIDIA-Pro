@@ -115,7 +115,6 @@ public class DeviceCommandServiceImpl extends ServiceImpl<DeviceCommandMapper, D
         DeviceCommand delivered = baseMapper.selectOne(new QueryWrapper<DeviceCommand>()
                 .eq("device_sn", normalizedSn)
                 .eq("status", "delivered")
-                .eq("deleted", 0)
                 .orderByAsc("dispatched_at")
                 .orderByAsc("id")
                 .last("LIMIT 1"));
@@ -126,7 +125,6 @@ public class DeviceCommandServiceImpl extends ServiceImpl<DeviceCommandMapper, D
         DeviceCommand command = baseMapper.selectOne(new QueryWrapper<DeviceCommand>()
                 .eq("device_sn", normalizedSn)
                 .eq("status", "pending")
-                .eq("deleted", 0)
                 .orderByAsc("create_time")
                 .orderByAsc("id")
                 .last("LIMIT 1"));
@@ -138,7 +136,6 @@ public class DeviceCommandServiceImpl extends ServiceImpl<DeviceCommandMapper, D
         int updated = baseMapper.update(null, new UpdateWrapper<DeviceCommand>()
                 .eq("id", command.getId())
                 .eq("status", "pending")
-                .eq("deleted", 0)
                 .set("status", "delivered")
                 .set("dispatched_at", now)
                 .set("update_time", now));
@@ -190,7 +187,6 @@ public class DeviceCommandServiceImpl extends ServiceImpl<DeviceCommandMapper, D
         }
         DeviceCommand command = baseMapper.selectOne(new QueryWrapper<DeviceCommand>()
                 .eq("command_no", commandNo.trim())
-                .eq("deleted", 0)
                 .last("LIMIT 1"));
         if (command == null) {
             return false;
@@ -206,7 +202,6 @@ public class DeviceCommandServiceImpl extends ServiceImpl<DeviceCommandMapper, D
         int updated = baseMapper.update(null, new UpdateWrapper<DeviceCommand>()
                 .eq("id", command.getId())
                 .eq("status", "delivered")
-                .eq("deleted", 0)
                 .set("status", status)
                 .set("exit_code", exitCode)
                 .set("result_text", trimResult(resultText))

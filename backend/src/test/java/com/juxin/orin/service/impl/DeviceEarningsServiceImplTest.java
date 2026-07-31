@@ -3,11 +3,14 @@ package com.juxin.orin.service.impl;
 import com.juxin.orin.entity.Device;
 import com.juxin.orin.mapper.DeviceEarningsMapper;
 import com.juxin.orin.service.IAppUserService;
+import com.juxin.orin.service.IDeviceOfflinePeriodService;
 import com.juxin.orin.service.IDeviceService;
 import com.juxin.orin.service.IInviteService;
 import com.juxin.orin.service.ISystemConfigService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -17,6 +20,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -39,6 +43,9 @@ class DeviceEarningsServiceImplTest {
 
     @Mock
     private DeviceEarningsMapper earningsMapper;
+
+    @Mock
+    private IDeviceOfflinePeriodService offlinePeriodService;
 
     @InjectMocks
     private DeviceEarningsServiceImpl service;
@@ -75,5 +82,80 @@ class DeviceEarningsServiceImplTest {
         assertTrue(first.compareTo(new BigDecimal("40.00")) >= 0);
         assertTrue(first.compareTo(new BigDecimal("50.00")) <= 0);
         assertEquals(first, repeated);
+    }
+
+    @Test
+    void offlineSecondsEqualToConfiguredLimitShouldStillAllowEarnings() {
+        Device device = realDevice();
+        LocalDateTime dayStart = LocalDateTime.of(2026, 7, 31, 0, 0);
+        LocalDateTime dayEnd = dayStart.plusDays(1);
+        when(offlinePeriodService.getOfflineSeconds(7L, dayStart, dayEnd)).thenReturn(3 * 60 * 60L);
+        when(configService.getConfig("earnings.maxDailyOfflineHours", "24")).thenReturn("3");
+
+        boolean exceeded = service.exceedsDailyOfflineLimit(device, dayStart, dayEnd);
+
+        assertFalse(exceeded);
+    }
+
+    @Test
+    void offlineSecondsOneSecondOverConfiguredLimitShouldRejectEarnings() {
+        Device device = realDevice();
+        LocalDateTime dayStart = LocalDateTime.of(2026, 7, 31, 0, 0);
+        LocalDateTime dayEnd = dayStart.plusDays(1);
+        when(offlinePeriodService.getOfflineSeconds(7L, dayStart, dayEnd)).thenReturn(3 * 60 * 60L + 1);
+        when(configService.getConfig("earnings.maxDailyOfflineHours", "24")).thenReturn("3");
+
+        boolean exceeded = service.exceedsDailyOfflineLimit(device, dayStart, dayEnd);
+
+        assertTrue(exceeded);
+    }
+
+    @Test
+    void virtualDeviceShouldBeExemptFromDailyOfflineLimit() {
+        Device device = realDevice();
+        device.setType(1);
+
+        boolean exceeded = service.exceedsDailyOfflineLimit(
+                device,
+                LocalDateTime.of(2026, 7, 31, 0, 0),
+                LocalDateTime.of(2026, 8, 1, 0, 0));
+
+        assertFalse(exceeded);
+        verifyNoInteractions(offlinePeriodService, configService);
+    }
+
+    @Test
+    void realDeviceWithoutHeartbeatShouldCountAsOfflineForTheWholeDay() {
+        Device device = realDevice();
+        device.setLastHeartbeatTime(null);
+        LocalDateTime dayStart = LocalDateTime.of(2026, 7, 31, 0, 0);
+        when(configService.getConfig("earnings.maxDailyOfflineHours", "24")).thenReturn("3");
+
+        boolean exceeded = service.exceedsDailyOfflineLimit(device, dayStart, dayStart.plusDays(1));
+
+        assertTrue(exceeded);
+        verifyNoInteractions(offlinePeriodService);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = { "invalid", "-1", "25" })
+    void invalidOfflineLimitConfigurationShouldFallBackToTwentyFourHours(String configuredValue) {
+        Device device = realDevice();
+        LocalDateTime dayStart = LocalDateTime.of(2026, 7, 31, 0, 0);
+        LocalDateTime dayEnd = dayStart.plusDays(1);
+        when(offlinePeriodService.getOfflineSeconds(7L, dayStart, dayEnd)).thenReturn(24 * 60 * 60L);
+        when(configService.getConfig("earnings.maxDailyOfflineHours", "24")).thenReturn(configuredValue);
+
+        boolean exceeded = service.exceedsDailyOfflineLimit(device, dayStart, dayEnd);
+
+        assertFalse(exceeded);
+    }
+
+    private Device realDevice() {
+        Device device = new Device();
+        device.setId(7L);
+        device.setType(2);
+        device.setLastHeartbeatTime(LocalDateTime.of(2026, 7, 31, 12, 0));
+        return device;
     }
 }

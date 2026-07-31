@@ -302,6 +302,16 @@ def display_identity(state: dict[str, Any]) -> str:
     return clean_text(state.get("bindCode"), 32) or clean_text(state.get("sn"), 40)
 
 
+def display_power_mode(state: dict[str, Any]) -> str:
+    telemetry = state.get("telemetry") or {}
+    runtime_config = state.get("runtimeConfig") or {}
+    return (
+        clean_text(telemetry.get("power_mode"), 24)
+        or clean_text(runtime_config.get("powerMode"), 24)
+        or "MAXN_SUPER"
+    )
+
+
 @lru_cache(maxsize=2)
 def locate_font(bold: bool = False) -> str:
     names = (
@@ -523,7 +533,7 @@ def render_frame(
 
     status_y = int(height * 0.72)
     access_status = node_access_status(bool(state.get("connected")))
-    status = f"GPU 已就绪    |    MAXN_SUPER    |    {access_status}"
+    status = f"GPU 已就绪    |    {display_power_mode(state)}    |    {access_status}"
     centered_text(draw, width, status_y, status, body_font, COLORS["muted"])
 
     gpu = safe_number(telemetry.get("gpu_usage"))
@@ -585,7 +595,7 @@ def terminal_frame(state: dict[str, Any], frame: int) -> str:
             "",
             f"{display_identity(state):^62}",
             "",
-            "GPU READY  |  MAXN_SUPER  |  NODE ATTACHED",
+            f"GPU READY  |  {display_power_mode(state)}  |  NODE ATTACHED",
             f"GPU {safe_number(telemetry.get('gpu_usage')):3.0f}%   "
             f"TEMP {safe_number(telemetry.get('gpu_temperature')):3.0f}C   "
             f"POWER {safe_number(telemetry.get('power_watts')):4.1f}W",

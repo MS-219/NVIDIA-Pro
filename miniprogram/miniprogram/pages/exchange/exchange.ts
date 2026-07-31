@@ -24,6 +24,12 @@ Page({
     },
 
     onShow() {
+        if (typeof this.getTabBar === 'function' && this.getTabBar()) {
+            this.getTabBar().setData({
+                selected: 2
+            });
+        }
+
         this.fetchProducts();
     },
 
@@ -86,9 +92,5 @@ Page({
             return (value / 10000).toFixed(1) + '万';
         }
         return value.toString();
-    },
-
-    onGoBack() {
-        wx.navigateBack();
     }
 });

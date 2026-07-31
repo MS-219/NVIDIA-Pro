@@ -41,7 +41,7 @@ public class AppUser {
     /** 邀请人ID */
     private Long inviterId;
 
-    /** 用户等级: 0-普通用户, 1-一级, 2-二级, 3-三级, 4-四级 */
+    /** 用户等级: 0-普通用户, 1..N 为后台配置等级 */
     private Integer level;
 
     /** 等级是否由后台手动设置（手动设置优先级高于自动升级） */
@@ -108,6 +108,10 @@ public class AppUser {
     /** 邀请人昵称 */
     @TableField(exist = false)
     private String inviterNickname;
+
+    /** 后台配置的用户等级名称 */
+    @TableField(exist = false)
+    private String levelName;
 
     /** 邀请人头像 */
     @TableField(exist = false)

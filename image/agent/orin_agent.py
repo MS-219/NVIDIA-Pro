@@ -5,11 +5,17 @@ from __future__ import annotations
 
 import json
 import hashlib
+import fcntl
 import os
 import platform
+import pty
 import re
+import signal
 import socket
+import struct
 import subprocess
+import termios
+import threading
 import time
 import urllib.error
 import urllib.parse
@@ -31,6 +37,12 @@ TOKEN_FILE = Path(os.getenv("ORIN_DEVICE_TOKEN_FILE", str(STATE_DIR / "device-to
 DISPLAY_STATUS_FILE = Path(
     os.getenv("ORIN_DISPLAY_STATUS_FILE", str(STATE_DIR / "display-status.json"))
 )
+POWER_MODE_STATE_FILE = Path(
+    os.getenv("ORIN_POWER_MODE_STATE_FILE", str(STATE_DIR / "power-mode.json"))
+)
+NVPMODEL_CONFIG = Path(os.getenv("ORIN_NVPMODEL_CONFIG", "/etc/nvpmodel.conf"))
+NVPMODEL_BIN = Path(os.getenv("ORIN_NVPMODEL_BIN", "/usr/sbin/nvpmodel"))
+SUPPORTED_POWER_MODES = {"15W", "25W", "MAXN_SUPER"}
 DEFAULT_INTERVAL = max(10, int(os.getenv("ORIN_HEARTBEAT_INTERVAL", "60")))
 DEFAULT_TASK_POLL_INTERVAL = max(5, int(os.getenv("ORIN_TASK_POLL_INTERVAL", "60")))
 DEFAULT_OFFLINE_THRESHOLD = max(
@@ -47,6 +59,7 @@ OUTBOX_DIR = Path(os.getenv("ORIN_OUTBOX_DIR", str(STATE_DIR / "outbox")))
 RUNTIME_DIR = Path(os.getenv("ORIN_RUNTIME_DIR", "/opt/juxin-orin/runtime"))
 TASK_RUNNER = Path(os.getenv("ORIN_TASK_RUNNER", str(RUNTIME_DIR / "task-runner")))
 OLLAMA_API_BASE = os.getenv("ORIN_OLLAMA_API_BASE_URL", "http://127.0.0.1:11434").rstrip("/")
+TERMINAL_USER = os.getenv("ORIN_TERMINAL_USER", "juxin").strip() or "juxin"
 MAX_RESULT_TEXT = 1_000_000
 MAX_ERROR_TEXT = 4000
 DISPLAY_TELEMETRY_KEYS = {
@@ -59,6 +72,10 @@ DISPLAY_TELEMETRY_KEYS = {
     "ip",
     "cuda_version",
     "l4t_version",
+    "power_mode",
+    "power_mode_target",
+    "power_mode_apply_status",
+    "power_mode_error",
 }
 DISPLAY_UNSET = object()
 DISPLAY_STATE: dict[str, Any] = {
@@ -72,6 +89,7 @@ DISPLAY_STATE: dict[str, Any] = {
         "heartbeatInterval": DEFAULT_INTERVAL,
         "taskPollInterval": DEFAULT_TASK_POLL_INTERVAL,
         "offlineThreshold": DEFAULT_OFFLINE_THRESHOLD,
+        "powerMode": "MAXN_SUPER",
     },
     "telemetry": {},
     "task": None,
@@ -116,6 +134,390 @@ def atomic_write_text(path: Path, value: str, mode: int) -> None:
 
 def atomic_write_secret(path: Path, value: str) -> None:
     atomic_write_text(path, value, 0o600)
+
+
+def normalize_power_mode(value: Any) -> str:
+    normalized = str(value or "").strip().upper().replace("-", "_")
+    return normalized if normalized in SUPPORTED_POWER_MODES else ""
+
+
+def parse_power_modes(config_text: str) -> dict[str, int]:
+    modes: dict[str, int] = {}
+    for tag in re.findall(r"<\s*POWER_MODEL\b[^>]*>", config_text, flags=re.IGNORECASE):
+        mode_id = re.search(r"\bID\s*=\s*(\d+)", tag, flags=re.IGNORECASE)
+        name = re.search(r"\bNAME\s*=\s*([^\s>]+)", tag, flags=re.IGNORECASE)
+        if not mode_id or not name:
+            continue
+        normalized = normalize_power_mode(name.group(1))
+        if normalized:
+            modes[normalized] = int(mode_id.group(1))
+    return modes
+
+
+def read_power_mode_state() -> dict[str, str]:
+    try:
+        value = json.loads(POWER_MODE_STATE_FILE.read_text(encoding="utf-8"))
+    except (OSError, ValueError, TypeError):
+        return {}
+    if not isinstance(value, dict):
+        return {}
+    return {str(key): str(item or "") for key, item in value.items()}
+
+
+def write_power_mode_state(state: dict[str, str]) -> dict[str, str]:
+    try:
+        atomic_write_text(
+            POWER_MODE_STATE_FILE,
+            json.dumps(state, ensure_ascii=True, separators=(",", ":")),
+            0o600,
+        )
+    except OSError as error:
+        print(f"power mode state write failed: {error}", flush=True)
+    return state
+
+
+def query_power_mode() -> tuple[str, str]:
+    try:
+        result = subprocess.run(
+            [str(NVPMODEL_BIN), "-q"],
+            text=True,
+            capture_output=True,
+            timeout=20,
+            check=False,
+        )
+    except (OSError, subprocess.TimeoutExpired) as error:
+        return "", f"unable to query nvpmodel: {error}"
+    output = "\n".join(part for part in (result.stdout, result.stderr) if part)
+    match = re.search(r"NV\s+Power\s+Mode\s*:\s*([^\s]+)", output, flags=re.IGNORECASE)
+    current = normalize_power_mode(match.group(1)) if match else ""
+    if result.returncode != 0:
+        detail = output.strip() or f"exit {result.returncode}"
+        return current, f"unable to query nvpmodel: {detail[:300]}"
+    if not current:
+        return "", "unable to determine the active nvpmodel mode"
+    return current, ""
+
+
+def power_mode_telemetry() -> dict[str, str]:
+    state = read_power_mode_state()
+    if not state:
+        current, error = query_power_mode()
+        state = write_power_mode_state(
+            {
+                "target": current,
+                "current": current,
+                "applyStatus": "observed" if current else "error",
+                "error": error,
+            }
+        )
+    telemetry = {
+        "power_mode": state.get("current", ""),
+        "power_mode_target": state.get("target", ""),
+        "power_mode_apply_status": state.get("applyStatus", ""),
+    }
+    if state.get("error"):
+        telemetry["power_mode_error"] = state["error"][:MAX_ERROR_TEXT]
+    return telemetry
+
+
+def apply_power_mode(desired_mode: Any) -> dict[str, str]:
+    target = normalize_power_mode(desired_mode)
+    previous = read_power_mode_state()
+    current, query_error = query_power_mode()
+    current = current or previous.get("current", "")
+    modes = parse_power_modes(read_text(NVPMODEL_CONFIG))
+
+    if not target:
+        return write_power_mode_state(
+            {
+                "target": str(desired_mode or ""),
+                "current": current,
+                "applyStatus": "error",
+                "error": "requested power mode is invalid",
+            }
+        )
+    if target not in modes:
+        return write_power_mode_state(
+            {
+                "target": target,
+                "current": current,
+                "applyStatus": "error",
+                "error": f"power mode {target} is not supported by this device",
+            }
+        )
+    if current == target:
+        return write_power_mode_state(
+            {"target": target, "current": current, "applyStatus": "unchanged", "error": ""}
+        )
+
+    try:
+        result = subprocess.run(
+            [str(NVPMODEL_BIN), "-m", str(modes[target])],
+            text=True,
+            capture_output=True,
+            timeout=20,
+            check=False,
+        )
+    except (OSError, subprocess.TimeoutExpired) as error:
+        detail = str(error)
+        result = None
+    else:
+        detail = (result.stderr or result.stdout or "").strip()
+
+    if result is None or result.returncode != 0:
+        reason = detail or query_error or (f"exit {result.returncode}" if result else "unknown error")
+        state = {
+            "target": target,
+            "current": current,
+            "applyStatus": "error",
+            "error": f"unable to apply power mode {target}: {reason[:300]}",
+        }
+        print(f"power mode apply failed: {state['error']}", flush=True)
+        return write_power_mode_state(state)
+
+    return write_power_mode_state(
+        {"target": target, "current": target, "applyStatus": "applied", "error": ""}
+    )
+
+
+def terminal_websocket_url() -> str:
+    parsed = urllib.parse.urlsplit(API_BASE)
+    scheme = "wss" if parsed.scheme == "https" else "ws"
+    prefix = parsed.path.rstrip("/")
+    sn = urllib.parse.quote(device_sn(), safe="")
+    return urllib.parse.urlunsplit((scheme, parsed.netloc, f"{prefix}/ws/device/{sn}", "", ""))
+
+
+class TerminalShell:
+    def __init__(self, send_message):
+        self.send_message = send_message
+        self.fd = -1
+        self.process: subprocess.Popen | None = None
+        self.lock = threading.RLock()
+        self.reader: threading.Thread | None = None
+
+    def open(self, columns: int = 80, rows: int = 24) -> None:
+        with self.lock:
+            if self.fd >= 0:
+                self.resize(columns, rows)
+                return
+            account = subprocess.run(
+                ["/usr/bin/getent", "passwd", TERMINAL_USER],
+                text=True,
+                capture_output=True,
+                timeout=5,
+                check=False,
+            )
+            if account.returncode != 0 or not account.stdout.strip():
+                raise RuntimeError(f"terminal user {TERMINAL_USER} does not exist")
+            fields = account.stdout.strip().split(":")
+            if len(fields) < 7:
+                raise RuntimeError("terminal user account is invalid")
+            home = fields[5] or f"/home/{TERMINAL_USER}"
+            shell = fields[6] or "/bin/bash"
+            master, slave = pty.openpty()
+            environment = os.environ.copy()
+            environment.update(
+                {
+                    "HOME": home,
+                    "USER": TERMINAL_USER,
+                    "LOGNAME": TERMINAL_USER,
+                    "SHELL": shell,
+                    "TERM": "xterm-256color",
+                }
+            )
+            try:
+                self.process = subprocess.Popen(
+                    ["/usr/sbin/runuser", "-u", TERMINAL_USER, "--", shell, "--login"],
+                    stdin=slave,
+                    stdout=slave,
+                    stderr=slave,
+                    cwd=home,
+                    env=environment,
+                    start_new_session=True,
+                    close_fds=True,
+                )
+            except Exception:
+                os.close(master)
+                raise
+            finally:
+                os.close(slave)
+            self.fd = master
+            self.resize(columns, rows)
+            self.reader = threading.Thread(
+                target=self._read_output,
+                name="juxin-orin-terminal-output",
+                daemon=True,
+            )
+            self.reader.start()
+
+    def write(self, value: str) -> None:
+        data = value.encode("utf-8", errors="replace")
+        if len(data) > 16 * 1024:
+            raise ValueError("terminal input is too large")
+        with self.lock:
+            if self.fd < 0:
+                raise RuntimeError("terminal shell is not open")
+            os.write(self.fd, data)
+
+    def resize(self, columns: int, rows: int) -> None:
+        columns = min(400, max(20, int(columns)))
+        rows = min(200, max(5, int(rows)))
+        with self.lock:
+            if self.fd < 0:
+                return
+            fcntl.ioctl(self.fd, termios.TIOCSWINSZ, struct.pack("HHHH", rows, columns, 0, 0))
+
+    def close(self) -> None:
+        with self.lock:
+            descriptor, process = self.fd, self.process
+            self.fd, self.process = -1, None
+        if descriptor >= 0:
+            try:
+                os.close(descriptor)
+            except OSError:
+                pass
+        if process is not None and process.poll() is None:
+            try:
+                os.killpg(process.pid, signal.SIGTERM)
+            except ProcessLookupError:
+                pass
+            try:
+                process.wait(timeout=3)
+            except subprocess.TimeoutExpired:
+                try:
+                    os.killpg(process.pid, signal.SIGKILL)
+                except ProcessLookupError:
+                    pass
+                process.wait(timeout=3)
+
+    def _read_output(self) -> None:
+        with self.lock:
+            descriptor = self.fd
+            process = self.process
+        try:
+            while True:
+                with self.lock:
+                    active = self.fd == descriptor
+                if descriptor < 0 or not active:
+                    return
+                try:
+                    output = os.read(descriptor, 4096)
+                except OSError:
+                    return
+                if not output:
+                    return
+                self.send_message(
+                    {
+                        "type": "output",
+                        "data": output.decode("utf-8", errors="replace"),
+                    }
+                )
+        finally:
+            with self.lock:
+                if self.fd == descriptor:
+                    self.fd = -1
+                    self.process = None
+            if descriptor >= 0:
+                try:
+                    os.close(descriptor)
+                except OSError:
+                    pass
+            if process is not None:
+                try:
+                    process.wait(timeout=1)
+                except subprocess.TimeoutExpired:
+                    try:
+                        os.killpg(process.pid, signal.SIGTERM)
+                    except ProcessLookupError:
+                        pass
+            try:
+                self.send_message({"type": "status", "status": "closed"})
+            except Exception:
+                pass
+
+
+def handle_terminal_message(raw_message: str, shell: TerminalShell) -> None:
+    payload = json.loads(raw_message)
+    if not isinstance(payload, dict):
+        raise ValueError("terminal message must be an object")
+    message_type = str(payload.get("type") or "")
+    if message_type == "open":
+        shell.open(int(payload.get("cols") or 80), int(payload.get("rows") or 24))
+    elif message_type == "input":
+        data = payload.get("data")
+        if not isinstance(data, str):
+            raise ValueError("terminal input must be text")
+        shell.write(data)
+    elif message_type == "resize":
+        shell.resize(int(payload.get("cols") or 80), int(payload.get("rows") or 24))
+    elif message_type == "close":
+        shell.close()
+    else:
+        raise ValueError("unsupported terminal message type")
+
+
+def run_terminal_connection(websocket_module) -> None:
+    token = device_token()
+    if not token:
+        raise RuntimeError("device is not enrolled")
+    connection = websocket_module.create_connection(
+        terminal_websocket_url(),
+        header=[f"X-Orin-Device-Token: {token}"],
+        timeout=REQUEST_TIMEOUT,
+        enable_multithread=True,
+    )
+    connection.settimeout(None)
+    send_lock = threading.Lock()
+
+    def send_message(payload: dict[str, Any]) -> None:
+        with send_lock:
+            connection.send(json.dumps(payload, ensure_ascii=True, separators=(",", ":")))
+
+    shell = TerminalShell(send_message)
+    try:
+        while True:
+            message = connection.recv()
+            if message is None or message == "":
+                return
+            if isinstance(message, bytes):
+                message = message.decode("utf-8", errors="replace")
+            try:
+                handle_terminal_message(message, shell)
+                if json.loads(message).get("type") == "open":
+                    send_message({"type": "status", "status": "ready"})
+            except (OSError, RuntimeError, TypeError, ValueError, json.JSONDecodeError) as error:
+                send_message({"type": "status", "status": "error", "message": str(error)[:300]})
+    finally:
+        shell.close()
+        connection.close()
+
+
+def remote_terminal_loop() -> None:
+    delay = RECONNECT_INTERVAL
+    while True:
+        try:
+            import websocket  # type: ignore
+
+            run_terminal_connection(websocket)
+            delay = RECONNECT_INTERVAL
+        except ImportError:
+            print("remote terminal unavailable: install python3-websocket", flush=True)
+            delay = 300
+        except Exception as error:
+            print(f"remote terminal reconnecting: {error}", flush=True)
+            delay = min(60, max(RECONNECT_INTERVAL, delay * 2))
+        time.sleep(delay)
+
+
+def start_remote_terminal() -> threading.Thread:
+    thread = threading.Thread(
+        target=remote_terminal_loop,
+        name="juxin-orin-remote-terminal",
+        daemon=True,
+    )
+    thread.start()
+    return thread
 
 
 def device_sn() -> str:
@@ -296,6 +698,7 @@ def report_payload() -> dict[str, Any]:
     if total_memory_mb:
         payload["memory_total_mb"] = total_memory_mb
     payload.update(tegra_metrics())
+    payload.update(power_mode_telemetry())
     return payload
 
 
@@ -663,6 +1066,11 @@ def next_offline_threshold(response: dict[str, Any], current: int) -> int:
         return current
 
 
+def next_power_mode(response: dict[str, Any], current: str) -> str:
+    value = normalize_power_mode((response.get("data") or {}).get("powerMode"))
+    return value or normalize_power_mode(current) or "MAXN_SUPER"
+
+
 def apply_runtime_config(
     response: dict[str, Any],
     heartbeat_interval: int,
@@ -672,11 +1080,34 @@ def apply_runtime_config(
     heartbeat_interval = next_interval(response, heartbeat_interval)
     task_poll_interval = next_task_interval(response, task_poll_interval)
     offline_threshold = next_offline_threshold(response, offline_threshold)
+    power_mode = next_power_mode(
+        response,
+        str(DISPLAY_STATE.get("runtimeConfig", {}).get("powerMode") or "MAXN_SUPER"),
+    )
+    try:
+        power_status = apply_power_mode(power_mode)
+    except (OSError, RuntimeError, ValueError) as error:
+        power_status = {
+            "target": power_mode,
+            "current": read_power_mode_state().get("current", ""),
+            "applyStatus": "error",
+            "error": f"unable to manage power mode: {error}",
+        }
+        print(f"power mode management failed: {error}", flush=True)
     DISPLAY_STATE["runtimeConfig"] = {
         "heartbeatInterval": heartbeat_interval,
         "taskPollInterval": task_poll_interval,
         "offlineThreshold": offline_threshold,
+        "powerMode": power_mode,
     }
+    DISPLAY_STATE.setdefault("telemetry", {}).update(
+        {
+            "power_mode": power_status.get("current", ""),
+            "power_mode_target": power_status.get("target", ""),
+            "power_mode_apply_status": power_status.get("applyStatus", ""),
+            "power_mode_error": power_status.get("error", ""),
+        }
+    )
     return heartbeat_interval, task_poll_interval, offline_threshold
 
 
@@ -692,6 +1123,7 @@ def loop() -> None:
     next_task_poll = 0.0
     next_outbox_retry = 0.0
     publish_display_status(phase="initializing", connected=False, task=None, error=None)
+    start_remote_terminal()
     while True:
         now = time.monotonic()
         if now >= next_outbox_retry:
@@ -718,6 +1150,7 @@ def loop() -> None:
                     task_poll_interval,
                     offline_threshold,
                 )
+                payload.update(power_mode_telemetry())
                 publish_display_status(
                     phase="idle", connected=True, telemetry=payload, task=None, error=None
                 )

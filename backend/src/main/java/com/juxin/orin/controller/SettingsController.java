@@ -6,6 +6,7 @@ import com.juxin.orin.entity.SystemConfig;
 import com.juxin.orin.service.IAppUserService;
 import com.juxin.orin.service.ISystemConfigService;
 import com.juxin.orin.service.InviteLevelConfigService;
+import com.juxin.orin.util.OrinPowerMode;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
@@ -35,6 +36,7 @@ public class SettingsController {
     // 配置键常量
     private static final String KEY_DAILY_MIN_RATE = "earnings.dailyMinRate";
     private static final String KEY_DAILY_MAX_RATE = "earnings.dailyMaxRate";
+    private static final String KEY_MAX_DAILY_OFFLINE_HOURS = "earnings.maxDailyOfflineHours";
     private static final String LEGACY_KEY_DAILY_RATE = "earnings.dailyRate";
     private static final String LEGACY_KEY_HOURLY_RATE = "earnings.hourlyRate";
     private static final String KEY_HASHRATE_PER_YUAN = "earnings.hashratePerYuan";
@@ -53,6 +55,7 @@ public class SettingsController {
     private static final String KEY_OFFLINE_THRESHOLD = "device.offlineThreshold";
     private static final String KEY_AUTO_ASSIGN_BUSINESS = "device.autoAssignBusiness";
     private static final String KEY_INITIAL_HASHRATE = "device.initialHashrate";
+    private static final String KEY_POWER_MODE = "device.powerMode";
 
     private static final String KEY_MAINTENANCE_MODE = "system.maintenanceMode";
     private static final String KEY_BANNER_LIST = "system.bannerList";
@@ -104,6 +107,8 @@ public class SettingsController {
         Map<String, Object> earnings = new HashMap<>();
         earnings.put("dailyMinRate", getDailyRangeRate(KEY_DAILY_MIN_RATE));
         earnings.put("dailyMaxRate", getDailyRangeRate(KEY_DAILY_MAX_RATE));
+        earnings.put("maxDailyOfflineHours",
+                Double.parseDouble(configService.getConfig(KEY_MAX_DAILY_OFFLINE_HOURS, "24")));
         earnings.put("hashratePerYuan", Integer.parseInt(configService.getConfig(KEY_HASHRATE_PER_YUAN, "100")));
         earnings.put("minWithdraw", Double.parseDouble(configService.getConfig(KEY_MIN_WITHDRAW, "10")));
         earnings.put("withdrawFee", Double.parseDouble(configService.getConfig(KEY_WITHDRAW_FEE, "1")));
@@ -131,6 +136,8 @@ public class SettingsController {
         device.put("autoAssignBusiness",
                 Boolean.parseBoolean(configService.getConfig(KEY_AUTO_ASSIGN_BUSINESS, "true")));
         device.put("initialHashrate", Integer.parseInt(configService.getConfig(KEY_INITIAL_HASHRATE, "100")));
+        String powerMode = OrinPowerMode.normalize(configService.getConfig(KEY_POWER_MODE, OrinPowerMode.DEFAULT));
+        device.put("powerMode", powerMode != null ? powerMode : OrinPowerMode.DEFAULT);
         settings.put("device", device);
 
         // 系统设置
@@ -186,6 +193,7 @@ public class SettingsController {
 
         Object dailyMinRate = params.get("dailyMinRate");
         Object dailyMaxRate = params.get("dailyMaxRate");
+        Object maxDailyOfflineHours = params.get("maxDailyOfflineHours");
         Object legacyRate = params.get("dailyRate") != null ? params.get("dailyRate") : params.get("hourlyRate");
         if (dailyMinRate == null && dailyMaxRate == null && legacyRate != null) {
             dailyMinRate = legacyRate;
@@ -194,9 +202,11 @@ public class SettingsController {
 
         BigDecimal dailyMinRateValue;
         BigDecimal dailyMaxRateValue;
+        BigDecimal maxDailyOfflineHoursValue;
         try {
             dailyMinRateValue = parseOptionalDecimal(dailyMinRate, "每天收益最低金额");
             dailyMaxRateValue = parseOptionalDecimal(dailyMaxRate, "每天收益最高金额");
+            maxDailyOfflineHoursValue = parseOptionalDecimal(maxDailyOfflineHours, "每日累计离线上限");
         } catch (IllegalArgumentException e) {
             return Result.error(e.getMessage());
         }
@@ -206,6 +216,11 @@ public class SettingsController {
         }
         if (dailyMaxRateValue != null) {
             dailyMaxRateValue = dailyMaxRateValue.setScale(2, java.math.RoundingMode.HALF_UP);
+        }
+        if (maxDailyOfflineHoursValue != null
+                && (maxDailyOfflineHoursValue.compareTo(BigDecimal.ZERO) < 0
+                        || maxDailyOfflineHoursValue.compareTo(BigDecimal.valueOf(24)) > 0)) {
+            return Result.error("每日累计离线上限必须在 0 到 24 小时之间");
         }
 
         if (dailyMinRateValue != null || dailyMaxRateValue != null) {
@@ -231,6 +246,10 @@ public class SettingsController {
         }
         if (dailyMaxRateValue != null) {
             configService.setConfig(KEY_DAILY_MAX_RATE, dailyMaxRateValue.stripTrailingZeros().toPlainString());
+        }
+        if (maxDailyOfflineHoursValue != null) {
+            configService.setConfig(KEY_MAX_DAILY_OFFLINE_HOURS,
+                    maxDailyOfflineHoursValue.stripTrailingZeros().toPlainString());
         }
         if (params.get("hashratePerYuan") != null) {
             configService.setConfig(KEY_HASHRATE_PER_YUAN, params.get("hashratePerYuan").toString());
@@ -341,6 +360,14 @@ public class SettingsController {
             return Result.error(error);
         }
 
+        String powerMode = null;
+        if (params.get("powerMode") != null) {
+            powerMode = OrinPowerMode.normalize(params.get("powerMode"));
+            if (powerMode == null) {
+                return Result.error("功耗模式仅支持 15W、25W 或 MAXN_SUPER");
+            }
+        }
+
         if (params.get("heartbeatTimeout") != null) {
             configService.setConfig(KEY_HEARTBEAT_TIMEOUT, params.get("heartbeatTimeout").toString());
         }
@@ -358,6 +385,9 @@ public class SettingsController {
         }
         if (params.get("initialHashrate") != null) {
             configService.setConfig(KEY_INITIAL_HASHRATE, params.get("initialHashrate").toString());
+        }
+        if (powerMode != null) {
+            configService.setConfig(KEY_POWER_MODE, powerMode);
         }
         return Result.success("设备设置保存成功");
     }
@@ -467,6 +497,8 @@ public class SettingsController {
         config.put("withdrawFee", Double.parseDouble(configService.getConfig(KEY_WITHDRAW_FEE, "1")));
         config.put("dailyMinRate", getDailyRangeRate(KEY_DAILY_MIN_RATE));
         config.put("dailyMaxRate", getDailyRangeRate(KEY_DAILY_MAX_RATE));
+        config.put("maxDailyOfflineHours",
+                Double.parseDouble(configService.getConfig(KEY_MAX_DAILY_OFFLINE_HOURS, "24")));
         return Result.success(config);
     }
 

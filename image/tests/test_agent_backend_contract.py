@@ -59,6 +59,7 @@ class ContractHandler(BaseHTTPRequestHandler):
                 "heartbeatInterval": 30,
                 "taskPollInterval": 17,
                 "offlineThreshold": 95,
+                "powerMode": "25W",
             })
             return
         if self.path == "/api/edge/tasks/submit":
@@ -142,6 +143,7 @@ class AgentBackendContractTest(unittest.TestCase):
         self.assertEqual(30, self.agent.next_interval(heartbeat, 60))
         self.assertEqual(17, self.agent.next_task_interval(heartbeat, 60))
         self.assertEqual(95, self.agent.next_offline_threshold(heartbeat, 180))
+        self.assertEqual("25W", self.agent.next_power_mode(heartbeat, "MAXN_SUPER"))
         self.assertNotIn("image_license", ContractHandler.enrollments[0])
         self.assertEqual(VALID_SN, ContractHandler.reports[0]["sn"])
         self.assertEqual(1, len(ContractHandler.submissions))

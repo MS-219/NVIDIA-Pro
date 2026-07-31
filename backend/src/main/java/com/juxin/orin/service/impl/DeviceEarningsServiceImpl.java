@@ -11,6 +11,7 @@ import com.juxin.orin.service.IDeviceService;
 import com.juxin.orin.service.InviteLevelConfigService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.support.TransactionOperations;
 import lombok.extern.slf4j.Slf4j;
 
 import java.math.BigDecimal;
@@ -33,6 +34,9 @@ public class DeviceEarningsServiceImpl extends ServiceImpl<DeviceEarningsMapper,
     private IDeviceService deviceService;
 
     @Autowired
+    private com.juxin.orin.service.IDeviceOfflinePeriodService offlinePeriodService;
+
+    @Autowired
     private com.juxin.orin.service.ISystemConfigService configService;
 
     @Autowired
@@ -43,6 +47,29 @@ public class DeviceEarningsServiceImpl extends ServiceImpl<DeviceEarningsMapper,
 
     @Autowired
     private com.juxin.orin.service.IApiMerchantService apiMerchantService;
+
+    @Autowired
+    private TransactionOperations transactionOperations;
+
+    private enum SettlementStatus {
+        CREDITED,
+        DENIED,
+        SKIPPED
+    }
+
+    private record SettlementResult(SettlementStatus status, BigDecimal amount) {
+        private static SettlementResult credited(BigDecimal amount) {
+            return new SettlementResult(SettlementStatus.CREDITED, amount);
+        }
+
+        private static SettlementResult denied() {
+            return new SettlementResult(SettlementStatus.DENIED, BigDecimal.ZERO);
+        }
+
+        private static SettlementResult skipped() {
+            return new SettlementResult(SettlementStatus.SKIPPED, BigDecimal.ZERO);
+        }
+    }
 
     @Override
     public Map<String, BigDecimal> getUserEarnings(Long userId) {
@@ -71,62 +98,38 @@ public class DeviceEarningsServiceImpl extends ServiceImpl<DeviceEarningsMapper,
     @Override
     public void generateDailyEarnings() {
         LocalDateTime now = LocalDateTime.now();
-        LocalDate today = now.toLocalDate();
+        LocalDate settlementDate = now.toLocalDate().minusDays(1);
+        LocalDateTime dayStart = settlementDate.atStartOfDay();
+        LocalDateTime dayEnd = settlementDate.plusDays(1).atStartOfDay();
 
-        log.info("========== 开始执行收益结算任务 ==========");
+        log.info("========== 开始执行每日收益结算: date={} ==========", settlementDate);
 
         try {
-            // 从系统配置读取心跳超时时间（秒）
-            String heartbeatTimeoutStr = configService.getConfig("device.heartbeatTimeout", "120");
-
-            int heartbeatTimeoutSeconds = Integer.parseInt(heartbeatTimeoutStr);
-
-            LocalDateTime activeThreshold = now.minusSeconds(heartbeatTimeoutSeconds);
-
-            // 获取参与正常收益结算的实体/边缘设备：排除虚拟设备(type=1)
-            List<Device> realDevices = deviceService.lambdaQuery()
-                    .eq(Device::getStatus, 1)
-                    .ge(Device::getLastHeartbeatTime, activeThreshold)
+            // 只结算完整参与了该自然日的已绑定设备，当前是否在线不影响判定。
+            List<Device> devices = deviceService.lambdaQuery()
                     .isNotNull(Device::getUserId)
-                    .isNotNull(Device::getLastPayTime)
-                    .and(w -> w.isNull(Device::getType).or().ne(Device::getType, 1))
+                    .isNotNull(Device::getBindTime)
+                    .le(Device::getBindTime, dayStart)
                     .list();
 
-            // 获取虚拟设备：不检查心跳时间，始终参与结算
-            List<Device> virtualDevices = deviceService.lambdaQuery()
-                    .eq(Device::getStatus, 1)
-                    .eq(Device::getType, 1)
-                    .isNotNull(Device::getUserId)
-                    .isNotNull(Device::getLastPayTime)
-                    .list();
+            // 收益任务可能比离线扫描更早触发，结算前先补齐开放离线区间。
+            offlinePeriodService.ensureOfflinePeriods(devices, getOfflineThresholdSeconds(), now);
 
-            log.info("查询到设备: 实体/边缘设备={}台, 虚拟设备={}台", realDevices.size(), virtualDevices.size());
-
-            // 合并设备列表
-            List<Device> onlineDevices = new java.util.ArrayList<>();
-            onlineDevices.addAll(realDevices);
-            onlineDevices.addAll(virtualDevices);
+            log.info("每日收益待检查设备: date={}, count={}", settlementDate, devices.size());
 
             int successCount = 0;
+            int deniedCount = 0;
             int errorCount = 0;
 
-            for (Device device : onlineDevices) {
+            for (Device device : devices) {
                 try {
-                    // 每台设备连续运行满一天后结算一次。
-                    LocalDateTime lastPay = device.getLastPayTime();
-                    if (lastPay.plusDays(1).isAfter(now)) {
-                        continue;
+                    SettlementResult result = settleDeviceForDate(
+                            device.getId(), now, settlementDate, dayStart, dayEnd);
+                    if (result.status() == SettlementStatus.CREDITED) {
+                        successCount++;
+                    } else if (result.status() == SettlementStatus.DENIED) {
+                        deniedCount++;
                     }
-
-                    // 兼容从小时结算升级的当天数据，防止切换后重复入账。
-                    if (earningsMapper.countByDeviceAndDate(device.getId(), today) > 0) {
-                        device.setLastPayTime(now);
-                        deviceService.updateById(device);
-                        continue;
-                    }
-
-                    processDeviceEarnings(device, now, today);
-                    successCount++;
                 } catch (Exception e) {
                     errorCount++;
                     log.error("设备收益结算异常: deviceId={}, sn={}, error={}",
@@ -134,18 +137,67 @@ public class DeviceEarningsServiceImpl extends ServiceImpl<DeviceEarningsMapper,
                 }
             }
 
-            log.info("========== 收益结算任务完成: 成功={}台, 失败={}台 ==========", successCount, errorCount);
+            log.info("========== 每日收益结算完成: date={}, 入账={}台, 离线超限={}台, 失败={}台 ==========",
+                    settlementDate, successCount, deniedCount, errorCount);
 
         } catch (Exception e) {
             log.error("收益结算任务执行异常: {}", e.getMessage(), e);
         }
     }
 
+    private SettlementResult settleDeviceForDate(
+            Long deviceId,
+            LocalDateTime now,
+            LocalDate settlementDate,
+            LocalDateTime dayStart,
+            LocalDateTime dayEnd) {
+        SettlementResult result = transactionOperations.execute(status -> {
+            // 串行化同一设备的定时结算和手动补偿，避免先查后写重复入账。
+            Device device = deviceService.lambdaQuery()
+                    .eq(Device::getId, deviceId)
+                    .last("FOR UPDATE")
+                    .one();
+            if (device == null
+                    || device.getUserId() == null
+                    || device.getBindTime() == null
+                    || device.getBindTime().isAfter(dayStart)) {
+                return SettlementResult.skipped();
+            }
+
+            if (earningsMapper.countByDeviceAndDate(deviceId, settlementDate) > 0) {
+                if (device.getLastPayTime() == null || device.getLastPayTime().isBefore(dayEnd)) {
+                    device.setLastPayTime(now);
+                    deviceService.updateById(device);
+                }
+                return SettlementResult.skipped();
+            }
+
+            if (appUserService.getById(device.getUserId()) == null) {
+                if (device.getLastPayTime() == null || device.getLastPayTime().isBefore(dayEnd)) {
+                    device.setLastPayTime(now);
+                    deviceService.updateById(device);
+                }
+                log.info("跳过无有效用户的设备收益结算: deviceId={}, userId={}",
+                        device.getId(), device.getUserId());
+                return SettlementResult.skipped();
+            }
+
+            if (exceedsDailyOfflineLimit(device, dayStart, dayEnd)) {
+                recordZeroEarnings(device, now, settlementDate);
+                return SettlementResult.denied();
+            }
+            return SettlementResult.credited(processDeviceEarnings(device, now, settlementDate));
+        });
+        if (result == null) {
+            throw new IllegalStateException("设备收益结算未返回结果");
+        }
+        return result;
+    }
+
     /**
-     * 处理单个设备的收益结算（独立事务）
+     * 处理单个设备的收益入账。
      */
-    @org.springframework.transaction.annotation.Transactional(rollbackFor = Exception.class)
-    public BigDecimal processDeviceEarnings(Device device, LocalDateTime now, LocalDate today) {
+    BigDecimal processDeviceEarnings(Device device, LocalDateTime now, LocalDate today) {
         // 用户进入回收站后，MyBatis-Plus 的逻辑删除会使 getById 返回 null。
         // 设备绑定会保留以便后续恢复，但删除期间不能继续产生收益或算力。
         com.juxin.orin.entity.AppUser user = appUserService.getById(device.getUserId());
@@ -310,7 +362,7 @@ public class DeviceEarningsServiceImpl extends ServiceImpl<DeviceEarningsMapper,
 
         Map<String, Object> result = new HashMap<>();
         LocalDateTime now = LocalDateTime.now();
-        LocalDate today = now.toLocalDate();
+        LocalDate latestSettlementDate = now.toLocalDate().minusDays(1);
 
         int successCount = 0;
         int failCount = 0;
@@ -319,34 +371,37 @@ public class DeviceEarningsServiceImpl extends ServiceImpl<DeviceEarningsMapper,
         BigDecimal totalAmount = BigDecimal.ZERO;
 
         try {
-            // 获取所有已绑定且在线的设备（真实设备 + 虚拟设备）
+            // 补偿同样按自然日离线规则处理，不能绕过离线处罚。
             List<Device> allDevices = deviceService.lambdaQuery()
-                    .eq(Device::getStatus, 1)
                     .isNotNull(Device::getUserId)
-                    .isNotNull(Device::getLastPayTime)
+                    .isNotNull(Device::getBindTime)
                     .list();
+            offlinePeriodService.ensureOfflinePeriods(allDevices, getOfflineThresholdSeconds(), now);
 
-            log.info("补偿收益: 查询到 {} 台已绑定且在线的设备", allDevices.size());
+            log.info("补偿收益: 查询到 {} 台已绑定设备", allDevices.size());
 
             for (Device device : allDevices) {
                 try {
-                    com.juxin.orin.entity.AppUser user = appUserService.getById(device.getUserId());
-                    if (user == null) {
-                        device.setLastPayTime(now);
-                        deviceService.updateById(device);
-                        skippedCount++;
-                        log.info("补偿收益跳过无有效用户的设备: deviceId={}, userId={}",
-                                device.getId(), device.getUserId());
-                        continue;
-                    }
-                    // 每天调用一次结算，补偿记录按对应日期入账。
+                    boolean settledAnyDate = false;
                     for (int day = days - 1; day >= 0; day--) {
-                        BigDecimal creditedAmount = processDeviceEarnings(device, now, today.minusDays(day));
+                        LocalDate settlementDate = latestSettlementDate.minusDays(day);
+                        LocalDateTime dayStart = settlementDate.atStartOfDay();
+                        LocalDateTime dayEnd = settlementDate.plusDays(1).atStartOfDay();
+                        SettlementResult settlement = settleDeviceForDate(
+                                device.getId(), now, settlementDate, dayStart, dayEnd);
+                        if (settlement.status() == SettlementStatus.SKIPPED) {
+                            continue;
+                        }
+                        settledAnyDate = true;
                         totalRecords++;
-                        totalAmount = totalAmount.add(creditedAmount);
+                        totalAmount = totalAmount.add(settlement.amount());
                     }
 
-                    successCount++;
+                    if (settledAnyDate) {
+                        successCount++;
+                    } else {
+                        skippedCount++;
+                    }
                 } catch (Exception e) {
                     failCount++;
                     log.error("补偿收益异常: deviceId={}, sn={}, error={}",
@@ -369,6 +424,56 @@ public class DeviceEarningsServiceImpl extends ServiceImpl<DeviceEarningsMapper,
                 successCount, failCount, totalRecords, totalAmount);
 
         return result;
+    }
+
+    boolean exceedsDailyOfflineLimit(
+            Device device,
+            LocalDateTime dayStart,
+            LocalDateTime dayEnd) {
+        if (device.getType() != null && device.getType() == 1) {
+            return false;
+        }
+        BigDecimal maxOfflineHours = getMaxDailyOfflineHours();
+        long offlineSeconds = device.getLastHeartbeatTime() == null
+                ? java.time.Duration.between(dayStart, dayEnd).getSeconds()
+                : offlinePeriodService.getOfflineSeconds(device.getId(), dayStart, dayEnd);
+        BigDecimal maxOfflineSeconds = maxOfflineHours.multiply(BigDecimal.valueOf(3600));
+        return BigDecimal.valueOf(offlineSeconds).compareTo(maxOfflineSeconds) > 0;
+    }
+
+    private void recordZeroEarnings(Device device, LocalDateTime now, LocalDate settlementDate) {
+        DeviceEarnings record = new DeviceEarnings();
+        record.setDeviceId(device.getId());
+        record.setUserId(device.getUserId());
+        record.setAmount(BigDecimal.ZERO.setScale(2));
+        record.setDate(settlementDate);
+        record.setCreateTime(now);
+        save(record);
+
+        device.setLastPayTime(now);
+        deviceService.updateById(device);
+        log.info("设备当日累计离线超限，收益记为0: deviceId={}, date={}", device.getId(), settlementDate);
+    }
+
+    private BigDecimal getMaxDailyOfflineHours() {
+        BigDecimal hours;
+        try {
+            hours = new BigDecimal(configService.getConfig("earnings.maxDailyOfflineHours", "24"));
+        } catch (NumberFormatException e) {
+            return BigDecimal.valueOf(24);
+        }
+        if (hours.compareTo(BigDecimal.ZERO) < 0 || hours.compareTo(BigDecimal.valueOf(24)) > 0) {
+            return BigDecimal.valueOf(24);
+        }
+        return hours;
+    }
+
+    private int getOfflineThresholdSeconds() {
+        try {
+            return Math.max(1, Integer.parseInt(configService.getConfig("device.offlineThreshold", "180")));
+        } catch (NumberFormatException ignored) {
+            return 180;
+        }
     }
 
     BigDecimal calculateDailyBaseEarnings(Long deviceId, LocalDate settlementDate) {

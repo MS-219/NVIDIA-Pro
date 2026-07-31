@@ -47,6 +47,7 @@ required = {
     "fullscreenStatusDisplay": True,
     "atomicTaskClaim": True,
     "persistentResultOutbox": True,
+    "authenticatedRemoteTerminal": True,
 }
 for key, expected in required.items():
     if data.get(key) != expected:

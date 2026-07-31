@@ -56,7 +56,7 @@ public interface DeviceEarningsMapper extends BaseMapper<DeviceEarnings> {
     BigDecimal sumByDeviceAndDate(@Param("deviceId") Long deviceId, @Param("date") LocalDate date);
 
     /**
-     * 统计某设备某天产生的收益记录数（即运行小时数）
+     * 统计某设备某天产生的收益记录数。
      */
     @Select("SELECT COUNT(*) FROM device_earnings WHERE device_id = #{deviceId} AND date = #{date}")
     Integer countByDeviceAndDate(@Param("deviceId") Long deviceId, @Param("date") LocalDate date);

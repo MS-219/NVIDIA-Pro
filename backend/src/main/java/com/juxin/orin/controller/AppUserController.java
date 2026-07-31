@@ -135,13 +135,15 @@ public class AppUserController {
             }
         }
 
+        int userLevel = user.getLevel() != null ? user.getLevel() : 0;
         return Result.success(Map.of(
                 "token", token,
                 "userId", user.getId(),
                 "isNewUser", isNewUser,
                 "nickname", user.getNickname() != null ? user.getNickname() : "",
                 "avatarUrl", user.getAvatarUrl() != null ? user.getAvatarUrl() : "",
-                "level", user.getLevel() != null ? user.getLevel() : 0));
+                "level", userLevel,
+                "levelName", inviteLevelConfigService.getLevelName(userLevel)));
     }
 
     /**
@@ -232,6 +234,8 @@ public class AppUserController {
                     user.setQuota(0);
             }
         }
+        int userLevel = user.getLevel() != null ? user.getLevel() : 0;
+        user.setLevelName(inviteLevelConfigService.getLevelName(userLevel));
         return Result.success(user);
     }
 

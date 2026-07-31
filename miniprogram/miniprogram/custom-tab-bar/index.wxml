@@ -13,8 +13,12 @@
         </view>
         <view class="scan-text">接入</view>
     </view>
-    <view class="tab-bar-item" data-path="/pages/my/my" data-index="2" bindtap="switchTab">
+    <view class="tab-bar-item" data-path="/pages/exchange/exchange" data-index="2" bindtap="switchTab">
         <image src="{{selected === 2 ? list[2].selectedIconPath : list[2].iconPath}}" class="cover-image {{selected === 2 ? 'is-active' : ''}}"></image>
         <view style="color: {{selected === 2 ? selectedColor : color}}">{{list[2].text}}</view>
+    </view>
+    <view class="tab-bar-item" data-path="/pages/my/my" data-index="3" bindtap="switchTab">
+        <image src="{{selected === 3 ? list[3].selectedIconPath : list[3].iconPath}}" class="cover-image {{selected === 3 ? 'is-active' : ''}}"></image>
+        <view style="color: {{selected === 3 ? selectedColor : color}}">{{list[3].text}}</view>
     </view>
 </view>

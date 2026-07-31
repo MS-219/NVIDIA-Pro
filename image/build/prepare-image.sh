@@ -8,6 +8,7 @@ SSH_PUBLIC_KEY_FILE=""
 API_URL="https://nvidia.juxinsuanli.cn"
 IMAGE_VERSION="orin-l4t-36.4.7-v1"
 AGENT_VERSION="0.5.0-orin"
+PROMPT_MAINTENANCE_PASSWORD=0
 QUIET_BOOT=0
 
 BSP_NAME="Jetson_Linux_R36.4.4_aarch64.tbz2"
@@ -38,6 +39,7 @@ while [[ $# -gt 0 ]]; do
     --api-url) API_URL="${2:-}"; shift 2 ;;
     --image-version) IMAGE_VERSION="${2:-}"; shift 2 ;;
     --agent-version) AGENT_VERSION="${2:-}"; shift 2 ;;
+    --prompt-maintenance-password) PROMPT_MAINTENANCE_PASSWORD=1; shift ;;
     --quiet-boot) QUIET_BOOT=1; shift ;;
     -h|--help) usage; exit 0 ;;
     *) die "unknown argument: $1" ;;
@@ -103,6 +105,7 @@ inject_args=( \
   --image-version "$IMAGE_VERSION" \
   --agent-version "$AGENT_VERSION" \
 )
+[[ "$PROMPT_MAINTENANCE_PASSWORD" == "1" ]] && inject_args+=(--prompt-maintenance-password)
 [[ "$QUIET_BOOT" == "1" ]] && inject_args+=(--quiet-boot)
 "$SCRIPT_DIR/inject-rootfs.sh" "${inject_args[@]}"
 

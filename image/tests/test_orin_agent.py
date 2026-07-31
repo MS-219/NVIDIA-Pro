@@ -47,6 +47,8 @@ class OrinAgentTest(unittest.TestCase):
                 "ORIN_REQUEST_RETRIES": "2",
                 "ORIN_RETRY_BASE_SECONDS": "0.001",
                 "ORIN_RECONNECT_INTERVAL": "5",
+                "ORIN_NVPMODEL_CONFIG": str(self.state_dir / "nvpmodel.conf"),
+                "ORIN_NVPMODEL_BIN": str(self.state_dir / "nvpmodel"),
             },
             clear=False,
         )
@@ -184,10 +186,12 @@ class OrinAgentTest(unittest.TestCase):
                 "heartbeatInterval": 90,
                 "taskPollInterval": 15,
                 "offlineThreshold": 240,
+                "powerMode": "25W",
             }
         }
 
-        intervals = self.agent.apply_runtime_config(response, 60, 60, 180)
+        with mock.patch.object(self.agent, "apply_power_mode") as apply_power_mode:
+            intervals = self.agent.apply_runtime_config(response, 60, 60, 180)
 
         self.assertEqual((90, 15, 240), intervals)
         self.assertEqual(
@@ -195,9 +199,145 @@ class OrinAgentTest(unittest.TestCase):
                 "heartbeatInterval": 90,
                 "taskPollInterval": 15,
                 "offlineThreshold": 240,
+                "powerMode": "25W",
             },
             self.agent.DISPLAY_STATE["runtimeConfig"],
         )
+        apply_power_mode.assert_called_once_with("25W")
+
+    def test_power_mode_names_are_parsed_from_device_config(self):
+        config = """
+< POWER_MODEL ID=0 NAME=15W >
+< POWER_MODEL ID=1 NAME=25W >
+< POWER_MODEL ID=2 NAME=MAXN_SUPER >
+"""
+
+        self.assertEqual(
+            {"15W": 0, "25W": 1, "MAXN_SUPER": 2},
+            self.agent.parse_power_modes(config),
+        )
+
+    def test_power_mode_uses_device_local_id_and_persists_status(self):
+        self.agent.NVPMODEL_CONFIG.write_text(
+            "< POWER_MODEL ID=0 NAME=15W >\n"
+            "< POWER_MODEL ID=1 NAME=25W >\n"
+            "< POWER_MODEL ID=2 NAME=MAXN_SUPER >\n"
+        )
+        query = mock.Mock(returncode=0, stdout="NV Power Mode: MAXN_SUPER\n2\n", stderr="")
+        applied = mock.Mock(returncode=0, stdout="", stderr="")
+
+        with mock.patch.object(self.agent.subprocess, "run", side_effect=[query, applied]) as run:
+            status = self.agent.apply_power_mode("25W")
+
+        self.assertEqual("25W", status["current"])
+        self.assertEqual("applied", status["applyStatus"])
+        self.assertEqual(
+            [str(self.agent.NVPMODEL_BIN), "-m", "1"],
+            run.call_args_list[1].args[0],
+        )
+        persisted = json.loads(self.agent.POWER_MODE_STATE_FILE.read_text())
+        self.assertEqual("25W", persisted["target"])
+
+    def test_power_mode_is_not_reapplied_when_already_active(self):
+        self.agent.NVPMODEL_CONFIG.write_text("< POWER_MODEL ID=1 NAME=25W >\n")
+        query = mock.Mock(returncode=0, stdout="NV Power Mode: 25W\n1\n", stderr="")
+
+        with mock.patch.object(self.agent.subprocess, "run", return_value=query) as run:
+            status = self.agent.apply_power_mode("25W")
+
+        self.assertEqual("unchanged", status["applyStatus"])
+        run.assert_called_once()
+
+    def test_unsupported_power_mode_preserves_current_mode(self):
+        self.agent.NVPMODEL_CONFIG.write_text("< POWER_MODEL ID=2 NAME=MAXN_SUPER >\n")
+        query = mock.Mock(returncode=0, stdout="NV Power Mode: MAXN_SUPER\n2\n", stderr="")
+
+        with mock.patch.object(self.agent.subprocess, "run", return_value=query) as run:
+            status = self.agent.apply_power_mode("25W")
+
+        self.assertEqual("MAXN_SUPER", status["current"])
+        self.assertEqual("error", status["applyStatus"])
+        self.assertIn("not supported", status["error"])
+        run.assert_called_once()
+
+    def test_power_mode_failure_is_reported_without_raising(self):
+        self.agent.NVPMODEL_CONFIG.write_text("< POWER_MODEL ID=1 NAME=25W >\n")
+        query = mock.Mock(returncode=0, stdout="NV Power Mode: MAXN_SUPER\n2\n", stderr="")
+        failed = mock.Mock(returncode=1, stdout="", stderr="mode rejected")
+
+        with mock.patch.object(self.agent.subprocess, "run", side_effect=[query, failed]):
+            status = self.agent.apply_power_mode("25W")
+
+        self.assertEqual("MAXN_SUPER", status["current"])
+        self.assertEqual("error", status["applyStatus"])
+        self.assertIn("mode rejected", status["error"])
+
+    def test_power_mode_runtime_failure_does_not_break_heartbeat_config(self):
+        response = {
+            "data": {
+                "heartbeatInterval": 90,
+                "taskPollInterval": 15,
+                "offlineThreshold": 240,
+                "powerMode": "25W",
+            }
+        }
+
+        with mock.patch.object(self.agent, "apply_power_mode", side_effect=OSError("read only")):
+            intervals = self.agent.apply_runtime_config(response, 60, 60, 180)
+
+        self.assertEqual((90, 15, 240), intervals)
+        self.assertEqual("error", self.agent.DISPLAY_STATE["telemetry"]["power_mode_apply_status"])
+        self.assertIn("read only", self.agent.DISPLAY_STATE["telemetry"]["power_mode_error"])
+
+    def test_terminal_websocket_url_uses_secure_backend_scheme(self):
+        self.agent.API_BASE = "https://nvidia.juxinsuanli.cn"
+
+        self.assertEqual(
+            f"wss://nvidia.juxinsuanli.cn/ws/device/{VALID_SN}",
+            self.agent.terminal_websocket_url(),
+        )
+
+    def test_terminal_protocol_controls_maintenance_shell(self):
+        shell = mock.Mock()
+
+        self.agent.handle_terminal_message(
+            json.dumps({"type": "open", "cols": 100, "rows": 30}), shell
+        )
+        self.agent.handle_terminal_message(
+            json.dumps({"type": "input", "data": "id\r"}), shell
+        )
+        self.agent.handle_terminal_message(
+            json.dumps({"type": "resize", "cols": 120, "rows": 40}), shell
+        )
+        self.agent.handle_terminal_message(json.dumps({"type": "close"}), shell)
+
+        shell.open.assert_called_once_with(100, 30)
+        shell.write.assert_called_once_with("id\r")
+        shell.resize.assert_called_once_with(120, 40)
+        shell.close.assert_called_once()
+
+    def test_terminal_connection_authenticates_with_device_token(self):
+        self.agent.atomic_write_secret(self.agent.TOKEN_FILE, "terminal-device-token")
+        connection = mock.Mock()
+        connection.recv.side_effect = [
+            json.dumps({"type": "open", "cols": 80, "rows": 24}),
+            json.dumps({"type": "close"}),
+            "",
+        ]
+        websocket_module = mock.Mock()
+        websocket_module.create_connection.return_value = connection
+        shell = mock.Mock()
+
+        with mock.patch.object(self.agent, "TerminalShell", return_value=shell):
+            self.agent.run_terminal_connection(websocket_module)
+
+        websocket_module.create_connection.assert_called_once()
+        _, kwargs = websocket_module.create_connection.call_args
+        self.assertEqual(["X-Orin-Device-Token: terminal-device-token"], kwargs["header"])
+        shell.open.assert_called_once_with(80, 24)
+        shell.close.assert_called()
+        sent = [json.loads(call.args[0]) for call in connection.send.call_args_list]
+        self.assertIn({"type": "status", "status": "ready"}, sent)
 
     def test_failed_backend_attempt_uses_short_reconnect_interval(self):
         self.assertEqual(5, self.agent.next_attempt_delay(False, 60))

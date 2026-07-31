@@ -46,7 +46,7 @@
       <el-radio-group v-model="statusFilter" @change="fetchDevices">
         <el-radio-button value="">全部节点</el-radio-button>
         <el-radio-button :value="1">在线</el-radio-button>
-        <el-radio-button :value="0">不在线</el-radio-button>
+        <el-radio-button :value="0">离线</el-radio-button>
       </el-radio-group>
       <el-button type="primary" @click="fetchDevices">刷新集群数据</el-button>
     </div>
@@ -57,16 +57,23 @@
         <el-table-column label="运行状态" width="120" align="center">
           <template #default="{ row }">
             <el-tag :type="row.status === 1 ? 'success' : 'danger'" effect="plain">
-              {{ row.status === 1 ? '在线' : '不在线' }}
+              {{ row.status === 1 ? '在线' : '离线' }}
             </el-tag>
           </template>
         </el-table-column>
 
-        <el-table-column label="绑定状态" width="130" align="center">
+        <el-table-column label="绑定用户" width="190" align="center">
           <template #default="{ row }">
-            <el-tag :type="row.userId != null ? 'success' : 'info'" effect="plain">
-              {{ row.userId != null ? '已绑定' : '未绑定' }}
-            </el-tag>
+            <div v-if="row.userId != null" class="bound-user">
+              <el-avatar :size="34" :src="row.avatarUrl || ''" class="bound-user-avatar">
+                {{ (row.nickname || '用户').charAt(0) }}
+              </el-avatar>
+              <div class="bound-user-meta">
+                <span class="bound-user-name">{{ row.nickname || '已绑定用户' }}</span>
+                <span class="bound-user-id">ID：{{ row.userId }}</span>
+              </div>
+            </div>
+            <el-tag v-else type="info" effect="plain">未绑定</el-tag>
           </template>
         </el-table-column>
         
@@ -191,14 +198,21 @@
         <div class="detail-item">
           <span class="detail-label">运行状态</span>
           <el-tag :type="detailData.status === 1 ? 'success' : 'danger'" effect="plain">
-            {{ detailData.status === 1 ? '在线' : '不在线' }}
+            {{ detailData.status === 1 ? '在线' : '离线' }}
           </el-tag>
         </div>
         <div class="detail-item">
-          <span class="detail-label">绑定状态</span>
-          <span class="detail-value">
-            {{ detailData.userId != null ? `已绑定（用户 ${detailData.userId}）` : '未绑定' }}
-          </span>
+          <span class="detail-label">绑定用户</span>
+          <div v-if="detailData.userId != null" class="bound-user bound-user-detail">
+            <el-avatar :size="34" :src="detailData.avatarUrl || ''" class="bound-user-avatar">
+              {{ (detailData.nickname || '用户').charAt(0) }}
+            </el-avatar>
+            <div class="bound-user-meta">
+              <span class="bound-user-name">{{ detailData.nickname || '已绑定用户' }}</span>
+              <span class="bound-user-id">ID：{{ detailData.userId }}</span>
+            </div>
+          </div>
+          <span v-else class="detail-value">未绑定</span>
         </div>
         <div class="detail-item">
           <span class="detail-label">设备名称</span>
@@ -379,6 +393,8 @@ const viewDetail = async (device) => {
       detailData.value = {
         ...device,
         ...res.data.data,
+        nickname: res.data.data.nickname || device.nickname,
+        avatarUrl: res.data.data.avatarUrl || device.avatarUrl,
       }
     }
   } catch (e) {
@@ -650,6 +666,50 @@ onMounted(() => {
 
 .env-detail {
   margin-left: 8px;
+}
+
+.bound-user {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.bound-user-detail {
+  justify-content: flex-start;
+}
+
+.bound-user-avatar {
+  flex: 0 0 auto;
+  color: var(--orin-green);
+  background: var(--orin-surface-soft);
+  border: 1px solid var(--orin-border);
+}
+
+.bound-user-meta {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  text-align: left;
+  line-height: 1.35;
+}
+
+.bound-user-name {
+  max-width: 128px;
+  overflow: hidden;
+  color: var(--orin-text-soft);
+  font-size: 12px;
+  font-weight: 650;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bound-user-id {
+  color: var(--orin-muted);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11px;
+  white-space: nowrap;
 }
 
 .pagination {

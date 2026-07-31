@@ -10,6 +10,9 @@ import com.juxin.orin.util.JwtUtil;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -112,6 +115,27 @@ class SettingsControllerInviteLevelsTest {
 
         assertEquals(500, result.getCode());
         assertEquals("每天收益最低金额不能大于最高金额", result.getMsg());
+        verify(configService, never()).setConfig(any(), any());
+    }
+
+    @ParameterizedTest
+    @CsvSource({ "0, 0", "3.5, 3.5", "24, 24" })
+    void savesMaximumDailyOfflineHoursWithinOneDay(double value, String storedValue) {
+        Result<Object> result = controller.saveEarningsSettings(
+                Map.of("maxDailyOfflineHours", value), adminToken());
+
+        assertEquals(200, result.getCode());
+        verify(configService).setConfig("earnings.maxDailyOfflineHours", storedValue);
+    }
+
+    @ParameterizedTest
+    @ValueSource(doubles = { -0.1, 24.1 })
+    void rejectsMaximumDailyOfflineHoursOutsideOneDay(double value) {
+        Result<Object> result = controller.saveEarningsSettings(
+                Map.of("maxDailyOfflineHours", value), adminToken());
+
+        assertEquals(500, result.getCode());
+        assertEquals("每日累计离线上限必须在 0 到 24 小时之间", result.getMsg());
         verify(configService, never()).setConfig(any(), any());
     }
 

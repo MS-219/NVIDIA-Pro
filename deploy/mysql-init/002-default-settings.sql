@@ -1,6 +1,7 @@
 INSERT INTO system_config (config_key, config_value, description) VALUES
-    ('earnings.dailyMinRate', '2.4', '每台在线设备每天收益最低金额'),
-    ('earnings.dailyMaxRate', '2.4', '每台在线设备每天收益最高金额'),
+    ('earnings.dailyMinRate', '2.4', '每台设备每天收益最低金额'),
+    ('earnings.dailyMaxRate', '2.4', '每台设备每天收益最高金额'),
+    ('earnings.maxDailyOfflineHours', '24', '每天累计离线超过该小时数时收益为零'),
     ('earnings.hashratePerYuan', '100', '每元对应的聚芯算力值'),
     ('earnings.minWithdraw', '10', '最低提现金额'),
     ('earnings.withdrawFee', '1', '提现手续费百分比'),
@@ -27,6 +28,7 @@ INSERT INTO system_config (config_key, config_value, description) VALUES
     ('device.offlineThreshold', '180', '设备离线判定时间，单位秒'),
     ('device.autoAssignBusiness', 'true', '绑定后自动分配业务号'),
     ('device.initialHashrate', '100', '新设备初始聚芯算力值'),
+    ('device.powerMode', 'MAXN_SUPER', '全局 Orin 功耗模式：15W、25W 或 MAXN_SUPER'),
     ('device.upgradeTimeoutMinutes', '30', '设备升级超时时间，单位分钟'),
     ('system.siteName', '聚芯 Orin', '系统名称'),
     ('system.contactEmail', '', '联系邮箱'),

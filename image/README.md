@@ -30,6 +30,9 @@ On first boot, the node enrolls directly with its generated SN and hardware
 fingerprint. The backend returns a database-unique short binding code and a
 device token, while storing only the token hash. All later edge requests use
 the full SN and token; the display and user binding flow use the short code.
+The remote terminal uses the same device token for its outbound WebSocket and a
+30-second, one-time admin ticket. Opening a session starts the `juxin`
+maintenance shell rather than a root shell.
 
 ## Image contract
 
@@ -43,8 +46,9 @@ the full SN and token; the display and user binding flow use the short code.
 - State directory: `/var/lib/juxin-orin`
 - Display status: `/var/lib/juxin-orin/display-status.json`
 - Result outbox: `/var/lib/juxin-orin/outbox`
+- Remote terminal: authenticated outbound WebSocket with an on-demand `juxin` PTY
 - Configuration: `/etc/juxin-orin`
-- Performance: MAXN_SUPER mode with the `cool` fan profile
+- Performance: backend-managed `15W`, `25W`, or `MAXN_SUPER` mode with the `cool` fan profile
 - Containers: Docker with NVIDIA Container Toolkit
 - Services: `juxin-orin-firstboot.service`, `juxin-orin-performance.service`, `juxin-orin-display.service`, `juxin-orin-agent.service`
 - Network for first enrollment: wired DHCP
@@ -94,8 +98,8 @@ but the product build intentionally generates NVIDIA's Basic rootfs instead.
 
 ## 2. Prepare maintenance SSH access
 
-The image creates a locked `juxin` account. Password and root login are disabled;
-an SSH public key is required:
+The image creates a `juxin` maintenance account. Root and SSH password login stay
+disabled; an SSH public key is required:
 
 ```bash
 ssh-keygen -t ed25519 -f ~/juxin-secrets/orin-maintenance -C juxin-orin-maintenance
@@ -112,8 +116,14 @@ sudo ./image/build/prepare-image.sh \
   --downloads /srv/nvidia/downloads \
   --work-dir /srv/nvidia/orin-l4t-36.4.7-v1 \
   --ssh-public-key /home/BUILD_USER/juxin-secrets/orin-maintenance.pub \
-  --image-version orin-l4t-36.4.7-v1
+  --image-version orin-l4t-36.4.7-v1 \
+  --prompt-maintenance-password
 ```
+
+The password prompt requires at least eight characters and stores only a
+SHA-512 hash in the rootfs. Every device flashed from that prepared rootfs uses
+the same password for local `sudo`; SSH continues to require the private key.
+Omit `--prompt-maintenance-password` to keep the maintenance password locked.
 
 The script performs these steps:
 
@@ -124,7 +134,7 @@ The script performs these steps:
 5. upgrades L4T packages to R36.4.7 and installs the JetPack 6.2.1 runtime;
 6. installs Docker and configures NVIDIA Container Toolkit;
 7. installs the CJK framebuffer renderer and its fonts;
-8. injects the agent, MAXN_SUPER/cooling policy, wired DHCP and maintenance SSH key;
+8. injects the agent, backend-managed power/cooling policy, wired DHCP and maintenance SSH key;
 9. clears machine-id, SSH host keys, device identity, display state and device token.
 
 The default variant shows the NVIDIA logo, normal Linux boot output and then the
@@ -161,10 +171,12 @@ sudo ./image/build/flash-nvme.sh \
   --nvme-size-gb 256
 ```
 
-The script requires the operator to type `FLASH-ORIN`, then flashes QSPI and the
-256 GB NVMe using NVIDIA `l4t_initrd_flash.sh` and the
-`jetson-orin-nano-devkit-super-maxn` board configuration. It refuses a desktop
-rootfs, a non-R36.4.7 rootfs or a missing first-boot configuration.
+The script detects the module EEPROM, selects the matching NVIDIA board config,
+requires the operator to type `FLASH-ORIN`, and then flashes QSPI and the 256 GB
+NVMe using NVIDIA `l4t_initrd_flash.sh`. It refuses a desktop rootfs, a
+non-R36.4.7 rootfs or a missing first-boot configuration. For a module whose
+config is already known, pass `--board-config CONFIG` to skip the extra EEPROM
+RCM transaction; this is useful when recovering a partially flashed device.
 
 ## 6. Verify the first boot
 

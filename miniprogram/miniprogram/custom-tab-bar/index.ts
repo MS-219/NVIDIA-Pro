@@ -17,6 +17,11 @@ Component({
             "iconPath": "/images/tabbar/device-line.png",
             "selectedIconPath": "/images/tabbar/device-line-active.png"
         }, {
+            "pagePath": "/pages/exchange/exchange",
+            "text": "商城",
+            "iconPath": "/images/tabbar/shop-line.png",
+            "selectedIconPath": "/images/tabbar/shop-line-active.png"
+        }, {
             "pagePath": "/pages/my/my",
             "text": "我的",
             "iconPath": "/images/tabbar/my-line.png",

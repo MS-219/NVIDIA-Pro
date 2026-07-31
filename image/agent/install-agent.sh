@@ -21,6 +21,11 @@ install -d -m 0755 \
 install -m 0755 "${SCRIPT_DIR}/orin_agent.py" /opt/juxin-orin/agent/orin_agent.py
 install -m 0644 "${SCRIPT_DIR}/juxin-orin-agent.service" /etc/systemd/system/juxin-orin-agent.service
 
+if ! python3 -c 'import websocket' >/dev/null 2>&1; then
+  apt-get update
+  DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends python3-websocket
+fi
+
 if [[ -f "${SCRIPT_DIR}/orin_display.py" && -f "${SCRIPT_DIR}/juxin-orin-display.service" ]]; then
   if ! python3 -c 'from PIL import Image, ImageDraw, ImageFont' >/dev/null 2>&1 \
       || [[ ! -f /usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc ]]; then

@@ -201,6 +201,18 @@ CREATE TABLE IF NOT EXISTS device_offline_log (
     KEY idx_device_offline_time (offline_time)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
+CREATE TABLE IF NOT EXISTS device_offline_period (
+    id BIGINT NOT NULL AUTO_INCREMENT,
+    device_id BIGINT NOT NULL,
+    offline_start DATETIME NOT NULL,
+    online_at DATETIME NULL,
+    create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    UNIQUE KEY uk_device_offline_start (device_id, offline_start),
+    KEY idx_device_offline_range (device_id, offline_start, online_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
 CREATE TABLE IF NOT EXISTS device_upgrade_package (
     id BIGINT NOT NULL AUTO_INCREMENT,
     package_no VARCHAR(64) NOT NULL,

@@ -4,9 +4,11 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.juxin.orin.common.Result;
+import com.juxin.orin.entity.AppUser;
 import com.juxin.orin.entity.ComputeJob;
 import com.juxin.orin.entity.Device;
 import com.juxin.orin.entity.DeviceCommand;
+import com.juxin.orin.service.IAppUserService;
 import com.juxin.orin.service.IComputeJobService;
 import com.juxin.orin.service.IDeviceCommandService;
 import com.juxin.orin.service.IDeviceService;
@@ -29,6 +31,9 @@ public class AdminOrinDeviceController {
 
     @Autowired
     private IDeviceService deviceService;
+
+    @Autowired
+    private IAppUserService appUserService;
 
     @Autowired
     private IComputeJobService computeJobService;
@@ -139,6 +144,7 @@ public class AdminOrinDeviceController {
         wrapper.orderByDesc(Device::getLastHeartbeatTime);
 
         IPage<Device> result = deviceService.page(pageObj, wrapper);
+        fillBoundUserInfo(result.getRecords());
         fillDeviceRuntimeStats(result.getRecords());
         fillDeviceEnvStats(result.getRecords());
         return Result.success(result);
@@ -250,6 +256,33 @@ public class AdminOrinDeviceController {
 
         for (Device device : devices) {
             device.setRuntimeModel(runtimeModelMap.getOrDefault(device.getSn(), "未执行任务"));
+        }
+    }
+
+    private void fillBoundUserInfo(List<Device> devices) {
+        if (devices == null || devices.isEmpty()) {
+            return;
+        }
+
+        Set<Long> userIds = devices.stream()
+                .map(Device::getUserId)
+                .filter(java.util.Objects::nonNull)
+                .collect(Collectors.toSet());
+        if (userIds.isEmpty()) {
+            return;
+        }
+
+        Map<Long, AppUser> userMap = appUserService.listByIds(userIds).stream()
+                .collect(Collectors.toMap(
+                        AppUser::getId,
+                        user -> user,
+                        (existing, ignored) -> existing));
+        for (Device device : devices) {
+            AppUser user = userMap.get(device.getUserId());
+            if (user != null) {
+                device.setNickname(user.getNickname());
+                device.setAvatarUrl(user.getAvatarUrl());
+            }
         }
     }
 

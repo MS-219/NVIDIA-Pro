@@ -118,6 +118,19 @@
         <div class="form-section">
           <div class="form-item">
             <div class="form-label">
+              <strong>全局功耗模式</strong>
+              <p>在线设备在下一次心跳时切换；设备不支持目标模式时保持当前状态。</p>
+            </div>
+            <div class="form-control power-mode-control">
+              <el-radio-group v-model="deviceConfig.powerMode" size="small">
+                <el-radio-button value="15W">15W</el-radio-button>
+                <el-radio-button value="25W">25W</el-radio-button>
+                <el-radio-button value="MAXN_SUPER">MAXN SUPER</el-radio-button>
+              </el-radio-group>
+            </div>
+          </div>
+          <div class="form-item">
+            <div class="form-label">
               <strong>自动分配业务</strong>
               <p>新设备绑定后自动分配到可用业务组。</p>
             </div>
@@ -176,7 +189,14 @@ const deviceConfig = reactive({
   heartbeatTimeout: 120,
   autoAssignBusiness: true,
   initialHashrate: 100,
+  powerMode: 'MAXN_SUPER',
 })
+
+const powerModeLabels = {
+  '15W': '节能 15W',
+  '25W': '均衡 25W',
+  MAXN_SUPER: '最大性能 MAXN SUPER',
+}
 
 // 带宽估算
 const calcBandwidth = (intervalSec) => {
@@ -201,6 +221,7 @@ const configSnapshot = computed(() => [
   { label: '轮询间隔', value: deviceConfig.taskPollInterval + ' 秒' },
   { label: '离线阈值', value: deviceConfig.offlineThreshold + ' 秒' },
   { label: '结算超时', value: deviceConfig.heartbeatTimeout + ' 秒' },
+  { label: '全局功耗', value: powerModeLabels[deviceConfig.powerMode] || deviceConfig.powerMode },
   { label: '自动分配', value: deviceConfig.autoAssignBusiness ? '开启' : '关闭' },
   { label: '初始算力', value: deviceConfig.initialHashrate },
 ])
@@ -216,6 +237,7 @@ const loadSettings = async () => {
       deviceConfig.heartbeatTimeout = d.heartbeatTimeout ?? 120
       deviceConfig.autoAssignBusiness = d.autoAssignBusiness ?? true
       deviceConfig.initialHashrate = d.initialHashrate ?? 100
+      deviceConfig.powerMode = d.powerMode ?? 'MAXN_SUPER'
     }
   } catch (e) {
     console.error('加载配置失败', e)
@@ -241,6 +263,7 @@ const saveDeviceConfig = async () => {
       heartbeatTimeout: deviceConfig.heartbeatTimeout,
       autoAssignBusiness: deviceConfig.autoAssignBusiness,
       initialHashrate: deviceConfig.initialHashrate,
+      powerMode: deviceConfig.powerMode,
     })
     if (res.data.code === 200) {
       ElMessage.success('设备配置保存成功，设备将在下次心跳时获取新配置')
@@ -370,6 +393,11 @@ onMounted(() => {
   flex-shrink: 0;
   align-items: center;
   gap: 8px;
+}
+
+.power-mode-control :deep(.el-radio-group) {
+  display: flex;
+  flex-wrap: nowrap;
 }
 
 .unit {
@@ -532,6 +560,18 @@ onMounted(() => {
   .form-control :deep(.el-input-number) {
     flex: 1;
     width: 100%;
+  }
+
+  .power-mode-control :deep(.el-radio-group) {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    width: 100%;
+  }
+
+  .power-mode-control :deep(.el-radio-button__inner) {
+    width: 100%;
+    padding-right: 6px;
+    padding-left: 6px;
   }
 
   .form-actions :deep(.el-button) {

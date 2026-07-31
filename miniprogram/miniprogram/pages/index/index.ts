@@ -5,7 +5,15 @@ Page({
   data: {
     navBarTop: 0,
     navBarHeight: 44,
-    bannerList: [] as any[],
+    bannerList: [
+      {
+        id: 1,
+        imageUrl: '',
+        title: 'Orin 边缘算力节点',
+        subtitle: '设备在线监控 · 算力任务管理 · 运行收益结算'
+      }
+    ] as any[],
+    bannerCurrent: 0,
     earnings: {
       yesterday: '0.00',
       total: '0.00',
@@ -190,10 +198,10 @@ Page({
           ...item
         }));
         if (banners.length > 0) {
-          this.setData({ bannerList: banners });
+          this.setData({ bannerList: banners, bannerCurrent: 0 });
           this.cacheHomeSnapshot({ bannerList: banners });
         } else {
-          this.setDefaultBanners();
+          this.setDefaultBanners(true);
         }
       } else {
         this.setDefaultBanners();
@@ -204,8 +212,8 @@ Page({
     });
   },
 
-  setDefaultBanners() {
-    if (this.data.bannerList.length > 0) return;
+  setDefaultBanners(force = false) {
+    if (!force && this.data.bannerList.length > 0) return;
 
     const fallbackBanners = [
       {
@@ -215,7 +223,10 @@ Page({
         subtitle: '设备在线监控 · 算力任务管理 · 运行收益结算'
       }
     ];
-    this.setData({ bannerList: fallbackBanners });
+    this.setData({ bannerList: fallbackBanners, bannerCurrent: 0 });
+    if (force) {
+      this.cacheHomeSnapshot({ bannerList: fallbackBanners });
+    }
   },
 
   // 获取公告列表
@@ -392,7 +403,9 @@ Page({
       return;
     }
 
-    const target = banner.pagePath || banner.path || banner.linkUrl || banner.targetUrl || banner.url;
+    const rawTarget = banner.pagePath || banner.path || banner.linkUrl || banner.targetUrl || banner.url;
+    if (typeof rawTarget !== 'string') return;
+    const target = rawTarget.trim();
     if (!target) return;
 
     if (/^https?:\/\//.test(target)) {
@@ -401,12 +414,25 @@ Page({
     }
 
     const normalizedTarget = target.startsWith('/') ? target : `/${target}`;
-    const tabPages = ['/pages/index/index', '/pages/device/device', '/pages/my/my'];
+    const tabPages = ['/pages/index/index', '/pages/device/device', '/pages/exchange/exchange', '/pages/my/my'];
     if (tabPages.includes(normalizedTarget.split('?')[0])) {
       wx.switchTab({ url: normalizedTarget });
     } else if (normalizedTarget.startsWith('/pages/')) {
       wx.navigateTo({ url: normalizedTarget });
     }
+  },
+
+  onHeroSwiperChange(e: any) {
+    const current = Number(e.detail && e.detail.current) || 0;
+    if (current !== this.data.bannerCurrent) {
+      this.setData({ bannerCurrent: current });
+    }
+  },
+
+  onBannerImageError(e: any) {
+    const index = Number(e.currentTarget.dataset.index);
+    if (!Number.isInteger(index) || index < 0 || index >= this.data.bannerList.length) return;
+    this.setData({ [`bannerList[${index}].imageUrl`]: '' });
   },
 
   // 跳转到伙伴设备页面

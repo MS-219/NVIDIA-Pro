@@ -67,6 +67,7 @@ class EdgeDeviceControllerAuthorizationTest {
         assertEquals(true, capabilities.get("fullscreenStatusDisplay"));
         assertEquals(true, capabilities.get("atomicTaskClaim"));
         assertEquals(true, capabilities.get("persistentResultOutbox"));
+        assertEquals(true, capabilities.get("authenticatedRemoteTerminal"));
     }
 
     @Test
@@ -96,6 +97,7 @@ class EdgeDeviceControllerAuthorizationTest {
         when(configService.getConfig("device.heartbeatInterval", "60")).thenReturn("90");
         when(configService.getConfig("device.taskPollInterval", "60")).thenReturn("15");
         when(configService.getConfig("device.offlineThreshold", "180")).thenReturn("240");
+        when(configService.getConfig("device.powerMode", "MAXN_SUPER")).thenReturn("25W");
 
         Map<String, Object> response = controller.reportStatus(
                 Map.of("sn", "ORIN-001"),
@@ -105,6 +107,7 @@ class EdgeDeviceControllerAuthorizationTest {
         assertEquals(90, response.get("heartbeatInterval"));
         assertEquals(15, response.get("taskPollInterval"));
         assertEquals(240, response.get("offlineThreshold"));
+        assertEquals("25W", response.get("powerMode"));
     }
 
     @Test
@@ -117,6 +120,7 @@ class EdgeDeviceControllerAuthorizationTest {
         when(configService.getConfig("device.heartbeatInterval", "60")).thenReturn("invalid");
         when(configService.getConfig("device.taskPollInterval", "60")).thenReturn("9999");
         when(configService.getConfig("device.offlineThreshold", "180")).thenReturn("1");
+        when(configService.getConfig("device.powerMode", "MAXN_SUPER")).thenReturn("invalid");
 
         Map<String, Object> response = controller.reportStatus(
                 Map.of("sn", "ORIN-001"),
@@ -126,6 +130,7 @@ class EdgeDeviceControllerAuthorizationTest {
         assertEquals(60, response.get("heartbeatInterval"));
         assertEquals(300, response.get("taskPollInterval"));
         assertEquals(30, response.get("offlineThreshold"));
+        assertEquals("MAXN_SUPER", response.get("powerMode"));
     }
 
     @Test

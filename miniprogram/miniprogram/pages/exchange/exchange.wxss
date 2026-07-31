@@ -1,12 +1,13 @@
 @import "../../styles/orin-polish.wxss";
 
 page { min-height: 100vh; background: #eef1ed; color: #1c211b; }
-.container { min-height: 100vh; padding: 0 12px 40px; box-sizing: border-box; }
-.custom-nav { margin: 0 -12px; padding: 0 98px 0 12px; box-sizing: content-box; display: grid; grid-template-columns: 52px 1fr 52px; align-items: center; background: rgba(255,255,255,.88); border-bottom: 1px solid rgba(28,33,27,.08); }
-.nav-back,.nav-right { min-height: 44px; display: flex; align-items: center; }
-.nav-back { justify-content: center; font-size: 28px; }
-.nav-title { color: #1c211b; font-size: 18px; font-weight: 700; text-align: center; }
-.nav-right { justify-content: flex-end; color: #548600; font-size: 13px; font-weight: 700; }
+.container { min-height: 100vh; padding: 0 12px; box-sizing: border-box; }
+.custom-nav { margin: 0 -12px; padding: 0 98px 0 18px; box-sizing: content-box; display: flex; align-items: center; justify-content: space-between; background: rgba(255,255,255,.88); border-bottom: 1px solid rgba(28,33,27,.08); backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px); }
+.nav-copy { min-width: 0; }
+.nav-title,.nav-subtitle { display: block; }
+.nav-title { color: #1c211b; font-size: 18px; font-weight: 700; }
+.nav-subtitle { margin-top: 2px; color: #7d8579; font-size: 11px; }
+.nav-right { flex: 0 0 auto; min-width: 44px; min-height: 44px; display: flex; align-items: center; justify-content: flex-end; color: #548600; font-size: 13px; font-weight: 700; }
 
 .hashrate-info { position: relative; min-height: 132px; margin: 12px 0 0; padding: 19px; box-sizing: border-box; display: flex; align-items: flex-start; justify-content: space-between; overflow: hidden; background: #121611 !important; border: 1px solid rgba(118,185,0,.25) !important; border-left: 4px solid #76b900 !important; border-radius: 8px !important; }
 .hashrate-info::after { content: ''; position: absolute; right: -18px; bottom: -45px; width: 112px; height: 112px; box-sizing: border-box; border: 1px solid rgba(118,185,0,.12); transform: rotate(45deg); }
@@ -64,5 +65,6 @@ page { min-height: 100vh; background: #eef1ed; color: #1c211b; }
 .state-title { color: #1c211b; font-size: 16px; font-weight: 700; }
 .state-desc { width: 250px; margin-top: 8px; color: #737b70; font-size: 12px; line-height: 19px; }
 .error-state button { min-width: 128px; min-height: 44px; margin-top: 18px; background: #121611; color: #f7f9f5; font-size: 13px; font-weight: 700; border-radius: 7px; }
+.tab-safe-space { height: calc(82px + env(safe-area-inset-bottom)); }
 
 @keyframes pulse { 0%,100% { opacity: .4; } 50% { opacity: 1; } }

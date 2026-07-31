@@ -14,6 +14,7 @@ import com.juxin.orin.service.IDeviceCommandService;
 import com.juxin.orin.service.IEdgeDeviceAccessService;
 import com.juxin.orin.service.IDeviceService;
 import com.juxin.orin.service.IDeviceUpgradeService;
+import com.juxin.orin.util.OrinPowerMode;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -37,6 +38,7 @@ public class EdgeDeviceController {
     private static final String HEARTBEAT_INTERVAL_KEY = "device.heartbeatInterval";
     private static final String TASK_POLL_INTERVAL_KEY = "device.taskPollInterval";
     private static final String OFFLINE_THRESHOLD_KEY = "device.offlineThreshold";
+    private static final String POWER_MODE_KEY = "device.powerMode";
 
     @Autowired
     private IDeviceService deviceService;
@@ -70,6 +72,7 @@ public class EdgeDeviceController {
         response.put("fullscreenStatusDisplay", true);
         response.put("atomicTaskClaim", true);
         response.put("persistentResultOutbox", true);
+        response.put("authenticatedRemoteTerminal", true);
         response.put("taskHandlers", List.of("ollama", "external-runner"));
         return Result.success(response);
     }
@@ -171,6 +174,9 @@ public class EdgeDeviceController {
         // 屏幕与后台使用同一离线判定阈值，避免设备在正常心跳间隔内误显示重连。
         int offlineThreshold = boundedConfig(OFFLINE_THRESHOLD_KEY, 180, 30, 600);
         response.put("offlineThreshold", offlineThreshold);
+
+        String powerMode = OrinPowerMode.normalize(configService.getConfig(POWER_MODE_KEY, OrinPowerMode.DEFAULT));
+        response.put("powerMode", powerMode != null ? powerMode : OrinPowerMode.DEFAULT);
 
         if (device != null) {
             DeviceCommand command = deviceCommandService.takePendingCommand(device.getSn());

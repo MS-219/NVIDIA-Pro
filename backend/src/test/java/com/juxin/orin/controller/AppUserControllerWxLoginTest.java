@@ -4,7 +4,9 @@ import com.juxin.orin.common.Result;
 import com.juxin.orin.entity.AppUser;
 import com.juxin.orin.service.IAppUserService;
 import com.juxin.orin.service.IInviteService;
+import com.juxin.orin.service.ISystemConfigService;
 import com.juxin.orin.service.IWechatService;
+import com.juxin.orin.service.InviteLevelConfigService;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.util.ReflectionTestUtils;
 
@@ -25,10 +27,12 @@ class AppUserControllerWxLoginTest {
         IAppUserService appUserService = mock(IAppUserService.class);
         IWechatService wechatService = mock(IWechatService.class);
         IInviteService inviteService = mock(IInviteService.class);
+        InviteLevelConfigService inviteLevelConfigService = new InviteLevelConfigService(mock(ISystemConfigService.class));
         AppUserController controller = new AppUserController();
         ReflectionTestUtils.setField(controller, "appUserService", appUserService);
         ReflectionTestUtils.setField(controller, "wechatService", wechatService);
         ReflectionTestUtils.setField(controller, "inviteService", inviteService);
+        ReflectionTestUtils.setField(controller, "inviteLevelConfigService", inviteLevelConfigService);
 
         AppUser user = new AppUser();
         user.setId(123456L);
@@ -38,7 +42,6 @@ class AppUserControllerWxLoginTest {
         when(wechatService.code2Session("wx-code")).thenReturn("openid-new");
         when(appUserService.wxLoginWithUser("openid-new"))
                 .thenReturn(new IAppUserService.WxLoginResult("jwt-token", user, true));
-
         Result<Object> result = controller.wxLogin(Map.of(
                 "code", "wx-code",
                 "nickname", "新昵称",
@@ -53,9 +56,32 @@ class AppUserControllerWxLoginTest {
         assertEquals("新昵称", data.get("nickname"));
         assertEquals("https://example.test/avatar.png", data.get("avatarUrl"));
         assertEquals(0, data.get("level"));
+        assertEquals("普通", data.get("levelName"));
         verify(appUserService).wxLoginWithUser("openid-new");
         verify(appUserService, never()).getByOpenid(anyString());
         verify(inviteService).handleNewUserInvite(123456L, "INVITE-1");
         verify(appUserService).updateById(user);
+    }
+
+    @Test
+    void getInfoIncludesConfiguredLevelName() {
+        IAppUserService appUserService = mock(IAppUserService.class);
+        ISystemConfigService configService = mock(ISystemConfigService.class);
+        InviteLevelConfigService inviteLevelConfigService = new InviteLevelConfigService(configService);
+        AppUserController controller = new AppUserController();
+        ReflectionTestUtils.setField(controller, "appUserService", appUserService);
+        ReflectionTestUtils.setField(controller, "inviteLevelConfigService", inviteLevelConfigService);
+
+        AppUser user = new AppUser();
+        user.setId(123456L);
+        user.setLevel(2);
+        when(appUserService.getById(123456L)).thenReturn(user);
+        when(configService.getConfig("invite.level2.name", "B")).thenReturn("中级合伙人");
+
+        Result<AppUser> result = controller.getInfo(123456L);
+
+        assertEquals(200, result.getCode());
+        assertEquals(2, result.getData().getLevel());
+        assertEquals("中级合伙人", result.getData().getLevelName());
     }
 }

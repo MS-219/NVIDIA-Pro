@@ -9,6 +9,8 @@ API_URL="https://nvidia.juxinsuanli.cn"
 IMAGE_VERSION="orin-l4t-36.4.7-v1"
 AGENT_VERSION="0.5.0-orin"
 MAINTENANCE_USER="juxin"
+PROMPT_MAINTENANCE_PASSWORD=0
+MAINTENANCE_PASSWORD_HASH="!"
 QUIET_BOOT=0
 
 usage() {
@@ -19,7 +21,9 @@ Options:
   --api-url URL             Orin platform URL (default: https://nvidia.juxinsuanli.cn)
   --image-version VERSION   Image version stored in every heartbeat
   --agent-version VERSION   Agent version stored in every heartbeat
-  --maintenance-user USER   Locked SSH maintenance account (default: juxin)
+  --maintenance-user USER   SSH maintenance account (default: juxin)
+  --prompt-maintenance-password
+                              Prompt for a shared sudo password (minimum 8 characters)
   --quiet-boot              Hide Linux boot output before the status display
 EOF
 }
@@ -37,6 +41,7 @@ while [[ $# -gt 0 ]]; do
     --image-version) IMAGE_VERSION="${2:-}"; shift 2 ;;
     --agent-version) AGENT_VERSION="${2:-}"; shift 2 ;;
     --maintenance-user) MAINTENANCE_USER="${2:-}"; shift 2 ;;
+    --prompt-maintenance-password) PROMPT_MAINTENANCE_PASSWORD=1; shift ;;
     --quiet-boot) QUIET_BOOT=1; shift ;;
     -h|--help) usage; exit 0 ;;
     *) die "unknown argument: $1" ;;
@@ -57,6 +62,22 @@ ROOTFS="$(realpath "$ROOTFS")"
 SSH_PUBLIC_KEY="$(head -n 1 "$SSH_PUBLIC_KEY_FILE" | tr -d '\r\n')"
 [[ "$SSH_PUBLIC_KEY" =~ ^ssh-(ed25519|rsa)[[:space:]]+[A-Za-z0-9+/=]+([[:space:]].*)?$ ]] \
   || die "SSH public key must be an OpenSSH ed25519 or RSA key"
+
+if [[ "$PROMPT_MAINTENANCE_PASSWORD" == "1" ]]; then
+  command -v openssl >/dev/null 2>&1 || die "openssl is required to set the maintenance password"
+  [[ -t 0 ]] || die "--prompt-maintenance-password requires an interactive terminal"
+  read -r -s -p "Maintenance sudo password (minimum 8 characters): " maintenance_password
+  printf '\n' >&2
+  read -r -s -p "Confirm maintenance sudo password: " maintenance_password_confirmation
+  printf '\n' >&2
+  [[ ${#maintenance_password} -ge 8 ]] || die "maintenance password must contain at least 8 characters"
+  [[ "$maintenance_password" == "$maintenance_password_confirmation" ]] \
+    || die "maintenance password confirmation does not match"
+  MAINTENANCE_PASSWORD_HASH="$(printf '%s\n' "$maintenance_password" | openssl passwd -6 -stdin)"
+  unset maintenance_password maintenance_password_confirmation
+  [[ "$MAINTENANCE_PASSWORD_HASH" == \$6\$* ]] \
+    || die "failed to generate a SHA-512 maintenance password hash"
+fi
 
 install -d -m 0755 \
   "$ROOTFS/opt/juxin-orin/agent" \
@@ -99,7 +120,7 @@ L4T_BASE=36.4.7
 ROOTFS_FLAVOR=basic
 NVIDIA_BSP=36.4.4
 L4T_PACKAGE_VERSION=36.4.7-20250918154033
-POWER_MODE=MAXN_SUPER
+POWER_MODE=backend-managed
 FAN_PROFILE=cool
 CONTAINER_RUNTIME=nvidia-container-toolkit
 EOF
@@ -131,6 +152,9 @@ if ! grep -qE "^${MAINTENANCE_USER}:" "$ROOTFS/etc/passwd"; then
   [[ -n "$group_list" ]] && useradd_args+=(--groups "$group_list")
   useradd_args+=("$MAINTENANCE_USER")
   useradd "${useradd_args[@]}"
+fi
+if [[ "$PROMPT_MAINTENANCE_PASSWORD" == "1" ]]; then
+  usermod --root "$ROOTFS" --password "$MAINTENANCE_PASSWORD_HASH" "$MAINTENANCE_USER"
 fi
 
 user_home="$ROOTFS/home/$MAINTENANCE_USER"
@@ -189,4 +213,7 @@ ln -s /etc/machine-id "$ROOTFS/var/lib/dbus/machine-id"
 touch "$ROOTFS/etc/nv/nvautoconfig"
 
 echo "Injected Juxin Orin ${IMAGE_VERSION} into $ROOTFS"
+if [[ "$PROMPT_MAINTENANCE_PASSWORD" == "1" ]]; then
+  echo "Configured a shared sudo password for maintenance user ${MAINTENANCE_USER}."
+fi
 echo "The image contains no device SN, device token, machine-id, or SSH host key."

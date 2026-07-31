@@ -29,6 +29,9 @@ grep -q 'read_info_status="${PIPESTATUS\[0\]}"' \
   "$IMAGE_DIR/build/flash-nvme.sh"
 grep -q 'initial_recovery_device=' "$IMAGE_DIR/build/flash-nvme.sh"
 grep -q 'reenumerated_recovery_device=' "$IMAGE_DIR/build/flash-nvme.sh"
+grep -q 'EEPROM probe skipped' "$IMAGE_DIR/build/flash-nvme.sh"
+grep -q 'rm -f "$L4T_DIR/bootloader/cvm.bin"' "$IMAGE_DIR/build/flash-nvme.sh"
+grep -q 'USB write failed while reading EEPROM' "$IMAGE_DIR/build/flash-nvme.sh"
 grep -qF 'num_sectors=\"[^\"]+\"' "$IMAGE_DIR/build/flash-nvme.sh"
 grep -q 'nvidia-ctk runtime configure --runtime=docker' \
   "$IMAGE_DIR/build/install-jetpack-runtime.sh"
@@ -40,8 +43,15 @@ grep -q 'apt-get --fix-broken install -y' \
   "$IMAGE_DIR/build/install-jetpack-runtime.sh")" == "2" ]]
 grep -q 'fonts-noto-cjk' "$IMAGE_DIR/build/install-jetpack-runtime.sh"
 grep -q 'python3-pil' "$IMAGE_DIR/build/install-jetpack-runtime.sh"
+grep -q 'python3-websocket' "$IMAGE_DIR/build/install-jetpack-runtime.sh"
 grep -q 'juxin-orin-display.service' "$IMAGE_DIR/build/inject-rootfs.sh"
 grep -q 'getty@tty1.service' "$IMAGE_DIR/build/inject-rootfs.sh"
+grep -q -- '--prompt-maintenance-password' "$IMAGE_DIR/build/inject-rootfs.sh"
+grep -q 'maintenance password must contain at least 8 characters' \
+  "$IMAGE_DIR/build/inject-rootfs.sh"
+grep -q 'openssl passwd -6 -stdin' "$IMAGE_DIR/build/inject-rootfs.sh"
+grep -q 'usermod --root' "$IMAGE_DIR/build/inject-rootfs.sh"
+grep -q 'inject_args+=(--prompt-maintenance-password)' "$IMAGE_DIR/build/prepare-image.sh"
 
 python3 -m py_compile \
   "$IMAGE_DIR/agent/orin_agent.py" \

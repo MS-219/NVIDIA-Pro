@@ -24,6 +24,9 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device> impleme
     private com.juxin.orin.service.ISystemConfigService configService;
 
     @Autowired
+    private com.juxin.orin.service.IDeviceOfflinePeriodService offlinePeriodService;
+
+    @Autowired
     @org.springframework.context.annotation.Lazy
     private com.juxin.orin.service.IAppUserService appUserService;
 
@@ -77,14 +80,8 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device> impleme
             this.save(device);
         } else {
             // 4. 更新心跳时间和状态
-            if (device.getStatus() == 0 || device.getLastPayTime() == null) {
-                if (device.getLastPayTime() == null) {
-                    device.setLastPayTime(LocalDateTime.now());
-                }
-                if (device.getStatus() != null && device.getStatus() == 0) {
-                    device.setLastPayTime(LocalDateTime.now());
-                }
-            }
+            LocalDateTime heartbeatAt = LocalDateTime.now();
+            offlinePeriodService.recordHeartbeat(device, getOfflineThresholdSeconds(), heartbeatAt);
 
             if (device.getUserId() == null || device.getBindCode() == null || device.getBindCode().isEmpty()) {
                 device.setBindCode(generateBindCodeFromSn(device.getSn()));
@@ -98,7 +95,7 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device> impleme
             }
 
             device.setStatus(1);
-            device.setLastHeartbeatTime(LocalDateTime.now());
+            device.setLastHeartbeatTime(heartbeatAt);
             device.setIp(ip);
             device.setCpuUsage(cpuUsage);
             device.setMemoryUsage(memoryUsage);
@@ -219,7 +216,9 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device> impleme
         if (device.getMerchantId() == null) {
             device.setMerchantId(merchantId); // 首次绑定时设置归属代理商
         }
-        device.setBindTime(LocalDateTime.now());
+        LocalDateTime bindTime = LocalDateTime.now();
+        device.setBindTime(bindTime);
+        device.setLastPayTime(bindTime);
 
         String autoAssign = configService.getConfig("device.autoAssignBusiness", "true");
         if (Boolean.parseBoolean(autoAssign)) {
@@ -237,6 +236,14 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device> impleme
             }
         }
         return success;
+    }
+
+    private int getOfflineThresholdSeconds() {
+        try {
+            return Math.max(1, Integer.parseInt(configService.getConfig("device.offlineThreshold", "180")));
+        } catch (NumberFormatException ignored) {
+            return 180;
+        }
     }
 
     private String generateBindCodeFromSn(String sn) {
