@@ -55,7 +55,8 @@ probe_board_config="jetson-orin-nano-devkit-super-maxn"
 [[ -e "$L4T_DIR/${probe_board_config}.conf" ]] \
   || die "EEPROM probe board config not found: $probe_board_config"
 set +e
-"$L4T_DIR/flash.sh" --read-info "$probe_board_config" internal 2>&1 \
+cd "$L4T_DIR"
+./flash.sh --read-info "$probe_board_config" internal 2>&1 \
   | tee "$READ_INFO_LOG"
 read_info_status="${PIPESTATUS[0]}"
 set -e
