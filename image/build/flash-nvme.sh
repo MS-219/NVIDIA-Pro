@@ -51,8 +51,14 @@ recovery_count="$(lsusb -d 0955: 2>/dev/null | wc -l | tr -d ' ')"
 
 READ_INFO_LOG="$(mktemp)"
 echo "Detecting the connected Jetson module..."
-"$L4T_DIR/flash.sh" --read-info autodetect internal \
+probe_board_config="jetson-orin-nano-devkit-super"
+[[ -f "$L4T_DIR/${probe_board_config}.conf" || -L "$L4T_DIR/${probe_board_config}.conf" ]] \
+  || die "EEPROM probe board config not found: $probe_board_config"
+set +e
+"$L4T_DIR/flash.sh" --read-info "$probe_board_config" internal 2>&1 \
   | tee "$READ_INFO_LOG"
+read_info_status="${PIPESTATUS[0]}"
+set -e
 
 board_line="$(grep 'Board ID(' "$READ_INFO_LOG" | tail -n 1)"
 board_id="$(sed -nE 's/.*Board ID\(([0-9]+)\).*/\1/p' <<<"$board_line")"
@@ -60,6 +66,9 @@ board_sku="$(sed -nE 's/.*sku\(([0-9]+)\).*/\1/p' <<<"$board_line")"
 board_fab="$(sed -nE 's/.*version\(([0-9]+)\).*/\1/p' <<<"$board_line")"
 [[ -n "$board_id" && -n "$board_sku" && -n "$board_fab" ]] \
   || die "failed to parse the Jetson module EEPROM"
+if [[ "$read_info_status" != "0" ]]; then
+  echo "EEPROM probe returned status ${read_info_status} after reading board identity; selecting the matching config."
+fi
 
 detected_board_config="$("$SCRIPT_DIR/select-jetson-board-config.sh" \
   --board-id "$board_id" \

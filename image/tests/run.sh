@@ -22,7 +22,9 @@ grep -q 'L4T_VERSION="36.4.7-20250918154033"' \
   "$IMAGE_DIR/build/install-jetpack-runtime.sh"
 grep -q '"$board_config" external' \
   "$IMAGE_DIR/build/flash-nvme.sh"
-grep -q -- '--read-info autodetect internal' \
+grep -q -- '--read-info "$probe_board_config" internal' \
+  "$IMAGE_DIR/build/flash-nvme.sh"
+grep -q 'read_info_status="${PIPESTATUS\[0\]}"' \
   "$IMAGE_DIR/build/flash-nvme.sh"
 grep -qF 'num_sectors=\"[^\"]+\"' "$IMAGE_DIR/build/flash-nvme.sh"
 grep -q 'nvidia-ctk runtime configure --runtime=docker' \
