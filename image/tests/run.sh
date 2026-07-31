@@ -27,6 +27,8 @@ grep -q -- '--read-info "$probe_board_config" internal' \
 grep -q 'cd "$L4T_DIR"' "$IMAGE_DIR/build/flash-nvme.sh"
 grep -q 'read_info_status="${PIPESTATUS\[0\]}"' \
   "$IMAGE_DIR/build/flash-nvme.sh"
+grep -q 'initial_recovery_device=' "$IMAGE_DIR/build/flash-nvme.sh"
+grep -q 'reenumerated_recovery_device=' "$IMAGE_DIR/build/flash-nvme.sh"
 grep -qF 'num_sectors=\"[^\"]+\"' "$IMAGE_DIR/build/flash-nvme.sh"
 grep -q 'nvidia-ctk runtime configure --runtime=docker' \
   "$IMAGE_DIR/build/install-jetpack-runtime.sh"

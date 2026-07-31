@@ -46,8 +46,9 @@ grep -qx 'L4T_BASE=36.4.7' "$L4T_DIR/rootfs/etc/juxin-orin/image-release" \
   || die "rootfs is not the required L4T 36.4.7 image"
 [[ ! -e "$L4T_DIR/rootfs/usr/bin/gnome-shell" ]] || die "refusing to flash a desktop rootfs"
 
-recovery_count="$(lsusb -d 0955: 2>/dev/null | wc -l | tr -d ' ')"
+recovery_count="$(lsusb -d 0955:7523 2>/dev/null | wc -l | tr -d ' ')"
 [[ "$recovery_count" == "1" ]] || die "expected exactly one NVIDIA Recovery device (0955), found $recovery_count"
+initial_recovery_device="$(lsusb -d 0955:7523 2>/dev/null)"
 
 READ_INFO_LOG="$(mktemp)"
 echo "Detecting the connected Jetson module..."
@@ -85,12 +86,21 @@ if [[ -n "$BOARD_CONFIG_OVERRIDE" && "$BOARD_CONFIG_OVERRIDE" != "$detected_boar
   echo "Using explicit board config override; detected default was ${detected_board_config}."
 fi
 
-for _ in {1..15}; do
-  [[ "$(lsusb -d 0955: 2>/dev/null | wc -l | tr -d ' ')" == "1" ]] && break
-  sleep 1
+echo "Waiting for the Jetson to re-enumerate in Recovery mode..."
+reenumerated_recovery_device=""
+for _ in {1..100}; do
+  current_recovery_device="$(lsusb -d 0955:7523 2>/dev/null || true)"
+  if [[ -n "$current_recovery_device" && "$current_recovery_device" != "$initial_recovery_device" ]]; then
+    reenumerated_recovery_device="$current_recovery_device"
+    break
+  fi
+  sleep 0.1
 done
-[[ "$(lsusb -d 0955: 2>/dev/null | wc -l | tr -d ' ')" == "1" ]] \
-  || die "Jetson did not return to Recovery mode; reconnect NVIDIA APX to this host"
+[[ -n "$reenumerated_recovery_device" ]] \
+  || die "Jetson did not re-enumerate in Recovery mode; reconnect NVIDIA APX to this host"
+sleep 2
+[[ "$(lsusb -d 0955:7523 2>/dev/null || true)" == "$reenumerated_recovery_device" ]] \
+  || die "Jetson Recovery USB connection is not stable"
 
 if [[ "$ASSUME_YES" != "1" ]]; then
   echo "This will erase the connected Orin Nano NVMe and update its QSPI firmware."
