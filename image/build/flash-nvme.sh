@@ -51,7 +51,7 @@ recovery_count="$(lsusb -d 0955: 2>/dev/null | wc -l | tr -d ' ')"
 
 READ_INFO_LOG="$(mktemp)"
 echo "Detecting the connected Jetson module..."
-"$L4T_DIR/flash.sh" --read-info jetson-orin-nano-devkit internal \
+"$L4T_DIR/flash.sh" --read-info autodetect internal \
   | tee "$READ_INFO_LOG"
 
 board_line="$(grep 'Board ID(' "$READ_INFO_LOG" | tail -n 1)"
