@@ -1,14 +1,18 @@
 package com.juxin.orin.config;
 
 import com.juxin.orin.websocket.RemoteTerminalHandler;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.socket.config.annotation.EnableWebSocket;
 import org.springframework.web.socket.config.annotation.WebSocketConfigurer;
 import org.springframework.web.socket.config.annotation.WebSocketHandlerRegistry;
+import org.springframework.web.socket.server.standard.ServletServerContainerFactoryBean;
 
 @Configuration
 @EnableWebSocket
 public class WebSocketConfig implements WebSocketConfigurer {
+
+    static final long WEBSOCKET_IDLE_TIMEOUT_MILLIS = 3_600_000L;
 
     private final RemoteTerminalHandler remoteTerminalHandler;
     private final com.juxin.orin.websocket.TerminalHandshakeInterceptor terminalHandshakeInterceptor;
@@ -18,6 +22,14 @@ public class WebSocketConfig implements WebSocketConfigurer {
             com.juxin.orin.websocket.TerminalHandshakeInterceptor terminalHandshakeInterceptor) {
         this.remoteTerminalHandler = remoteTerminalHandler;
         this.terminalHandshakeInterceptor = terminalHandshakeInterceptor;
+    }
+
+    @Bean
+    public ServletServerContainerFactoryBean webSocketContainer() {
+        ServletServerContainerFactoryBean container = new ServletServerContainerFactoryBean();
+        container.setMaxSessionIdleTimeout(WEBSOCKET_IDLE_TIMEOUT_MILLIS);
+        container.setMaxTextMessageBufferSize(65 * 1024);
+        return container;
     }
 
     @Override

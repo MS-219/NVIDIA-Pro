@@ -29,7 +29,7 @@ const routes = [
                 path: 'monitor',
                 name: 'DeviceMonitor',
                 component: DeviceMonitor,
-                meta: { title: '集群节点监控' }
+                meta: { title: '设备管理' }
             },
             {
                 path: 'device-tasks',
@@ -114,6 +114,12 @@ const routes = [
                 name: 'RewardList',
                 component: () => import('../views/RewardList.vue'),
                 meta: { title: '分润流水' }
+            },
+            {
+                path: 'exchange',
+                name: 'ExchangeManagement',
+                component: () => import('../views/ExchangeManagement.vue'),
+                meta: { title: '设备兑换' }
             },
             {
                 path: 'device-settings',

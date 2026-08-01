@@ -217,6 +217,56 @@ class OrinAgentTest(unittest.TestCase):
             self.agent.parse_power_modes(config),
         )
 
+    def test_tegrastats_timeout_output_is_parsed(self):
+        completed = mock.Mock(
+            returncode=124,
+            stdout=(
+                "RAM 620/7619MB (lfb 1100x4MB) GR3D_FREQ 37% "
+                "CPU@39.5C gpu@42.25C tj@43.0C VDD_IN 5520mW/5400mW\n"
+            ),
+            stderr="",
+        )
+
+        with mock.patch.object(self.agent.subprocess, "run", return_value=completed):
+            metrics = self.agent.tegra_metrics()
+
+        self.assertEqual(37.0, metrics["gpu_usage"])
+        self.assertEqual(42.25, metrics["gpu_temperature"])
+        self.assertEqual(5.52, metrics["power_watts"])
+
+    def test_network_throughput_uses_real_interface_byte_counters(self):
+        self.agent.NETWORK_SAMPLE = {}
+        with mock.patch.object(self.agent, "default_network_interface", return_value="eth0"), \
+             mock.patch.object(
+                 self.agent,
+                 "interface_counters",
+                 side_effect=[(1_000_000, 2_000_000), (1_250_000, 2_500_000)],
+             ), \
+             mock.patch.object(self.agent.time, "monotonic", side_effect=[10.0, 12.0]), \
+             mock.patch.object(self.agent.time, "sleep"):
+            metrics = self.agent.network_throughput()
+
+        self.assertEqual("eth0", metrics["network_interface"])
+        self.assertEqual(1.0, metrics["network_download_mbps"])
+        self.assertEqual(2.0, metrics["network_upload_mbps"])
+
+    def test_network_quality_parses_real_ping_latency_and_packet_loss(self):
+        ping = mock.Mock(
+            returncode=0,
+            stdout=(
+                "3 packets transmitted, 3 received, 0% packet loss, time 2002ms\n"
+                "rtt min/avg/max/mdev = 7.200/8.450/9.700/0.800 ms\n"
+            ),
+            stderr="",
+        )
+        with mock.patch.object(self.agent.subprocess, "run", return_value=ping) as run:
+            metrics = self.agent.network_quality()
+
+        self.assertEqual(8.45, metrics["network_latency_ms"])
+        self.assertEqual(0.0, metrics["network_packet_loss_percent"])
+        ping_args = run.call_args.args[0]
+        self.assertEqual("nvidia.juxinsuanli.cn", ping_args[-1])
+
     def test_power_mode_uses_device_local_id_and_persists_status(self):
         self.agent.NVPMODEL_CONFIG.write_text(
             "< POWER_MODEL ID=0 NAME=15W >\n"
@@ -338,6 +388,16 @@ class OrinAgentTest(unittest.TestCase):
         shell.close.assert_called()
         sent = [json.loads(call.args[0]) for call in connection.send.call_args_list]
         self.assertIn({"type": "status", "status": "ready"}, sent)
+
+    def test_terminal_keepalive_sends_websocket_ping(self):
+        connection = mock.Mock()
+        stop = mock.Mock()
+        stop.wait.side_effect = [False, True]
+
+        self.agent.terminal_keepalive(connection, mock.MagicMock(), stop)
+
+        connection.ping.assert_called_once_with("juxin-orin")
+        stop.wait.assert_called_with(self.agent.TERMINAL_KEEPALIVE_INTERVAL)
 
     def test_failed_backend_attempt_uses_short_reconnect_interval(self):
         self.assertEqual(5, self.agent.next_attempt_delay(False, 60))

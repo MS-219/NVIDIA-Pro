@@ -12,6 +12,7 @@ from unittest import mock
 
 
 DISPLAY_PATH = Path(__file__).resolve().parents[1] / "agent" / "orin_display.py"
+CORE_ASSET_PATH = DISPLAY_PATH.with_name("orin-core.png")
 VALID_SN = "ORIN-A1B2C3D4E5F67890"
 
 
@@ -180,6 +181,49 @@ class OrinDisplayTest(unittest.TestCase):
         self.assertIn("GPU READY  |  25W  |  NODE ATTACHED", frame)
         self.assertNotIn("MAXN_SUPER", frame)
 
+    def test_screen_metrics_float_between_sixty_and_eighty_five(self):
+        first = self.display.display_demo_metrics(0)
+        second = self.display.display_demo_metrics(20)
+
+        for value in (*first.values(), *second.values()):
+            self.assertGreaterEqual(value, 60)
+            self.assertLessEqual(value, 85)
+        self.assertNotEqual(first, second)
+
+    def test_core_visual_asset_is_packaged_with_the_display(self):
+        self.assertTrue(CORE_ASSET_PATH.is_file())
+        self.assertGreater(CORE_ASSET_PATH.stat().st_size, 100_000)
+
+    def test_compute_panel_omits_ai_compute_and_network_has_no_demo_values(self):
+        source = DISPLAY_PATH.read_text(encoding="utf-8")
+        self.assertNotIn('"AI 算力"', source)
+        self.assertNotIn('"丢包率"', source)
+        self.assertNotIn("display_network_metrics", source)
+
+    def test_screen_hides_temperature_and_power(self):
+        state = self.display.default_state()
+        state.update(
+            {
+                "connected": True,
+                "telemetry": {
+                    "gpu_temperature": 51,
+                    "power_watts": 12.4,
+                    "gpu_usage": 37,
+                    "mem_load": 28,
+                },
+            }
+        )
+
+        frame = self.display.terminal_frame(state, 3)
+
+        self.assertIn("CPU", frame)
+        self.assertIn("RAM", frame)
+        self.assertIn("GPU", frame)
+        self.assertNotIn("TEMP", frame)
+        self.assertNotIn("POWER", frame)
+        self.assertNotIn("温度", frame)
+        self.assertNotIn("功耗", frame)
+
     def test_display_prefers_short_code_and_falls_back_to_machine_sn(self):
         self.write_state(bindCode="Orin-A1B2C3")
         state = self.display.load_state(now=1001)
@@ -199,13 +243,20 @@ class OrinDisplayTest(unittest.TestCase):
                 "mem_load": 28,
                 "memory_total_mb": 8192,
                 "ip": "192.0.2.10",
+                "network_upload_mbps": 1.25,
+                "network_download_mbps": 8.75,
+                "network_latency_ms": 12.4,
+                "network_packet_loss_percent": 0.0,
             }
         )
         state = self.display.load_state(now=1001)
 
-        image = self.display.render_frame(state, 1280, 720, 5, [2, 8, 17, 37])
+        network_history = {"upload": [0.5, 1.0, 1.25], "download": [4.0, 6.5, 8.75]}
+        image = self.display.render_frame(state, 1280, 720, 5, [2, 8, 17, 37], network_history)
+        portrait = self.display.render_frame(state, 1452, 1088, 5, [2, 8, 17, 37])
 
         self.assertEqual((1280, 720), image.size)
+        self.assertEqual((1452, 1088), portrait.size)
         self.assertGreater(len(image.getcolors(maxcolors=1_000_000) or []), 4)
 
 

@@ -57,7 +57,7 @@ class AdminOrinDeviceControllerTest {
         when(deviceService.page(any(Page.class), any(LambdaQueryWrapper.class))).thenReturn(devicePage);
         when(appUserService.listByIds(any(Collection.class))).thenReturn(List.of(firstUser, secondUser));
 
-        var response = controller.list(1, 10, null, null, null, null);
+        var response = controller.list(1, 10, null, null, null, null, 2);
 
         assertEquals(200, response.getCode());
         IPage<Device> result = response.getData();

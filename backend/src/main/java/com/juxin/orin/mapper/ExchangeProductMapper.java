@@ -11,4 +11,8 @@ public interface ExchangeProductMapper extends BaseMapper<ExchangeProduct> {
 
     @Update("UPDATE exchange_product SET stock = stock + #{quantity}, update_time = NOW() WHERE id = #{productId} AND stock IS NOT NULL")
     int addStock(@Param("productId") Long productId, @Param("quantity") Integer quantity);
+
+    @Update("UPDATE exchange_product SET stock = stock - #{quantity}, update_time = NOW() "
+            + "WHERE id = #{productId} AND status = 1 AND stock >= #{quantity}")
+    int deductStockIfEnough(@Param("productId") Long productId, @Param("quantity") Integer quantity);
 }

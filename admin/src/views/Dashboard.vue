@@ -6,7 +6,7 @@
       <div class="brand">
         <div class="brand-mark"><img src="/favicon.svg" alt="" /></div>
         <div class="brand-copy">
-          <strong>ORIN GRID</strong>
+          <strong>聚芯Orin</strong>
           <span>聚芯边缘算力平台</span>
         </div>
       </div>
@@ -25,10 +25,10 @@
           <span>运行总览</span>
         </el-menu-item>
 
-        <div class="nav-label">节点与任务</div>
+        <div class="nav-label">设备与任务</div>
         <el-menu-item index="/monitor">
           <el-icon><Monitor /></el-icon>
-          <span>Orin 节点</span>
+          <span>设备管理</span>
         </el-menu-item>
         <el-menu-item index="/device-tasks">
           <el-icon><List /></el-icon>
@@ -73,6 +73,10 @@
         <el-menu-item index="/rewards">
           <el-icon><Tickets /></el-icon>
           <span>分润流水</span>
+        </el-menu-item>
+        <el-menu-item index="/exchange">
+          <el-icon><Goods /></el-icon>
+          <span>设备兑换</span>
         </el-menu-item>
 
         <div class="nav-label">调度控制</div>
@@ -167,6 +171,7 @@ import {
   Connection,
   DataAnalysis,
   DocumentChecked,
+  Goods,
   List,
   Menu,
   Money,

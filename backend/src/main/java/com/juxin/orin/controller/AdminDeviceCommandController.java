@@ -309,7 +309,7 @@ public class AdminDeviceCommandController {
                     "https://nvidia.juxinsuanli.cn");
             return "set -e; BASE=" + publicBase + "/api/agent; WORK=/tmp/juxin-orin-agent-upgrade; mkdir -p $WORK /opt/juxin-orin/runtime; cd $WORK; "
                     + "if command -v curl >/dev/null 2>&1; then DL='curl -fsSLO'; elif command -v wget >/dev/null 2>&1; then DL='wget -q'; else echo MISSING:curl_or_wget; exit 127; fi; "
-                    + "for f in orin_agent.py orin_display.py install-agent.sh juxin-orin-agent.service juxin-orin-display.service; do $DL $BASE/$f; done; "
+                    + "for f in orin_agent.py orin_display.py orin-core.png install-agent.sh juxin-orin-agent.service juxin-orin-display.service; do $DL $BASE/$f; done; "
                     + "chmod +x install-agent.sh orin_agent.py orin_display.py; "
                     + "nohup env ORIN_REMOTE_UPGRADE=1 bash ./install-agent.sh >/opt/juxin-orin/runtime/upgrade.log 2>&1 & "
                     + "echo ORIN_AGENT_UPGRADE_STARTED; echo LOG:/opt/juxin-orin/runtime/upgrade.log";

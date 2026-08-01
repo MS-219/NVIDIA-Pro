@@ -60,6 +60,9 @@ RUNTIME_DIR = Path(os.getenv("ORIN_RUNTIME_DIR", "/opt/juxin-orin/runtime"))
 TASK_RUNNER = Path(os.getenv("ORIN_TASK_RUNNER", str(RUNTIME_DIR / "task-runner")))
 OLLAMA_API_BASE = os.getenv("ORIN_OLLAMA_API_BASE_URL", "http://127.0.0.1:11434").rstrip("/")
 TERMINAL_USER = os.getenv("ORIN_TERMINAL_USER", "juxin").strip() or "juxin"
+TERMINAL_KEEPALIVE_INTERVAL = min(
+    300, max(10, int(os.getenv("ORIN_TERMINAL_KEEPALIVE_INTERVAL", "25")))
+)
 MAX_RESULT_TEXT = 1_000_000
 MAX_ERROR_TEXT = 4000
 DISPLAY_TELEMETRY_KEYS = {
@@ -76,6 +79,11 @@ DISPLAY_TELEMETRY_KEYS = {
     "power_mode_target",
     "power_mode_apply_status",
     "power_mode_error",
+    "network_upload_mbps",
+    "network_download_mbps",
+    "network_latency_ms",
+    "network_packet_loss_percent",
+    "network_interface",
 }
 DISPLAY_UNSET = object()
 DISPLAY_STATE: dict[str, Any] = {
@@ -95,6 +103,7 @@ DISPLAY_STATE: dict[str, Any] = {
     "task": None,
     "error": "",
 }
+NETWORK_SAMPLE: dict[str, float] = {}
 
 
 class ApiError(RuntimeError):
@@ -457,6 +466,19 @@ def handle_terminal_message(raw_message: str, shell: TerminalShell) -> None:
         raise ValueError("unsupported terminal message type")
 
 
+def terminal_keepalive(connection, send_lock: threading.Lock, stop: threading.Event) -> None:
+    while not stop.wait(TERMINAL_KEEPALIVE_INTERVAL):
+        try:
+            with send_lock:
+                connection.ping("juxin-orin")
+        except Exception:
+            try:
+                connection.close()
+            except Exception:
+                pass
+            return
+
+
 def run_terminal_connection(websocket_module) -> None:
     token = device_token()
     if not token:
@@ -469,6 +491,14 @@ def run_terminal_connection(websocket_module) -> None:
     )
     connection.settimeout(None)
     send_lock = threading.Lock()
+    keepalive_stop = threading.Event()
+    keepalive = threading.Thread(
+        target=terminal_keepalive,
+        args=(connection, send_lock, keepalive_stop),
+        name="juxin-orin-terminal-keepalive",
+        daemon=True,
+    )
+    keepalive.start()
 
     def send_message(payload: dict[str, Any]) -> None:
         with send_lock:
@@ -489,8 +519,10 @@ def run_terminal_connection(websocket_module) -> None:
             except (OSError, RuntimeError, TypeError, ValueError, json.JSONDecodeError) as error:
                 send_message({"type": "status", "status": "error", "message": str(error)[:300]})
     finally:
+        keepalive_stop.set()
         shell.close()
         connection.close()
+        keepalive.join(timeout=1)
 
 
 def remote_terminal_loop() -> None:
@@ -637,6 +669,86 @@ def local_ip() -> str:
         connection.close()
 
 
+def default_network_interface() -> str:
+    for line in read_text("/proc/net/route").splitlines()[1:]:
+        fields = line.split()
+        if len(fields) >= 4 and fields[1] == "00000000":
+            try:
+                if int(fields[3], 16) & 2:
+                    return fields[0]
+            except ValueError:
+                continue
+    return ""
+
+
+def interface_counters(interface: str) -> tuple[int, int]:
+    values: list[tuple[int, int]] = []
+    for line in read_text("/proc/net/dev").splitlines():
+        if ":" not in line:
+            continue
+        name, payload = (part.strip() for part in line.split(":", 1))
+        if interface and name != interface:
+            continue
+        if not interface and (name == "lo" or name.startswith(("docker", "veth", "br-", "usb"))):
+            continue
+        fields = payload.split()
+        if len(fields) >= 9:
+            try:
+                values.append((int(fields[0]), int(fields[8])))
+            except ValueError:
+                pass
+    rx = sum(item[0] for item in values)
+    tx = sum(item[1] for item in values)
+    return rx, tx
+
+
+def network_throughput() -> dict[str, Any]:
+    global NETWORK_SAMPLE
+    interface = default_network_interface()
+    received, transmitted = interface_counters(interface)
+    now = time.monotonic()
+    result: dict[str, Any] = {"network_interface": interface}
+    if not NETWORK_SAMPLE:
+        NETWORK_SAMPLE = {"at": now, "rx": received, "tx": transmitted}
+        time.sleep(0.5)
+        received, transmitted = interface_counters(interface)
+        now = time.monotonic()
+    elapsed = max(0.1, now - NETWORK_SAMPLE["at"])
+    result["network_download_mbps"] = round(max(0, received - NETWORK_SAMPLE["rx"]) * 8 / elapsed / 1_000_000, 2)
+    result["network_upload_mbps"] = round(max(0, transmitted - NETWORK_SAMPLE["tx"]) * 8 / elapsed / 1_000_000, 2)
+    NETWORK_SAMPLE = {"at": now, "rx": received, "tx": transmitted}
+    return result
+
+
+def network_quality() -> dict[str, float]:
+    target = urllib.parse.urlparse(API_BASE).hostname or "1.1.1.1"
+    try:
+        result = subprocess.run(
+            ["ping", "-n", "-c", "3", "-W", "1", target],
+            text=True,
+            capture_output=True,
+            timeout=6,
+            check=False,
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        return {}
+    output = "\n".join((result.stdout or "", result.stderr or ""))
+    metrics: dict[str, float] = {}
+    loss = re.search(r"([0-9.]+)%\s*packet loss", output, flags=re.IGNORECASE)
+    latency = re.search(r"=\s*[0-9.]+/([0-9.]+)/", output)
+    if loss:
+        metrics["network_packet_loss_percent"] = float(loss.group(1))
+    if latency:
+        metrics["network_latency_ms"] = float(latency.group(1))
+    return metrics
+
+
+def network_metrics() -> dict[str, Any]:
+    metrics = network_throughput()
+    metrics.update(network_quality())
+    return metrics
+
+
 def cpu_model() -> str:
     model = platform.processor().strip()
     if model:
@@ -658,12 +770,20 @@ def cuda_version() -> str:
 
 def tegra_metrics() -> dict[str, float]:
     try:
-        output = subprocess.check_output(
+        # tegrastats is intentionally long-running; timeout(1) returns 124
+        # after collecting samples, so keep stdout instead of treating that
+        # expected exit code as a failed metric read.
+        completed = subprocess.run(
             ["timeout", "3", "tegrastats", "--interval", "1000"],
             text=True,
-            stderr=subprocess.DEVNULL,
+            capture_output=True,
+            timeout=5,
+            check=False,
         )
-    except (OSError, subprocess.CalledProcessError):
+        output = completed.stdout or ""
+    except (OSError, subprocess.TimeoutExpired):
+        return {}
+    if not output.strip():
         return {}
     temp = re.search(r"(?:tj|gpu)@([0-9.]+)C", output)
     power = re.search(r"VDD_IN\s+([0-9]+)mW", output)
@@ -698,6 +818,7 @@ def report_payload() -> dict[str, Any]:
     if total_memory_mb:
         payload["memory_total_mb"] = total_memory_mb
     payload.update(tegra_metrics())
+    payload.update(network_metrics())
     payload.update(power_mode_telemetry())
     return payload
 

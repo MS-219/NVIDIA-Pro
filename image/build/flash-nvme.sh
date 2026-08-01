@@ -40,11 +40,17 @@ done
 [[ "$NVME_SIZE_GB" =~ ^[0-9]+$ ]] || die "NVMe size must be an integer number of GB"
 (( NVME_SIZE_GB >= 64 && NVME_SIZE_GB <= 2048 )) || die "NVMe size must be 64..2048 GB"
 [[ -x "$L4T_DIR/tools/kernel_flash/l4t_initrd_flash.sh" ]] || die "invalid --l4t-dir"
+L4T_DIR="$(realpath "$L4T_DIR")"
 [[ -s "$L4T_DIR/rootfs/etc/juxin-orin/image.env" ]] || die "Juxin image configuration is missing"
 [[ -s "$L4T_DIR/rootfs/usr/lib/juxin-orin/orin-firstboot.sh" ]] || die "first-boot provisioner is missing"
 grep -qx 'L4T_BASE=36.4.7' "$L4T_DIR/rootfs/etc/juxin-orin/image-release" \
   || die "rootfs is not the required L4T 36.4.7 image"
 [[ ! -e "$L4T_DIR/rootfs/usr/bin/gnome-shell" ]] || die "refusing to flash a desktop rootfs"
+for state_file in \
+  device-sn hardware-fingerprint bind-code device-token display-status.json device-seed provisioned; do
+  [[ ! -e "$L4T_DIR/rootfs/var/lib/juxin-orin/$state_file" ]] \
+    || die "rootfs contains device-specific state ($state_file); rerun inject-rootfs.sh"
+done
 
 recovery_count="$(lsusb -d 0955:7523 2>/dev/null | wc -l | tr -d ' ')"
 [[ "$recovery_count" == "1" ]] || die "expected exactly one NVIDIA Recovery device (0955), found $recovery_count"
@@ -121,6 +127,12 @@ if [[ "$ASSUME_YES" != "1" ]]; then
 fi
 
 cd "$L4T_DIR"
+# L4T reuses an existing sparse image even after rootfs files change. Remove
+# only generated system images so every flash contains the current clean rootfs.
+rm -f ./bootloader/system.img ./bootloader/system.img.raw
+if [[ -d ./tools/kernel_flash/images ]]; then
+  find ./tools/kernel_flash/images -type f -name 'system.img*' -delete
+fi
 partition_template="./tools/kernel_flash/flash_l4t_t234_nvme.xml"
 PARTITION_CONFIG="$(mktemp ./tools/kernel_flash/juxin-orin-nvme.XXXXXX.xml)"
 cp "$partition_template" "$PARTITION_CONFIG"

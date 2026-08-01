@@ -23,6 +23,10 @@ public interface AppUserMapper extends BaseMapper<AppUser> {
             + "WHERE id = #{userId} AND deleted = 0")
     int addBalance(@Param("userId") Long userId, @Param("amount") BigDecimal amount);
 
+    @Update("UPDATE app_user SET balance = balance - #{amount} "
+            + "WHERE id = #{userId} AND deleted = 0 AND balance >= #{amount}")
+    int deductBalanceIfEnough(@Param("userId") Long userId, @Param("amount") BigDecimal amount);
+
     @Select({
             "<script>",
             "SELECT * FROM app_user",

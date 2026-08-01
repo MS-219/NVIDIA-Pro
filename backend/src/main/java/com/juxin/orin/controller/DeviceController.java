@@ -844,7 +844,7 @@ public class DeviceController {
     /**
      * 导出所有设备 SN 列表（给厂家打印贴纸）（管理员专用）
      * 安全修复：需要管理员权限
-     * 返回 CSV 格式：序号,SN码,状态,创建时间
+     * 返回设备清单，由管理端生成带品牌信息的二维码标签。
      */
     @GetMapping("/export-sn")
     public Result<Object> exportSn(
@@ -862,11 +862,6 @@ public class DeviceController {
         String role = com.juxin.orin.util.JwtUtil.getRole(rawToken);
         if (Boolean.TRUE.equals(unboundOnly) || "factory".equals(role)) {
             query.isNull(Device::getUserId);
-        }
-        if ("factory".equals(role)) {
-            return Result.success(Map.of(
-                    "total", 0,
-                    "list", java.util.List.of()));
         }
 
         query.orderByDesc(Device::getCreateTime);
@@ -1079,17 +1074,45 @@ public class DeviceController {
             return Result.error(error);
         }
 
-        String name = (String) params.get("name");
-        Integer hashrate = params.get("hashrate") != null ? Integer.valueOf(params.get("hashrate").toString()) : 100;
-        String carrier = (String) params.get("carrier");
-        String location = (String) params.get("location");
+        if (params == null) {
+            return Result.error("设备参数不能为空");
+        }
+
+        String name = trimToNull(params.get("name"));
+        String carrier = trimToNull(params.get("carrier"));
+        String location = trimToNull(params.get("location"));
+        Integer hashrate;
+        Long userId = null;
+        try {
+            hashrate = params.get("hashrate") != null
+                    ? Integer.valueOf(params.get("hashrate").toString())
+                    : 100;
+            String userIdValue = trimToNull(params.get("userId"));
+            if (userIdValue != null) {
+                userId = Long.valueOf(userIdValue);
+            }
+        } catch (NumberFormatException e) {
+            return Result.error("算力值或用户 ID 格式不正确");
+        }
+        if (hashrate <= 0 || hashrate > 999999999) {
+            return Result.error("算力值必须在 1-999999999 之间");
+        }
+        if (userId != null && userId <= 0) {
+            return Result.error("用户 ID 格式不正确");
+        }
+        if (name != null && name.length() > 100) {
+            return Result.error("设备名称不能超过100个字符");
+        }
+        if (userId != null && appUserService.getById(userId) == null) {
+            return Result.error("指定的用户不存在");
+        }
 
         Device device = new Device();
         // 生成挂靠设备 SN (VD + 时间戳 + 随机数)
         device.setSn("VD" + System.currentTimeMillis() + (int) (Math.random() * 1000));
         // 生成绑定码
         device.setBindCode(generateBindCode());
-        device.setName(name);
+        device.setName(name != null ? name : "挂靠设备");
         device.setHashrate(hashrate);
         device.setCarrier(carrier); // 设置运营商
         device.setLocation(location); // 设置位置
@@ -1097,6 +1120,12 @@ public class DeviceController {
         device.setStatus(1); // 始终在线
         device.setCreateTime(java.time.LocalDateTime.now());
         device.setLastHeartbeatTime(java.time.LocalDateTime.now());
+
+        if (userId != null) {
+            device.setUserId(userId);
+            device.setBindTime(java.time.LocalDateTime.now());
+            device.setLastPayTime(java.time.LocalDateTime.now());
+        }
 
         // 自动分配业务号（如果配置开启）
         String autoAssign = configService.getConfig("device.autoAssignBusiness", "true");
@@ -1126,14 +1155,38 @@ public class DeviceController {
             return Result.error(error);
         }
 
-        Integer count = params.get("count") != null ? Integer.valueOf(params.get("count").toString()) : 1;
-        Integer hashrate = params.get("hashrate") != null ? Integer.valueOf(params.get("hashrate").toString()) : 100;
-        Long userId = params.get("userId") != null ? Long.valueOf(params.get("userId").toString()) : null;
-        String carrier = (String) params.get("carrier"); // 获取批量设置的运营商
-        String location = (String) params.get("location"); // 获取批量设置的位置
+        if (params == null) {
+            return Result.error("设备参数不能为空");
+        }
+
+        Integer count;
+        Integer hashrate;
+        Long userId = null;
+        try {
+            count = params.get("count") != null ? Integer.valueOf(params.get("count").toString()) : 1;
+            hashrate = params.get("hashrate") != null ? Integer.valueOf(params.get("hashrate").toString()) : 100;
+            String userIdValue = trimToNull(params.get("userId"));
+            if (userIdValue != null) {
+                userId = Long.valueOf(userIdValue);
+            }
+        } catch (NumberFormatException e) {
+            return Result.error("创建数量、算力值或用户 ID 格式不正确");
+        }
+        String name = trimToNull(params.get("name"));
+        String carrier = trimToNull(params.get("carrier"));
+        String location = trimToNull(params.get("location"));
 
         if (count <= 0 || count > 100) {
             return Result.error("数量必须在 1-100 之间");
+        }
+        if (hashrate <= 0 || hashrate > 999999999) {
+            return Result.error("算力值必须在 1-999999999 之间");
+        }
+        if (name != null && name.length() > 100) {
+            return Result.error("设备名称不能超过100个字符");
+        }
+        if (userId != null && userId <= 0) {
+            return Result.error("用户 ID 格式不正确");
         }
 
         // 如果指定了用户ID，验证用户存在
@@ -1151,6 +1204,7 @@ public class DeviceController {
             Device device = new Device();
             device.setSn("VD" + System.currentTimeMillis() + (int) (Math.random() * 1000));
             device.setBindCode(generateBindCode());
+            device.setName(name != null ? name : "挂靠设备");
             device.setHashrate(hashrate);
             device.setCarrier(carrier); // 设置运营商
             device.setLocation(location); // 设置位置
@@ -1235,5 +1289,13 @@ public class DeviceController {
             }
         } while (deviceService.lambdaQuery().eq(Device::getBindCode, code).exists());
         return code;
+    }
+
+    private String trimToNull(Object value) {
+        if (value == null) {
+            return null;
+        }
+        String text = value.toString().trim();
+        return text.isEmpty() ? null : text;
     }
 }

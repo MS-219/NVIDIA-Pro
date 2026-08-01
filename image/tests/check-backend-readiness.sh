@@ -57,6 +57,7 @@ PY
 for asset in \
   orin_agent.py \
   orin_display.py \
+  orin-core.png \
   install-agent.sh \
   juxin-orin-agent.service \
   juxin-orin-display.service; do

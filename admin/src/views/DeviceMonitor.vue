@@ -57,6 +57,9 @@
       <el-button class="affiliate-create-button" type="success" :icon="Plus" @click="openAffiliateDialog">
         新增挂靠设备
       </el-button>
+      <el-button type="info" plain :icon="Download" :loading="qrExportLoading" @click="openQrExportDialog">
+        导出设备二维码
+      </el-button>
     </div>
 
     <!-- 数据表管理 -->
@@ -406,6 +409,41 @@
         <el-button type="primary" :loading="affiliateSaving" @click="saveAffiliateDevices">确认创建</el-button>
       </template>
     </el-dialog>
+
+    <el-dialog v-model="qrExportVisible" title="导出设备二维码" width="min(760px, 94vw)" destroy-on-close>
+      <div class="qr-export-toolbar">
+        <el-radio-group v-model="qrExportScope" @change="loadQrExportRecords">
+          <el-radio-button value="unbound">未绑定设备</el-radio-button>
+          <el-radio-button value="all">全部设备</el-radio-button>
+        </el-radio-group>
+        <span class="qr-export-count">{{ qrExportRecords.length }} 台设备</span>
+      </div>
+      <el-alert
+        title="二维码扫码后会进入绑定流程，ZIP 内每台设备包含一张高清标签和一份设备清单。"
+        type="info"
+        :closable="false"
+        show-icon
+      />
+      <div v-loading="qrExportRecordsLoading" class="qr-preview-grid">
+        <div v-for="record in qrPreviewRecords" :key="record.sn" class="qr-preview-card">
+          <img :src="record.cardDataUrl" :alt="`设备 ${record.sn} 二维码`" />
+          <span>{{ record.sn }}</span>
+        </div>
+        <el-empty v-if="!qrExportRecordsLoading && qrExportRecords.length === 0" description="没有可导出的设备" />
+      </div>
+      <template #footer>
+        <el-button @click="qrExportVisible = false">取消</el-button>
+        <el-button
+          type="primary"
+          :icon="Download"
+          :loading="qrExportLoading"
+          :disabled="qrExportRecords.length === 0"
+          @click="downloadQrArchive"
+        >
+          {{ qrExportLoading ? `正在生成 ${qrExportProgress}%` : '下载二维码 ZIP' }}
+        </el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -413,8 +451,10 @@
 import { ref, onMounted, onUnmounted, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import request from '../utils/request'
-import { Connection, Monitor, Histogram, Location, Link, Plus, Search, Unlock } from '@element-plus/icons-vue'
+import { Connection, Monitor, Histogram, Location, Link, Plus, Search, Unlock, Download } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import QRCode from 'qrcode'
+import JSZip from 'jszip'
 
 const router = useRouter()
 const loading = ref(false)
@@ -447,6 +487,14 @@ const affiliateForm = reactive({
   location: '',
   userId: ''
 })
+const qrExportVisible = ref(false)
+const qrExportScope = ref('unbound')
+const qrExportRecords = ref([])
+const qrPreviewRecords = ref([])
+const qrExportRecordsLoading = ref(false)
+const qrExportLoading = ref(false)
+const qrExportProgress = ref(0)
+const qrExportLogo = '/nvidia-mark.svg'
 const offlineVisible = ref(false)
 const offlineLoading = ref(false)
 const offlineRecords = ref([])
@@ -778,6 +826,210 @@ const saveAffiliateDevices = async () => {
     console.error('创建挂靠设备失败:', error)
   } finally {
     affiliateSaving.value = false
+  }
+}
+
+const deviceBindUrl = (record) => {
+  const code = String(record.bindCode || record.sn || '').trim()
+  return `https://nvidia.juxinsuanli.cn/bind?code=${encodeURIComponent(code)}`
+}
+
+const loadCanvasImage = (src) => new Promise((resolve, reject) => {
+  const image = new Image()
+  image.onload = () => resolve(image)
+  image.onerror = () => reject(new Error(`图片加载失败: ${src}`))
+  image.src = src
+})
+
+const roundedRect = (context, x, y, width, height, radius) => {
+  const safeRadius = Math.min(radius, width / 2, height / 2)
+  context.beginPath()
+  context.moveTo(x + safeRadius, y)
+  context.arcTo(x + width, y, x + width, y + height, safeRadius)
+  context.arcTo(x + width, y + height, x, y + height, safeRadius)
+  context.arcTo(x, y + height, x, y, safeRadius)
+  context.arcTo(x, y, x + width, y, safeRadius)
+  context.closePath()
+}
+
+const drawQrCard = async (record) => {
+  const qrDataUrl = await QRCode.toDataURL(deviceBindUrl(record), {
+    width: 720,
+    margin: 2,
+    errorCorrectionLevel: 'H',
+    color: { dark: '#10120f', light: '#ffffff' }
+  })
+  const [qrImage, nvidiaImage] = await Promise.all([
+    loadCanvasImage(qrDataUrl),
+    loadCanvasImage(qrExportLogo)
+  ])
+
+  const canvas = document.createElement('canvas')
+  canvas.width = 1080
+  canvas.height = 1420
+  const context = canvas.getContext('2d')
+  if (!context) throw new Error('当前浏览器不支持二维码标签生成')
+
+  context.fillStyle = '#ffffff'
+  context.fillRect(0, 0, canvas.width, canvas.height)
+  context.fillStyle = '#76b900'
+  context.fillRect(0, 0, canvas.width, 16)
+
+  context.fillStyle = '#10120f'
+  context.font = '800 58px "PingFang SC", "Microsoft YaHei", sans-serif'
+  context.fillText('聚芯', 72, 118)
+  const brandWidth = context.measureText('聚芯').width
+  context.fillStyle = '#76b900'
+  context.font = '900 62px Arial, sans-serif'
+  context.fillText('ORIN', 72 + brandWidth + 18, 118)
+
+  context.fillStyle = '#a9afb6'
+  context.font = '500 42px Arial, sans-serif'
+  context.fillText('x', 560, 114)
+  context.drawImage(nvidiaImage, 650, 54, 82, 82)
+  context.fillStyle = '#10120f'
+  context.font = '900 52px Arial, sans-serif'
+  context.fillText('NVIDIA', 754, 116)
+
+  context.strokeStyle = '#e4e7eb'
+  context.lineWidth = 2
+  context.beginPath()
+  context.moveTo(72, 170)
+  context.lineTo(1008, 170)
+  context.stroke()
+
+  roundedRect(context, 110, 220, 860, 840, 30)
+  context.fillStyle = '#f7f8f6'
+  context.fill()
+  context.strokeStyle = '#dfe4dc'
+  context.stroke()
+  context.drawImage(qrImage, 190, 270, 700, 700)
+
+  context.fillStyle = '#10120f'
+  context.textAlign = 'center'
+  context.font = '800 44px "PingFang SC", "Microsoft YaHei", sans-serif'
+  context.fillText('微信扫码绑定设备', 540, 1138)
+  context.fillStyle = '#6b7367'
+  context.font = '500 26px "PingFang SC", "Microsoft YaHei", sans-serif'
+  context.fillText('打开聚芯 Orin 小程序，进入设备页面扫码', 540, 1186)
+
+  const bindCode = String(record.bindCode || '-').trim()
+  context.fillStyle = '#76b900'
+  context.font = '900 46px ui-monospace, SFMono-Regular, Menlo, monospace'
+  context.fillText(bindCode, 540, 1266)
+  context.fillStyle = '#7d8579'
+  context.font = '500 24px ui-monospace, SFMono-Regular, Menlo, monospace'
+  context.fillText(`SN: ${record.sn || '-'}`, 540, 1312)
+
+  context.fillStyle = '#10120f'
+  context.fillRect(0, 1360, canvas.width, 60)
+  context.fillStyle = '#ffffff'
+  context.font = '600 22px "PingFang SC", "Microsoft YaHei", sans-serif'
+  context.fillText('聚芯 Orin & NVIDIA 边缘算力设备', 540, 1398)
+
+  return canvas.toDataURL('image/png')
+}
+
+const loadQrExportRecords = async () => {
+  qrExportRecordsLoading.value = true
+  qrPreviewRecords.value = []
+  try {
+    const res = await request.get('/api/device/export-sn', {
+      params: { unboundOnly: qrExportScope.value === 'unbound' },
+      silent: true
+    })
+    if (res.data.code !== 200) {
+      ElMessage.error(res.data.msg || '获取二维码设备清单失败')
+      qrExportRecords.value = []
+      return
+    }
+    const list = Array.isArray(res.data.data?.list) ? res.data.data.list : []
+    qrExportRecords.value = list.filter(record => record.sn && (record.bindCode || record.sn))
+    qrPreviewRecords.value = await Promise.all(
+      qrExportRecords.value.slice(0, 3).map(async record => ({
+        ...record,
+        cardDataUrl: await drawQrCard(record)
+      }))
+    )
+  } catch (error) {
+    console.error('获取二维码设备清单失败:', error)
+    qrExportRecords.value = []
+    ElMessage.error('获取二维码设备清单失败')
+  } finally {
+    qrExportRecordsLoading.value = false
+  }
+}
+
+const openQrExportDialog = () => {
+  qrExportVisible.value = true
+  qrExportScope.value = 'unbound'
+  qrExportProgress.value = 0
+  loadQrExportRecords()
+}
+
+const csvValue = (value) => {
+  let text = String(value ?? '')
+  if (/^[=+\-@]/.test(text)) text = `'${text}`
+  return `"${text.replaceAll('"', '""')}"`
+}
+
+const safeFilePart = (value) => String(value || 'device')
+  .replace(/[^a-zA-Z0-9_-]+/g, '_')
+  .slice(0, 80)
+
+const downloadQrArchive = async () => {
+  if (qrExportLoading.value || qrExportRecords.value.length === 0) return
+
+  qrExportLoading.value = true
+  qrExportProgress.value = 0
+  try {
+    const zip = new JSZip()
+    const records = qrExportRecords.value
+    const imageFolder = zip.folder('设备二维码')
+    const concurrency = 6
+
+    for (let start = 0; start < records.length; start += concurrency) {
+      const batch = records.slice(start, start + concurrency)
+      const cards = await Promise.all(batch.map(record => drawQrCard(record)))
+      cards.forEach((dataUrl, index) => {
+        const record = batch[index]
+        const sequence = String(start + index + 1).padStart(4, '0')
+        imageFolder.file(`${sequence}_${safeFilePart(record.sn)}.png`, dataUrl.split(',')[1], { base64: true })
+      })
+      qrExportProgress.value = Math.round(Math.min(90, ((start + batch.length) / records.length) * 90))
+    }
+
+    const csvRows = [
+      ['序号', 'SN', '绑定码', '绑定链接', '状态', '绑定状态'],
+      ...records.map((record, index) => [
+        index + 1,
+        record.sn,
+        record.bindCode || '',
+        deviceBindUrl(record),
+        record.status || '',
+        record.bound || ''
+      ])
+    ]
+    zip.file('设备二维码清单.csv', `\uFEFF${csvRows.map(row => row.map(csvValue).join(',')).join('\r\n')}`)
+
+    const blob = await zip.generateAsync({ type: 'blob' }, metadata => {
+      qrExportProgress.value = 90 + Math.round(metadata.percent / 10)
+    })
+    const url = URL.createObjectURL(blob)
+    const anchor = document.createElement('a')
+    anchor.href = url
+    anchor.download = `聚芯Orin_设备二维码_${new Date().toISOString().slice(0, 10)}.zip`
+    document.body.appendChild(anchor)
+    anchor.click()
+    anchor.remove()
+    URL.revokeObjectURL(url)
+    qrExportProgress.value = 100
+    ElMessage.success(`已导出 ${records.length} 台设备二维码`)
+  } catch (error) {
+    console.error('导出设备二维码失败:', error)
+    ElMessage.error(error.message || '导出设备二维码失败')
+  } finally {
+    qrExportLoading.value = false
   }
 }
 
@@ -1145,6 +1397,60 @@ onUnmounted(() => {
   line-height: 1.5;
 }
 
+.qr-export-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 14px;
+}
+
+.qr-export-count {
+  color: var(--orin-text-soft);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.qr-preview-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  min-height: 260px;
+  gap: 14px;
+  margin-top: 16px;
+}
+
+.qr-preview-grid :deep(.el-empty) {
+  grid-column: 1 / -1;
+}
+
+.qr-preview-card {
+  min-width: 0;
+  padding: 10px;
+  background: var(--orin-surface-soft);
+  border: 1px solid var(--orin-border-soft);
+  border-radius: 6px;
+}
+
+.qr-preview-card img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 1080 / 1420;
+  object-fit: contain;
+  background: #ffffff;
+}
+
+.qr-preview-card span {
+  display: block;
+  margin-top: 8px;
+  overflow: hidden;
+  color: var(--orin-muted);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11px;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .pagination {
   display: flex;
   justify-content: flex-end;
@@ -1157,6 +1463,27 @@ onUnmounted(() => {
 
 .table-container :deep(.el-progress-bar__inner) {
   background-color: var(--orin-green) !important;
+}
+
+@media (max-width: 760px) {
+  .filter-bar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .filter-bar > * {
+    width: 100% !important;
+  }
+
+  .affiliate-form-grid,
+  .qr-preview-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .qr-export-toolbar {
+    align-items: flex-start;
+    flex-direction: column;
+  }
 }
 
 .table-container :deep([style*="color: #1890ff"]),

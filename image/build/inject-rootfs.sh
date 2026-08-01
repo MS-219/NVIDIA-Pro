@@ -58,6 +58,10 @@ ROOTFS="$(realpath "$ROOTFS")"
 [[ "$IMAGE_VERSION" =~ ^[A-Za-z0-9._-]+$ ]] || die "invalid image version"
 [[ "$AGENT_VERSION" =~ ^[A-Za-z0-9._-]+$ ]] || die "invalid agent version"
 [[ "$MAINTENANCE_USER" =~ ^[a-z_][a-z0-9_-]{0,31}$ ]] || die "invalid maintenance username"
+if ! dpkg-query --admindir="$ROOTFS/var/lib/dpkg" -W -f='${Status}\n' \
+  python3-websocket 2>/dev/null | grep -qx 'install ok installed'; then
+  die "python3-websocket is not installed in rootfs; run install-jetpack-runtime.sh first"
+fi
 
 SSH_PUBLIC_KEY="$(head -n 1 "$SSH_PUBLIC_KEY_FILE" | tr -d '\r\n')"
 [[ "$SSH_PUBLIC_KEY" =~ ^ssh-(ed25519|rsa)[[:space:]]+[A-Za-z0-9+/=]+([[:space:]].*)?$ ]] \
@@ -94,6 +98,7 @@ install -d -m 0755 \
 
 install -m 0755 "$IMAGE_DIR/agent/orin_agent.py" "$ROOTFS/opt/juxin-orin/agent/orin_agent.py"
 install -m 0755 "$IMAGE_DIR/agent/orin_display.py" "$ROOTFS/opt/juxin-orin/display/orin_display.py"
+install -m 0644 "$IMAGE_DIR/agent/orin-core.png" "$ROOTFS/opt/juxin-orin/display/orin-core.png"
 install -m 0755 "$IMAGE_DIR/agent/orin-firstboot.sh" "$ROOTFS/usr/lib/juxin-orin/orin-firstboot.sh"
 install -m 0755 "$IMAGE_DIR/agent/orin-performance.sh" "$ROOTFS/usr/lib/juxin-orin/orin-performance.sh"
 install -m 0644 "$IMAGE_DIR/agent/juxin-orin-agent.service" "$ROOTFS/etc/systemd/system/juxin-orin-agent.service"
@@ -203,8 +208,10 @@ rm -f \
   "$ROOTFS/var/lib/juxin-orin/bind-code" \
   "$ROOTFS/var/lib/juxin-orin/device-token" \
   "$ROOTFS/var/lib/juxin-orin/display-status.json" \
+  "$ROOTFS/var/lib/juxin-orin/power-mode.json" \
   "$ROOTFS/var/lib/juxin-orin/device-seed" \
   "$ROOTFS/var/lib/juxin-orin/provisioned"
+rm -rf "$ROOTFS/var/lib/juxin-orin/outbox"
 
 : >"$ROOTFS/etc/machine-id"
 install -d -m 0755 "$ROOTFS/var/lib/dbus" "$ROOTFS/etc/nv"

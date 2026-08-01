@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
@@ -52,6 +53,15 @@ public class ExchangeOrderServiceImpl extends ServiceImpl<ExchangeOrderMapper, E
         if (quantity == null || quantity < 1) {
             quantity = 1;
         }
+        if (quantity > 99) {
+            throw new RuntimeException("单次兑换数量不能超过99件");
+        }
+        if (remark != null) {
+            remark = remark.trim();
+            if (remark.length() > 255) {
+                throw new RuntimeException("订单备注不能超过255个字符");
+            }
+        }
 
         // 1. 查询用户
         AppUser user = appUserService.getById(userId);
@@ -81,31 +91,38 @@ public class ExchangeOrderServiceImpl extends ServiceImpl<ExchangeOrderMapper, E
 
         // 4. 计算价格
         BigDecimal unitPrice = product.getPriceByLevel(userLevel);
+        if (unitPrice == null || unitPrice.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new RuntimeException("商品价格配置错误");
+        }
         BigDecimal totalPrice = unitPrice.multiply(BigDecimal.valueOf(quantity));
 
         // 5. 读取算力兑换比例（从系统配置动态读取）
-        String rateStr = configService.getConfig("earnings.hashratePerYuan", "200");
+        String rateStr = configService.getConfig("earnings.hashratePerYuan", "100");
         long hashrateRate = Long.parseLong(rateStr);
-        long hashrateCost = totalPrice.longValue() * hashrateRate;
+        if (hashrateRate <= 0) {
+            throw new RuntimeException("算力值兑换比例配置错误");
+        }
+        long hashrateCost = totalPrice.multiply(BigDecimal.valueOf(hashrateRate))
+                .setScale(0, RoundingMode.HALF_UP)
+                .longValueExact();
 
         // 6. 校验余额
         BigDecimal balance = user.getBalance() != null ? user.getBalance() : BigDecimal.ZERO;
         if (balance.compareTo(totalPrice) < 0) {
-            throw new RuntimeException("算力值不足，需要 " + hashrateCost + " 算力值，当前可用 " + (balance.longValue() * hashrateRate));
+            long availableHashrate = balance.multiply(BigDecimal.valueOf(hashrateRate))
+                    .setScale(0, RoundingMode.HALF_UP)
+                    .longValue();
+            throw new RuntimeException("算力值不足，需要 " + hashrateCost + " 算力值，当前可用 " + availableHashrate);
         }
 
-        // 7. 扣减余额
-        appUserService.lambdaUpdate()
-                .set(AppUser::getBalance, balance.subtract(totalPrice))
-                .eq(AppUser::getId, userId)
-                .update();
+        // 7. 条件扣减余额，避免并发兑换造成重复使用余额。
+        if (appUserMapper.deductBalanceIfEnough(userId, totalPrice) != 1) {
+            throw new RuntimeException("算力值不足或用户状态已变化");
+        }
 
-        // 8. 扣减库存
-        if (product.getStock() != null) {
-            productService.lambdaUpdate()
-                    .set(ExchangeProduct::getStock, product.getStock() - quantity)
-                    .eq(ExchangeProduct::getId, productId)
-                    .update();
+        // 8. 条件扣减库存，失败时整个事务回滚。
+        if (exchangeProductMapper.deductStockIfEnough(productId, quantity) != 1) {
+            throw new RuntimeException("库存不足或商品已下架");
         }
 
         // 9. 生成订单号
@@ -196,7 +213,9 @@ public class ExchangeOrderServiceImpl extends ServiceImpl<ExchangeOrderMapper, E
 
         Integer quantity = order.getQuantity() != null ? order.getQuantity() : 0;
         if (order.getProductId() != null && quantity > 0) {
-            exchangeProductMapper.addStock(order.getProductId(), quantity);
+            if (exchangeProductMapper.addStock(order.getProductId(), quantity) != 1) {
+                throw new RuntimeException("商品库存返还失败，请检查商品状态");
+            }
         }
 
         BigDecimal inviterProfit = order.getInviterProfit() != null ? order.getInviterProfit() : BigDecimal.ZERO;

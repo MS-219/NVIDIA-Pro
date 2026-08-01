@@ -34,6 +34,9 @@ if [[ -f "${SCRIPT_DIR}/orin_display.py" && -f "${SCRIPT_DIR}/juxin-orin-display
       fonts-noto-cjk python3-pil
   fi
   install -m 0755 "${SCRIPT_DIR}/orin_display.py" /opt/juxin-orin/display/orin_display.py
+  if [[ -f "${SCRIPT_DIR}/orin-core.png" ]]; then
+    install -m 0644 "${SCRIPT_DIR}/orin-core.png" /opt/juxin-orin/display/orin-core.png
+  fi
   install -m 0644 "${SCRIPT_DIR}/juxin-orin-display.service" \
     /etc/systemd/system/juxin-orin-display.service
 fi

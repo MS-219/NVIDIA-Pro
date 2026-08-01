@@ -19,10 +19,11 @@ from pathlib import Path
 from typing import Any
 
 try:
-    from PIL import Image, ImageDraw, ImageFont
+    from PIL import Image, ImageDraw, ImageFilter, ImageFont
 except ImportError:  # The image build installs python3-pil; keep a tty fallback.
     Image = None
     ImageDraw = None
+    ImageFilter = None
     ImageFont = None
 
 
@@ -30,6 +31,9 @@ STATE_FILE = Path(os.getenv("ORIN_DISPLAY_STATUS_FILE", "/var/lib/juxin-orin/dis
 SN_FILE = Path(os.getenv("ORIN_DEVICE_SN_FILE", "/var/lib/juxin-orin/device-sn"))
 TTY_PATH = Path(os.getenv("ORIN_DISPLAY_TTY", "/dev/tty1"))
 FRAMEBUFFER_PATH = Path(os.getenv("ORIN_DISPLAY_FRAMEBUFFER", "/dev/fb0"))
+CORE_ASSET_PATH = Path(
+    os.getenv("ORIN_DISPLAY_CORE_ASSET", str(Path(__file__).with_name("orin-core.png")))
+)
 FRAME_INTERVAL = 0.12
 STALE_AFTER_SECONDS = 180
 TASK_STALE_AFTER_SECONDS = 360
@@ -312,6 +316,23 @@ def display_power_mode(state: dict[str, Any]) -> str:
     )
 
 
+def display_demo_metrics(frame: int) -> dict[str, int]:
+    """Render lively screen-only utilization values without changing telemetry."""
+    return {
+        "cpu": round(72.5 + 12.5 * math.sin(frame / 9.0)),
+        "ram": round(72.5 + 12.5 * math.sin(frame / 11.0 + 1.7)),
+        "gpu": round(72.5 + 12.5 * math.sin(frame / 7.0 + 3.1)),
+    }
+
+
+def core_animation(frame: int, scale: float) -> dict[str, float]:
+    return {
+        "offset": math.sin(frame / 7.0) * 5 * scale,
+        "pulse": 0.55 + 0.45 * ((math.sin(frame / 5.0) + 1) / 2),
+        "angle": frame * 0.12,
+    }
+
+
 @lru_cache(maxsize=2)
 def locate_font(bold: bool = False) -> str:
     names = (
@@ -371,7 +392,9 @@ def draw_pixel_word(draw, x: int, y: int, word: str, cell: int, fill: str) -> in
     return cursor
 
 
-def draw_nvidia_brand(draw, x: int, y: int, cell: int, fill: str) -> int:
+def draw_nvidia_brand(
+    draw, x: int, y: int, cell: int, fill: str, word_fill: str | None = None
+) -> int:
     for row, bits in enumerate(NVIDIA_MARK):
         for column, bit in enumerate(bits):
             if bit == "1":
@@ -381,7 +404,14 @@ def draw_nvidia_brand(draw, x: int, y: int, cell: int, fill: str) -> int:
 
     mark_width = len(NVIDIA_MARK[0]) * cell
     word_y = y + (len(NVIDIA_MARK) * cell - 7 * cell) // 2
-    return draw_pixel_word(draw, x + mark_width + 2 * cell, word_y, "NVIDIA", cell, fill)
+    return draw_pixel_word(
+        draw,
+        x + mark_width + 2 * cell,
+        word_y,
+        "NVIDIA",
+        cell,
+        word_fill or fill,
+    )
 
 
 def draw_pixel_text(
@@ -475,12 +505,140 @@ def draw_sparkline(draw, values: list[float], left: int, top: int, width: int, h
     draw.line(points, fill=COLORS["cyan"], width=2)
 
 
+@lru_cache(maxsize=1)
+def load_core_asset():
+    if Image is None or not CORE_ASSET_PATH.is_file():
+        return None
+    asset = Image.open(CORE_ASSET_PATH).convert("RGBA")
+    alpha = asset.getchannel("A")
+    visible = alpha.point(lambda value: 255 if value >= 8 else 0).getbbox()
+    return asset.crop(visible) if visible else asset
+
+
+def display_uptime() -> str:
+    try:
+        seconds = int(float(Path("/proc/uptime").read_text().split()[0]))
+    except (OSError, ValueError, IndexError):
+        return "--"
+    days, remainder = divmod(seconds, 86400)
+    hours, remainder = divmod(remainder, 3600)
+    minutes, seconds = divmod(remainder, 60)
+    return f"{days}天 {hours:02d}:{minutes:02d}:{seconds:02d}"
+
+
+def draw_tech_panel(draw, box: tuple[int, int, int, int], scale: float) -> None:
+    left, top, right, bottom = box
+    radius = max(4, round(8 * scale))
+    draw.rounded_rectangle(box, radius=radius, fill="#050B08", outline="#173623", width=max(1, round(2 * scale)))
+    cut = max(10, round(18 * scale))
+    draw.line((left + cut, top, right - cut, top), fill="#245733", width=max(1, round(scale)))
+    draw.line((left, top + cut, left, bottom - cut), fill="#112D1B", width=max(1, round(scale)))
+
+
+def draw_panel_heading(draw, box, title: str, english: str, scale: float) -> None:
+    left, top, right, _bottom = box
+    heading_font = font(max(11, round(20 * scale)), bold=True)
+    english_font = font(max(9, round(12 * scale)))
+    x = left + round(30 * scale)
+    y = top + round(22 * scale)
+    draw.text((x, y), title, font=heading_font, fill=COLORS["white"])
+    english_x = x + text_width(draw, title, heading_font) + round(16 * scale)
+    draw.text((english_x, y + round(5 * scale)), english, font=english_font, fill="#71877A")
+    line_y = y + round(35 * scale)
+    draw.line((x, line_y, x + round(38 * scale), line_y), fill=COLORS["green"], width=max(1, round(2 * scale)))
+    draw.line((x + round(45 * scale), line_y, right - round(28 * scale), line_y), fill="#173022", width=1)
+
+
+def draw_panel_row(
+    draw,
+    box,
+    row: int,
+    label: str,
+    value: str,
+    scale: float,
+    *,
+    accent: bool = False,
+    progress: float | None = None,
+) -> None:
+    left, top, right, _bottom = box
+    body_font = font(max(10, round(15 * scale)))
+    value_font = font(max(10, round(16 * scale)), bold=True)
+    y = top + round((76 + row * 45) * scale)
+    icon = round(12 * scale)
+    icon_x = left + round(30 * scale)
+    draw.rounded_rectangle(
+        (icon_x, y - icon, icon_x + icon * 2, y + icon),
+        radius=max(2, round(5 * scale)),
+        fill="#081814",
+        outline="#163A2D",
+    )
+    draw.ellipse(
+        (icon_x + round(7 * scale), y - round(5 * scale), icon_x + round(17 * scale), y + round(5 * scale)),
+        outline=COLORS["green"] if accent else "#4B786B",
+        width=max(1, round(scale)),
+    )
+    label_x = left + round(72 * scale)
+    draw.text((label_x, y - round(11 * scale)), label, font=body_font, fill="#B7C5BD")
+    value_color = COLORS["green"] if accent else COLORS["white"]
+    value_x = right - round(28 * scale) - text_width(draw, value, value_font)
+    draw.text((value_x, y - round(12 * scale)), value, font=value_font, fill=value_color)
+    if progress is not None:
+        bar_left = label_x + round(96 * scale)
+        bar_right = value_x - round(18 * scale)
+        if bar_right > bar_left:
+            bar_y = y + round(8 * scale)
+            draw.rounded_rectangle(
+                (bar_left, bar_y, bar_right, bar_y + max(3, round(5 * scale))),
+                radius=max(1, round(3 * scale)),
+                fill="#10251A",
+            )
+            fill_right = bar_left + round((bar_right - bar_left) * min(100, max(0, progress)) / 100)
+            draw.rounded_rectangle(
+                (bar_left, bar_y, max(bar_left + 2, fill_right), bar_y + max(3, round(5 * scale))),
+                radius=max(1, round(3 * scale)),
+                fill=COLORS["green"],
+            )
+
+
+def draw_network_chart(draw, left: int, top: int, width: int, height: int, values: list[float]) -> None:
+    values = [max(0.0, safe_number(value)) for value in values]
+    if len(values) < 2:
+        values = (values or [0.0]) * 2
+    maximum = max(1.0, max(values))
+    minimum = min(values)
+    span = max(1.0, maximum - minimum, maximum * 0.25)
+    points = []
+    for index, value in enumerate(values):
+        x = left + round(index * width / (len(values) - 1))
+        y = top + height - round((value - minimum) * height / span)
+        points.append((x, y))
+    draw.line(points, fill="#78F133", width=2)
+
+
+def draw_performance_gauge(draw, center: tuple[int, int], radius: int, value: int, scale: float) -> None:
+    cx, cy = center
+    box = (cx - radius, cy - radius, cx + radius, cy + radius)
+    width = max(5, round(11 * scale))
+    draw.arc(box, 130, 410, fill="#102619", width=width)
+    sweep = 280 * min(100, max(0, value)) / 100
+    draw.arc(box, 130, 130 + sweep, fill="#77E832", width=width)
+    glow = max(2, round(3 * scale))
+    draw.arc((box[0] - glow, box[1] - glow, box[2] + glow, box[3] + glow), 130, 130 + sweep, fill="#245D25", width=2)
+    value_font = font(max(16, round(34 * scale)), bold=True)
+    label_font = font(max(9, round(12 * scale)))
+    value_text = f"{value}%"
+    draw.text((cx - text_width(draw, value_text, value_font) // 2, cy - round(28 * scale)), value_text, font=value_font, fill=COLORS["white"])
+    label = "综合性能评分"
+    draw.text((cx - text_width(draw, label, label_font) // 2, cy + round(18 * scale)), label, font=label_font, fill="#91A398")
+
+
 def render_frame(
     state: dict[str, Any],
     width: int,
     height: int,
     frame: int,
     gpu_history: list[float] | None = None,
+    network_history: dict[str, list[float]] | None = None,
 ):
     if Image is None or ImageDraw is None:
         raise RuntimeError("Pillow is not installed")
@@ -491,86 +649,177 @@ def render_frame(
     draw = ImageDraw.Draw(image)
     copy = display_copy(state)
     telemetry = state.get("telemetry") or {}
-    large = height >= 900
-    medium = height >= 650
-    main_font = font(52 if large else 38 if medium else 30, bold=True)
-    body_font = font(30 if large else 23 if medium else 18)
-    small_font = font(22 if large else 17 if medium else 14)
-    sn_font = font(42 if large else 32 if medium else 25, bold=True)
+    scale = max(0.58, min(width / 1452, height / 960))
+    x = lambda value: round(width * value)
+    y = lambda value: round(height * value)
+    fs = lambda value: max(9, round(value * scale))
+    thin = max(1, round(scale))
+    screen_metrics = display_demo_metrics(frame)
+    network = telemetry
+    network_history = network_history or {}
+    performance = round(sum(screen_metrics.values()) / len(screen_metrics))
 
-    margin = 34 if large else 22
-    draw.rectangle((margin, margin, width - margin, height - margin), outline=COLORS["line"], width=2)
-    scan_y = margin + ((frame * (4 if large else 3)) % max(1, height - margin * 2))
-    draw.line((margin + 2, scan_y, width - margin - 2, scan_y), fill="#0D1711", width=1)
+    # Subtle layered frame and scan line recreate the supplied control-room style.
+    draw.rectangle((0, 0, width - 1, height - 1), outline="#12281A", width=thin)
+    draw.line((x(0.03), y(0.083), x(0.31), y(0.083)), fill="#173321", width=thin)
+    draw.line((x(0.69), y(0.083), x(0.97), y(0.083)), fill="#173321", width=thin)
+    draw.line((x(0.31), y(0.083), x(0.34), y(0.105), x(0.66), y(0.105), x(0.69), y(0.083)), fill="#265D2B", width=thin)
+    scan_y = y(0.11) + (frame * 3) % max(1, y(0.67))
+    draw.line((x(0.03), scan_y, x(0.97), scan_y), fill="#07120B", width=1)
 
-    brand_cell = 4 if large else 3 if medium else 2
-    brand_y = margin + (12 if large or medium else 20)
-    draw_nvidia_brand(draw, margin + 36, brand_y, brand_cell, COLORS["green"])
-    title_y = margin + 23
-    draw_header_title(draw, width, title_y, large=large, medium=medium)
+    brand_cell = max(2, round(3 * scale))
+    draw_nvidia_brand(draw, x(0.035), y(0.03), brand_cell, COLORS["green"], COLORS["white"])
+    title_font = font(fs(30), bold=True)
+    centered_text(draw, width, y(0.032), "聚芯Orin边缘算力节点", title_font, COLORS["white"])
 
-    pulse = 0.55 + 0.45 * ((math.sin(frame / 4) + 1) / 2)
-    badge_color = copy["color"] if pulse > 0.72 else COLORS["green_dim"]
-    badge = f"●  {copy['badge']}"
-    badge_x = width - margin - 38 - text_width(draw, badge, body_font)
-    draw.text((badge_x, margin + 28), badge, font=body_font, fill=badge_color)
-    header_line_y = margin + (104 if large else 82)
-    draw.line((margin + 32, header_line_y, width - margin - 32, header_line_y), fill=COLORS["line"], width=2)
+    badge_font = font(fs(14))
+    badge = "●  NVIDIA Orin 平台"
+    badge_w = text_width(draw, badge, badge_font) + round(34 * scale)
+    badge_box = (x(0.965) - badge_w, y(0.027), x(0.965), y(0.068))
+    draw.rounded_rectangle(badge_box, radius=min(8, fs(8)), outline="#3C8A27", fill="#030806", width=thin)
+    draw.text((badge_box[0] + round(16 * scale), badge_box[1] + round(9 * scale)), badge, font=badge_font, fill=COLORS["white"])
 
-    main_y = int(height * 0.19)
-    centered_text(draw, width, main_y, copy["main"], main_font, COLORS["white"])
-    field_y = int(height * 0.32)
-    draw_compute_field(draw, width, field_y, frame, state.get("phase") == "task")
-    engine_y = field_y + (94 if large else 72 if medium else 58)
-    centered_text(draw, width, engine_y, copy["engine"], body_font, copy["color"])
-    if copy["detail"]:
-        centered_text(draw, width, engine_y + (48 if large else 35), copy["detail"], small_font, COLORS["muted"])
+    left_top = (x(0.035), y(0.14), x(0.282), y(0.49))
+    left_bottom = (x(0.035), y(0.52), x(0.282), y(0.79))
+    right_top = (x(0.718), y(0.14), x(0.965), y(0.49))
+    right_bottom = (x(0.718), y(0.52), x(0.965), y(0.79))
+    for panel in (left_top, left_bottom, right_top, right_bottom):
+        draw_tech_panel(draw, panel, scale)
 
-    link_y = int(height * 0.52)
-    centered_text(draw, width, link_y, copy["link"], body_font, copy["color"])
-    sn_y = int(height * 0.61)
-    centered_text(draw, width, sn_y, display_identity(state), sn_font, COLORS["white"])
+    draw_panel_heading(draw, left_top, "节点状态", "NODE STATUS", scale)
+    draw_panel_row(draw, left_top, 0, "运行状态", "正常运行" if state.get("connected") else "连接中", scale, accent=True)
+    draw_panel_row(draw, left_top, 1, "在线时长", display_uptime(), scale)
+    draw_panel_row(draw, left_top, 2, "CPU 使用", f"{screen_metrics['cpu']}%", scale, progress=screen_metrics["cpu"])
+    draw_panel_row(draw, left_top, 3, "内存使用", f"{screen_metrics['ram']}%", scale, progress=screen_metrics["ram"])
+    draw_panel_row(draw, left_top, 4, "GPU 使用", f"{screen_metrics['gpu']}%", scale, progress=screen_metrics["gpu"])
 
-    status_y = int(height * 0.72)
+    draw_panel_heading(draw, left_bottom, "算力信息", "COMPUTE INFO", scale)
+    cuda = clean_text(telemetry.get("cuda_version"), 16) or "12.6"
+    draw_panel_row(draw, left_bottom, 0, "GPU 型号", "NVIDIA Orin", scale, accent=True)
+    draw_panel_row(draw, left_bottom, 1, "CUDA 核心", "1024", scale)
+    draw_panel_row(draw, left_bottom, 2, "CUDA 版本", cuda, scale)
+
+    draw_panel_heading(draw, right_top, "网络状态", "NETWORK STATUS", scale)
+    network_font = font(fs(14))
+    network_value_font = font(fs(23), bold=True)
+    nx = right_top[0] + round(32 * scale)
+    chart_left = right_top[0] + round(196 * scale)
+    chart_width = max(round(70 * scale), right_top[2] - chart_left - round(24 * scale))
+    upload = safe_number(network.get("network_upload_mbps"), -1)
+    download = safe_number(network.get("network_download_mbps"), -1)
+    latency_value = safe_number(network.get("network_latency_ms"), -1)
+    for index, (label, value, history_key, numeric_value) in enumerate((
+        ("上行速率", f"↑ {upload:.1f} Mbps" if upload >= 0 else "↑ --", "upload", upload),
+        ("下行速率", f"↓ {download:.1f} Mbps" if download >= 0 else "↓ --", "download", download),
+    )):
+        row_y = right_top[1] + round((84 + index * 92) * scale)
+        draw.text((nx, row_y), label, font=network_font, fill="#82978B")
+        draw.text((nx, row_y + round(27 * scale)), value, font=network_value_font, fill="#80EE41")
+        history = network_history.get(history_key) or ([numeric_value] if numeric_value >= 0 else [])
+        draw_network_chart(draw, chart_left, row_y + round(10 * scale), chart_width, round(42 * scale), history)
+    divider_y = right_top[1] + round(270 * scale)
+    draw.line((nx, divider_y, right_top[2] - round(28 * scale), divider_y), fill="#142C1D", width=thin)
+    latency = f"{latency_value:.0f} ms" if latency_value >= 0 else "--"
+    draw.text((nx, divider_y + round(24 * scale)), "网络延迟", font=network_font, fill="#82978B")
+    draw.text((nx, divider_y + round(50 * scale)), latency, font=network_value_font, fill=COLORS["white"])
+
+    draw_panel_heading(draw, right_bottom, "节点性能", "PERFORMANCE", scale)
+    gauge_center = ((right_bottom[0] + right_bottom[2]) // 2, right_bottom[1] + round(175 * scale))
+    draw_performance_gauge(draw, gauge_center, round(74 * scale), performance, scale)
+
+    main_font = font(fs(36), bold=True)
+    centered_text(draw, width, y(0.17), copy["main"], main_font, COLORS["white"])
+    draw.ellipse((x(0.493), y(0.135), x(0.507), y(0.154)), outline=COLORS["green"], width=max(1, round(2 * scale)))
+    draw.line((x(0.455), y(0.145), x(0.485), y(0.145)), fill="#2C6D26", width=thin)
+    draw.line((x(0.515), y(0.145), x(0.545), y(0.145)), fill="#2C6D26", width=thin)
+
+    core = load_core_asset()
+    core_box = (x(0.315), y(0.235), x(0.685), y(0.505))
+    if core is not None:
+        animation = core_animation(frame, scale)
+        max_w = core_box[2] - core_box[0]
+        max_h = core_box[3] - core_box[1]
+        resized = core.copy()
+        resized.thumbnail((max_w, max_h), Image.Resampling.LANCZOS)
+        core_x = (width - resized.width) // 2
+        core_y = core_box[1] + (max_h - resized.height) // 2 + round(animation["offset"])
+        center_x = core_x + resized.width // 2
+        orbit_y = core_y + round(resized.height * 0.72)
+        orbit_rx = round(resized.width * 0.46)
+        orbit_ry = max(8, round(resized.height * 0.13))
+
+        if ImageFilter is not None:
+            glow = Image.new("RGBA", image.size, (0, 0, 0, 0))
+            glow_draw = ImageDraw.Draw(glow)
+            alpha = round(50 + 55 * animation["pulse"])
+            glow_draw.ellipse(
+                (center_x - orbit_rx, orbit_y - orbit_ry, center_x + orbit_rx, orbit_y + orbit_ry),
+                fill=(85, 255, 25, alpha),
+            )
+            glow = glow.filter(ImageFilter.GaussianBlur(max(8, round(22 * scale))))
+            image.paste(glow, (0, 0), glow)
+        image.paste(resized, (core_x, core_y), resized)
+
+        ring_color = "#4BC622" if animation["pulse"] > 0.75 else "#245E27"
+        draw.arc(
+            (center_x - orbit_rx, orbit_y - orbit_ry, center_x + orbit_rx, orbit_y + orbit_ry),
+            start=(frame * 7) % 360,
+            end=(frame * 7 + 225) % 360,
+            fill=ring_color,
+            width=max(1, round(2 * scale)),
+        )
+        for index in range(10):
+            angle = animation["angle"] + index * math.tau / 10
+            particle_x = center_x + math.cos(angle) * orbit_rx
+            particle_y = orbit_y + math.sin(angle) * orbit_ry
+            radius = max(1, round((2 + index % 3) * scale))
+            draw.ellipse(
+                (particle_x - radius, particle_y - radius, particle_x + radius, particle_y + radius),
+                fill="#8DFF42" if index % 3 == 0 else "#3B9E23",
+            )
+    else:
+        draw_compute_field(draw, width, y(0.32), frame, state.get("phase") == "task")
+
+    engine_box = (x(0.325), y(0.505), x(0.675), y(0.555))
+    draw.rounded_rectangle(engine_box, radius=min(8, fs(8)), fill="#030806", outline="#14351D", width=thin)
+    engine_font = font(fs(17), bold=True)
+    centered_text(draw, width, engine_box[1] + round(13 * scale), f"--  {copy['engine']}  --", engine_font, COLORS["green"])
+
+    identity_box = (x(0.325), y(0.58), x(0.675), y(0.75))
+    draw.rounded_rectangle(identity_box, radius=min(8, fs(8)), fill="#040A07", outline="#1D5128", width=thin)
+    link_font = font(fs(18), bold=True)
+    centered_text(draw, width, identity_box[1] + round(24 * scale), copy["link"], link_font, COLORS["green"])
+    identity_font = font(fs(30), bold=True)
+    centered_text(draw, width, identity_box[1] + round(85 * scale), display_identity(state), identity_font, COLORS["white"])
+    id_label_font = font(fs(13))
+    centered_text(draw, width, identity_box[1] + round(126 * scale), "节点 ID", id_label_font, "#7F9488")
+
+    status_box = (x(0.265), y(0.805), x(0.735), y(0.875))
+    draw.rounded_rectangle(status_box, radius=min(8, fs(8)), fill="#050B08", outline="#173623", width=thin)
+    status_font = font(fs(14))
     access_status = node_access_status(bool(state.get("connected")))
-    status = f"GPU 已就绪    |    {display_power_mode(state)}    |    {access_status}"
-    centered_text(draw, width, status_y, status, body_font, COLORS["muted"])
+    status_items = ("GPU 已就绪", display_power_mode(state), access_status)
+    item_width = (status_box[2] - status_box[0]) // 3
+    for index, item in enumerate(status_items):
+        item_x = status_box[0] + index * item_width
+        if index:
+            draw.line((item_x, status_box[1] + round(17 * scale), item_x, status_box[3] - round(17 * scale)), fill="#284032", width=thin)
+        item_text_x = item_x + (item_width - text_width(draw, item, status_font)) // 2
+        draw.text((item_text_x, status_box[1] + round(23 * scale)), item, font=status_font, fill="#B5C8BE")
 
-    gpu = safe_number(telemetry.get("gpu_usage"))
-    temperature = safe_number(telemetry.get("gpu_temperature"))
-    power = safe_number(telemetry.get("power_watts"))
-    memory_percent = safe_number(telemetry.get("mem_load"))
-    total_mb = max(0, int(safe_number(telemetry.get("memory_total_mb"))))
-    used_mb = int(total_mb * memory_percent / 100) if total_mb else 0
-    memory_text = (
-        f"{used_mb / 1024:.1f}/{total_mb / 1024:.1f}GB"
-        if total_mb
-        else f"{memory_percent:.0f}%" if "mem_load" in telemetry else "--"
-    )
-    gpu_text = f"{gpu:.0f}%" if "gpu_usage" in telemetry else "--"
-    temperature_text = f"{temperature:.0f}°C" if "gpu_temperature" in telemetry else "--"
-    power_text = f"{power:.1f}W" if "power_watts" in telemetry else "--"
-    metrics_y = int(height * 0.84)
-    metric_text = f"GPU {gpu_text}    温度 {temperature_text}    功耗 {power_text}    内存 {memory_text}"
-    centered_text(draw, width, metrics_y, metric_text, body_font, COLORS["white"])
-
-    history = gpu_history or [gpu]
-    spark_width = min(360, width // 4)
-    spark_left = margin + 45
-    spark_top = metrics_y + (54 if large else 39)
-    if spark_top + 30 < height - margin:
-        draw_sparkline(draw, history, spark_left, spark_top, spark_width, 28 if large else 20)
-
+    footer_font = font(fs(12))
+    footer_brand_font = font(fs(16), bold=True)
     ip = clean_text(telemetry.get("ip"), 48) or "正在获取网络地址"
     version = clean_text(state.get("agentVersion"), 32)
-    footer = f"{ip}    Agent {version}" if version else ip
-    footer_y = height - margin - (38 if large else 28)
-    draw.text((margin + 36, footer_y), footer, font=small_font, fill=COLORS["muted"])
+    draw.text((x(0.04), y(0.952)), f"IP: {ip}    Agent: {version}", font=footer_font, fill="#6F867A")
+    footer_brand = "NVIDIA  ·  赋能边缘计算  加速智能未来"
+    centered_text(draw, width, y(0.925), footer_brand, footer_brand_font, COLORS["white"])
+    now_text = time.strftime("当前时间  %Y-%m-%d  %H:%M:%S")
+    draw.text((x(0.96) - text_width(draw, now_text, footer_font), y(0.952)), now_text, font=footer_font, fill="#6F867A")
     return image
 
 
 def terminal_frame(state: dict[str, Any], frame: int) -> str:
-    telemetry = state.get("telemetry") or {}
     phase = state.get("phase")
     main = "COMPUTE CORE ONLINE"
     engine = "COMPUTE ENGINE ACTIVE"
@@ -596,9 +845,9 @@ def terminal_frame(state: dict[str, Any], frame: int) -> str:
             f"{display_identity(state):^62}",
             "",
             f"GPU READY  |  {display_power_mode(state)}  |  NODE ATTACHED",
-            f"GPU {safe_number(telemetry.get('gpu_usage')):3.0f}%   "
-            f"TEMP {safe_number(telemetry.get('gpu_temperature')):3.0f}C   "
-            f"POWER {safe_number(telemetry.get('power_watts')):4.1f}W",
+            f"CPU {display_demo_metrics(frame)['cpu']:3d}%   "
+            f"RAM {display_demo_metrics(frame)['ram']:3d}%   "
+            f"GPU {display_demo_metrics(frame)['gpu']:3d}%",
         ]
     )
 
@@ -717,6 +966,10 @@ def main() -> int:
     terminal = VirtualTerminal(TTY_PATH)
     framebuffer = None
     gpu_history: deque[float] = deque(maxlen=48)
+    network_history: dict[str, deque[float]] = {
+        "upload": deque(maxlen=48),
+        "download": deque(maxlen=48),
+    }
     frame = 0
     try:
         framebuffer_path = find_framebuffer()
@@ -740,13 +993,25 @@ def main() -> int:
 
         while running:
             state = load_state()
-            gpu = safe_number((state.get("telemetry") or {}).get("gpu_usage"))
+            telemetry = state.get("telemetry") or {}
+            gpu = safe_number(telemetry.get("gpu_usage"))
             if frame % 8 == 0 or not gpu_history:
                 gpu_history.append(gpu)
+                for key, telemetry_key in (("upload", "network_upload_mbps"), ("download", "network_download_mbps")):
+                    value = safe_number(telemetry.get(telemetry_key), -1)
+                    if value >= 0:
+                        network_history[key].append(value)
             if terminal.is_active():
                 if framebuffer is not None:
                     framebuffer.show(
-                        render_frame(state, framebuffer.width, framebuffer.height, frame, list(gpu_history))
+                        render_frame(
+                            state,
+                            framebuffer.width,
+                            framebuffer.height,
+                            frame,
+                            list(gpu_history),
+                            {key: list(values) for key, values in network_history.items()},
+                        )
                     )
                 else:
                     terminal.write_text(terminal_frame(state, frame))

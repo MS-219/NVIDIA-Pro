@@ -111,7 +111,7 @@ public class AdminOrinDeviceController {
     }
 
     /**
-     * 分页查询设备列表（排除虚拟设备 type=1）
+     * 分页查询设备列表。默认保持 Orin 设备口径，也支持后台切换查看挂靠设备。
      */
     @GetMapping("/list")
     public Result<IPage<Device>> list(
@@ -120,13 +120,13 @@ public class AdminOrinDeviceController {
             @RequestParam(required = false) String sn,
             @RequestParam(required = false) Integer status,
             @RequestParam(required = false) String location,
-            @RequestParam(required = false) Boolean remoteCapable) {
+            @RequestParam(required = false) Boolean remoteCapable,
+            @RequestParam(required = false) Integer type) {
 
         Page<Device> pageObj = new Page<>(page, size);
         LambdaQueryWrapper<Device> wrapper = new LambdaQueryWrapper<>();
 
-        // 新后台设备识别：具备边缘算力能力的真实设备（排除虚拟设备）
-        applyDashboardDeviceFilter(wrapper);
+        applyDeviceListFilter(wrapper, type);
 
         if (sn != null && !sn.isEmpty()) {
             wrapper.like(Device::getSn, sn);
@@ -220,6 +220,18 @@ public class AdminOrinDeviceController {
     private void applyDashboardDeviceFilter(LambdaQueryWrapper<Device> wrapper) {
         // 新后台只展示真正接入边缘链路的设备：type=2
         wrapper.eq(Device::getType, 2);
+    }
+
+    private void applyDeviceListFilter(LambdaQueryWrapper<Device> wrapper, Integer type) {
+        if (type == null || type == 2) {
+            wrapper.eq(Device::getType, 2);
+        } else if (type == 1) {
+            wrapper.eq(Device::getType, 1);
+        } else if (type == 0) {
+            wrapper.in(Device::getType, 1, 2);
+        } else {
+            wrapper.eq(Device::getType, 2);
+        }
     }
 
     private void fillDeviceRuntimeStats(List<Device> devices) {

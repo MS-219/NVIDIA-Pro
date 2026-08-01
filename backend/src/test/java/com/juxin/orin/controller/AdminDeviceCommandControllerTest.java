@@ -77,6 +77,7 @@ class AdminDeviceCommandControllerTest {
 
         assertNotNull(command);
         assertTrue(command.contains("orin_display.py"));
+        assertTrue(command.contains("orin-core.png"));
         assertTrue(command.contains("juxin-orin-display.service"));
         assertTrue(command.contains("install-agent.sh"));
     }

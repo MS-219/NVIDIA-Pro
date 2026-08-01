@@ -10,6 +10,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.*;
 
 /**
@@ -41,15 +42,21 @@ public class ExchangeController {
      * 获取上架商品列表（含当前用户等级对应的算力值价格）
      */
     @GetMapping("/products")
-    public Map<String, Object> getProducts(@RequestParam(required = false) Long userId) {
+    public Map<String, Object> getProducts(
+            @RequestParam(required = false) Long userId,
+            @RequestHeader(value = "Authorization", required = false) String authorization) {
         Map<String, Object> result = new HashMap<>();
         try {
+            userId = resolveOptionalViewer(userId, authorization, result);
+            if (result.containsKey("code")) {
+                return result;
+            }
             // 获取用户等级
             AppUser user = userId != null ? appUserService.getById(userId) : null;
             int userLevel = (user != null && user.getLevel() != null) ? user.getLevel() : 0;
 
             // 读取算力兑换比例
-            String rateStr = configService.getConfig("earnings.hashratePerYuan", "200");
+            String rateStr = configService.getConfig("earnings.hashratePerYuan", "100");
             long hashrateRate = Long.parseLong(rateStr);
 
             // 查询上架商品
@@ -63,12 +70,12 @@ public class ExchangeController {
             for (ExchangeProduct product : products) {
                 BigDecimal userPrice = product.getPriceByLevel(userLevel);
                 product.setUserPrice(userPrice);
-                product.setUserHashratePrice(userPrice.longValue() * hashrateRate);
+                product.setUserHashratePrice(toHashrate(userPrice, hashrateRate));
             }
 
             // 读取用户可用算力值
             BigDecimal balance = (user != null && user.getBalance() != null) ? user.getBalance() : BigDecimal.ZERO;
-            long availableHashrate = balance.longValue() * hashrateRate;
+            long availableHashrate = toHashrate(balance, hashrateRate);
 
             result.put("code", 200);
             Map<String, Object> data = new HashMap<>();
@@ -89,9 +96,16 @@ public class ExchangeController {
      * 商品详情
      */
     @GetMapping("/product/{id}")
-    public Map<String, Object> getProductDetail(@PathVariable Long id, @RequestParam(required = false) Long userId) {
+    public Map<String, Object> getProductDetail(
+            @PathVariable Long id,
+            @RequestParam(required = false) Long userId,
+            @RequestHeader(value = "Authorization", required = false) String authorization) {
         Map<String, Object> result = new HashMap<>();
         try {
+            userId = resolveOptionalViewer(userId, authorization, result);
+            if (result.containsKey("code")) {
+                return result;
+            }
             ExchangeProduct product = productService.getById(id);
             if (product == null) {
                 result.put("code", 404);
@@ -102,13 +116,13 @@ public class ExchangeController {
             AppUser user = userId != null ? appUserService.getById(userId) : null;
             int userLevel = (user != null && user.getLevel() != null) ? user.getLevel() : 0;
 
-            String rateStr = configService.getConfig("earnings.hashratePerYuan", "200");
+            String rateStr = configService.getConfig("earnings.hashratePerYuan", "100");
             long hashrateRate = Long.parseLong(rateStr);
 
             // 设置当前用户价格
             BigDecimal userPrice = product.getPriceByLevel(userLevel);
             product.setUserPrice(userPrice);
-            product.setUserHashratePrice(userPrice.longValue() * hashrateRate);
+            product.setUserHashratePrice(toHashrate(userPrice, hashrateRate));
 
             // 构建所有等级价格列表
             List<Map<String, Object>> allPrices = new ArrayList<>();
@@ -119,13 +133,13 @@ public class ExchangeController {
                 priceInfo.put("levelName", inviteLevelConfigService.getLevelName(i));
                 BigDecimal price = product.getPriceByLevel(i);
                 priceInfo.put("price", price);
-                priceInfo.put("hashratePrice", price.longValue() * hashrateRate);
+                priceInfo.put("hashratePrice", toHashrate(price, hashrateRate));
                 priceInfo.put("isCurrent", i == userLevel);
                 allPrices.add(priceInfo);
             }
 
             BigDecimal balance = (user != null && user.getBalance() != null) ? user.getBalance() : BigDecimal.ZERO;
-            long availableHashrate = balance.longValue() * hashrateRate;
+            long availableHashrate = toHashrate(balance, hashrateRate);
 
             Map<String, Object> data = new HashMap<>();
             data.put("product", product);
@@ -157,10 +171,21 @@ public class ExchangeController {
      * 下单兑换
      */
     @PostMapping("/order")
-    public Map<String, Object> createOrder(@RequestBody Map<String, Object> params) {
+    public Map<String, Object> createOrder(
+            @RequestBody Map<String, Object> params,
+            @RequestHeader(value = "Authorization", required = false) String authorization) {
         Map<String, Object> result = new HashMap<>();
         try {
-            Long userId = Long.valueOf(params.get("userId").toString());
+            Long requestedUserId = params.get("userId") == null ? null : Long.valueOf(params.get("userId").toString());
+            Long userId = requireAuthenticatedUser(requestedUserId, authorization, result);
+            if (userId == null) {
+                return result;
+            }
+            if (params.get("productId") == null || params.get("addressId") == null) {
+                result.put("code", 400);
+                result.put("msg", "商品和收货地址不能为空");
+                return result;
+            }
             Long productId = Long.valueOf(params.get("productId").toString());
             Long addressId = Long.valueOf(params.get("addressId").toString());
             Integer quantity = params.containsKey("quantity") ? Integer.valueOf(params.get("quantity").toString()) : 1;
@@ -185,12 +210,18 @@ public class ExchangeController {
      * 我的订单列表
      */
     @GetMapping("/orders")
-    public Map<String, Object> getMyOrders(@RequestParam Long userId,
-                                            @RequestParam(required = false) Integer status,
-                                            @RequestParam(defaultValue = "1") int page,
-                                            @RequestParam(defaultValue = "10") int size) {
+    public Map<String, Object> getMyOrders(
+            @RequestParam Long userId,
+            @RequestParam(required = false) Integer status,
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestHeader(value = "Authorization", required = false) String authorization) {
         Map<String, Object> result = new HashMap<>();
         try {
+            userId = requireAuthenticatedUser(userId, authorization, result);
+            if (userId == null) {
+                return result;
+            }
             LambdaQueryWrapper<ExchangeOrder> wrapper = new LambdaQueryWrapper<>();
             wrapper.eq(ExchangeOrder::getUserId, userId);
             if (status != null) {
@@ -221,9 +252,16 @@ public class ExchangeController {
      * 订单详情 + 物流跟踪
      */
     @GetMapping("/order/{orderNo}")
-    public Map<String, Object> getOrderDetail(@PathVariable String orderNo, @RequestParam Long userId) {
+    public Map<String, Object> getOrderDetail(
+            @PathVariable String orderNo,
+            @RequestParam Long userId,
+            @RequestHeader(value = "Authorization", required = false) String authorization) {
         Map<String, Object> result = new HashMap<>();
         try {
+            userId = requireAuthenticatedUser(userId, authorization, result);
+            if (userId == null) {
+                return result;
+            }
             ExchangeOrder order = orderService.lambdaQuery()
                     .eq(ExchangeOrder::getOrderNo, orderNo)
                     .eq(ExchangeOrder::getUserId, userId)
@@ -258,9 +296,16 @@ public class ExchangeController {
      * 确认收货
      */
     @PostMapping("/order/{orderNo}/confirm")
-    public Map<String, Object> confirmReceive(@PathVariable String orderNo, @RequestParam Long userId) {
+    public Map<String, Object> confirmReceive(
+            @PathVariable String orderNo,
+            @RequestParam Long userId,
+            @RequestHeader(value = "Authorization", required = false) String authorization) {
         Map<String, Object> result = new HashMap<>();
         try {
+            userId = requireAuthenticatedUser(userId, authorization, result);
+            if (userId == null) {
+                return result;
+            }
             ExchangeOrder order = orderService.lambdaQuery()
                     .eq(ExchangeOrder::getOrderNo, orderNo)
                     .eq(ExchangeOrder::getUserId, userId)
@@ -312,9 +357,16 @@ public class ExchangeController {
      * 查询订单物流信息（对接阿里云）
      */
     @GetMapping("/orders/{id}/logistics")
-    public Map<String, Object> getLogistics(@PathVariable("id") Long id, @RequestParam Long userId) {
+    public Map<String, Object> getLogistics(
+            @PathVariable("id") Long id,
+            @RequestParam Long userId,
+            @RequestHeader(value = "Authorization", required = false) String authorization) {
         Map<String, Object> result = new HashMap<>();
         try {
+            userId = requireAuthenticatedUser(userId, authorization, result);
+            if (userId == null) {
+                return result;
+            }
             Map<String, Object> logistics = orderService.getLogisticsInfo(userId, id);
             result.put("code", 200);
             result.put("msg", "success");
@@ -324,5 +376,57 @@ public class ExchangeController {
             result.put("msg", e.getMessage());
         }
         return result;
+    }
+
+    private Long resolveOptionalViewer(
+            Long requestedUserId,
+            String authorization,
+            Map<String, Object> result) {
+        if ((authorization == null || authorization.isBlank()) && requestedUserId == null) {
+            return null;
+        }
+        return requireAuthenticatedUser(requestedUserId, authorization, result);
+    }
+
+    private Long requireAuthenticatedUser(
+            Long requestedUserId,
+            String authorization,
+            Map<String, Object> result) {
+        String token = normalizeToken(authorization);
+        if (token == null || !com.juxin.orin.util.JwtUtil.validateToken(token)
+                || !"app".equals(com.juxin.orin.util.JwtUtil.getUserType(token))) {
+            result.put("code", 401);
+            result.put("msg", "未登录或登录已过期");
+            return null;
+        }
+        Long tokenUserId = com.juxin.orin.util.JwtUtil.getUserId(token);
+        if (tokenUserId == null) {
+            result.put("code", 401);
+            result.put("msg", "无效的登录信息");
+            return null;
+        }
+        if (requestedUserId != null && !tokenUserId.equals(requestedUserId)) {
+            result.put("code", 403);
+            result.put("msg", "无权访问其他用户的兑换数据");
+            return null;
+        }
+        return tokenUserId;
+    }
+
+    private String normalizeToken(String authorization) {
+        if (authorization == null || authorization.isBlank()) {
+            return null;
+        }
+        String token = authorization.trim();
+        return token.startsWith("Bearer ") ? token.substring(7).trim() : token;
+    }
+
+    private long toHashrate(BigDecimal amount, long hashrateRate) {
+        if (amount == null || hashrateRate <= 0) {
+            return 0;
+        }
+        return amount.multiply(BigDecimal.valueOf(hashrateRate))
+                .setScale(0, RoundingMode.HALF_UP)
+                .longValueExact();
     }
 }

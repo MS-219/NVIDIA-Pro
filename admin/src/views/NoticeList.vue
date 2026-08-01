@@ -120,15 +120,22 @@
         <el-form-item label="封面图">
           <el-upload
             class="avatar-uploader"
-            action="/api/upload/image"
-            :headers="uploadHeaders"
             :show-file-list="false"
-            :on-success="handleAvatarSuccess"
+            accept=".jpg,.jpeg,.png,.gif,.webp,.bmp"
+            :http-request="uploadNoticeImage"
             :before-upload="beforeAvatarUpload"
+            :disabled="imageUploading"
             name="file"
           >
             <img v-if="editForm.imageUrl" :src="editForm.imageUrl" class="avatar" />
-            <el-icon v-else class="avatar-uploader-icon"><Plus /></el-icon>
+            <div v-else-if="imageUploading" class="avatar-uploading">
+              <el-icon class="is-loading"><Loading /></el-icon>
+              <span>上传中</span>
+            </div>
+            <div v-else class="avatar-upload-empty">
+              <el-icon><Plus /></el-icon>
+              <span>上传封面</span>
+            </div>
           </el-upload>
         </el-form-item>
         <el-form-item label="内容" prop="content">
@@ -151,7 +158,7 @@
 
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
-import { Plus } from '@element-plus/icons-vue'
+import { Loading, Plus } from '@element-plus/icons-vue'
 import axios from '../utils/request'
 import { ElMessage, ElMessageBox } from 'element-plus'
 
@@ -168,9 +175,7 @@ const detailVisible = ref(false)
 const editVisible = ref(false)
 const currentNotice = ref(null)
 const formRef = ref(null)
-const uploadHeaders = {
-  Authorization: `Bearer ${localStorage.getItem('orin_admin_token') || ''}`
-}
+const imageUploading = ref(false)
 
 const editForm = reactive({
   id: null,
@@ -313,20 +318,36 @@ const deleteNotice = async (row) => {
   }
 }
 
-const handleAvatarSuccess = (response, uploadFile) => {
-  if (response.code === 200) {
-    editForm.imageUrl = response.data.url
-  } else {
-    ElMessage.error(response.msg || '上传失败')
+const uploadNoticeImage = async ({ file, onSuccess, onError }) => {
+  imageUploading.value = true
+  try {
+    const formData = new FormData()
+    formData.append('file', file)
+    const res = await axios.post('/api/upload/image', formData, { silent: true })
+    if (res.data.code !== 200 || !res.data.data?.url) {
+      throw new Error(res.data.msg || '服务器未返回图片地址')
+    }
+
+    editForm.imageUrl = res.data.data.url
+    onSuccess?.(res.data)
+    ElMessage.success('封面上传成功')
+  } catch (error) {
+    const message = error?.response?.data?.msg || error?.message || '封面上传失败'
+    ElMessage.error(message)
+    onError?.(error)
+  } finally {
+    imageUploading.value = false
   }
 }
 
 const beforeAvatarUpload = (rawFile) => {
-  if (rawFile.type !== 'image/jpeg' && rawFile.type !== 'image/png') {
-    ElMessage.error('Avatar picture must be JPG format!')
+  const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/bmp']
+  if (!allowedTypes.includes(rawFile.type)) {
+    ElMessage.error('仅支持 JPG、PNG、GIF、WEBP、BMP 图片')
     return false
-  } else if (rawFile.size / 1024 / 1024 > 2) {
-    ElMessage.error('Avatar picture size can not exceed 2MB!')
+  }
+  if (rawFile.size > 5 * 1024 * 1024) {
+    ElMessage.error('图片大小不能超过 5MB')
     return false
   }
   return true
@@ -403,7 +424,7 @@ onMounted(() => {
   object-fit: cover;
 }
 
-.avatar-uploader .el-upload {
+.avatar-uploader :deep(.el-upload) {
   border: 1px dashed var(--el-border-color);
   border-radius: 6px;
   cursor: pointer;
@@ -412,18 +433,25 @@ onMounted(() => {
   transition: var(--el-transition-duration-fast);
 }
 
-.avatar-uploader .el-upload:hover {
+.avatar-uploader :deep(.el-upload:hover) {
   border-color: var(--el-color-primary);
 }
 
-.avatar-uploader-icon {
-  font-size: 28px;
+.avatar-upload-empty,
+.avatar-uploading {
   color: #8c939d;
   width: 178px;
   height: 178px;
-  text-align: center;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: 8px;
+  font-size: 13px;
+}
+
+.avatar-upload-empty .el-icon,
+.avatar-uploading .el-icon {
+  font-size: 28px;
 }
 </style>

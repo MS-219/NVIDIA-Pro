@@ -44,7 +44,14 @@ grep -q 'apt-get --fix-broken install -y' \
 grep -q 'fonts-noto-cjk' "$IMAGE_DIR/build/install-jetpack-runtime.sh"
 grep -q 'python3-pil' "$IMAGE_DIR/build/install-jetpack-runtime.sh"
 grep -q 'python3-websocket' "$IMAGE_DIR/build/install-jetpack-runtime.sh"
+grep -q 'python3-websocket is not installed in rootfs' \
+  "$IMAGE_DIR/build/inject-rootfs.sh"
+grep -q 'bootloader/system.img.raw' "$IMAGE_DIR/build/flash-nvme.sh"
+grep -q 'rootfs contains device-specific state' "$IMAGE_DIR/build/flash-nvme.sh"
 grep -q 'juxin-orin-display.service' "$IMAGE_DIR/build/inject-rootfs.sh"
+grep -q 'orin-core.png' "$IMAGE_DIR/build/inject-rootfs.sh"
+grep -q 'orin-core.png' "$IMAGE_DIR/agent/install-agent.sh"
+test -s "$IMAGE_DIR/agent/orin-core.png"
 grep -q 'getty@tty1.service' "$IMAGE_DIR/build/inject-rootfs.sh"
 grep -q -- '--prompt-maintenance-password' "$IMAGE_DIR/build/inject-rootfs.sh"
 grep -q 'maintenance password must contain at least 8 characters' \
