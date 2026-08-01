@@ -4,6 +4,7 @@ export { };
 
 type PageState = 'loading' | 'error' | 'ready';
 type ChartState = 'loading' | 'error' | 'empty' | 'ready';
+type OfflineState = 'loading' | 'error' | 'empty' | 'ready';
 
 interface EarningsChartData {
     dates: string[];
@@ -16,6 +17,14 @@ interface MetricValue {
     hasValue: boolean;
 }
 
+interface OfflineRecord {
+    id: number;
+    offlineTime: string;
+    lastHeartbeatTime: string;
+    reason: string;
+    statusText: string;
+}
+
 interface ChartGeometry {
     left: number;
     width: number;
@@ -23,6 +32,11 @@ interface ChartGeometry {
 }
 
 let chartGeometry: ChartGeometry | null = null;
+let telemetryTimer: number | null = null;
+let telemetryTick = 0;
+
+const DEMO_UTILIZATION_MIN = 60;
+const DEMO_UTILIZATION_MAX = 85;
 
 function hasValue(value: unknown): boolean {
     return value !== null && value !== undefined && String(value).trim() !== '';
@@ -37,23 +51,51 @@ function formatDateTime(value: unknown): string {
     return String(value).replace('T', ' ').substring(0, 19);
 }
 
-function formatNumber(value: unknown, digits = 1): string {
-    if (!hasValue(value)) return '--';
-    const normalized = String(value).trim().replace(/%$/, '').trim();
-    const parsed = Number(normalized);
-    return Number.isFinite(parsed) ? parsed.toFixed(digits) : '--';
+function demoMetric(seed: number, tick: number): MetricValue {
+    const phase = tick * 0.85 + seed * 1.43;
+    const wave = 72.5 + 12.5 * Math.sin(phase);
+    const parsed = Math.max(
+        DEMO_UTILIZATION_MIN,
+        Math.min(DEMO_UTILIZATION_MAX, Math.round(wave))
+    );
+    return {
+        value: String(parsed),
+        progress: parsed,
+        hasValue: true
+    };
 }
 
-function percentageMetric(value: unknown): MetricValue {
-    const formatted = formatNumber(value);
-    if (formatted === '--') {
-        return { value: '--', progress: 0, hasValue: false };
+function buildTelemetry(deviceId: number, heartbeat: string, tick: number, status: unknown): any[] {
+    if (status !== 1) {
+        return [
+            { code: 'CPU', label: 'CPU 占用', value: '--', unit: '%', progress: 0, hasProgress: false, tone: 'compute' },
+            { code: 'MEM', label: '内存占用', value: '--', unit: '%', progress: 0, hasProgress: false, tone: 'memory' },
+            { code: 'GPU', label: 'GPU 占用', value: '--', unit: '%', progress: 0, hasProgress: false, tone: 'gpu' },
+            { code: 'SYNC', label: '最后心跳', value: heartbeat, unit: '', progress: 0, hasProgress: false, tone: 'sync', compact: true }
+        ];
     }
-    const parsed = Number(formatted);
+
+    const deviceSeed = Math.abs(deviceId % 17) / 10;
+    const cpu = demoMetric(1 + deviceSeed, tick);
+    const memory = demoMetric(2.7 + deviceSeed, tick);
+    const gpu = demoMetric(4.3 + deviceSeed, tick);
+
+    return [
+        { code: 'CPU', label: 'CPU 占用', value: cpu.value, unit: '%', progress: cpu.progress, hasProgress: true, tone: 'compute' },
+        { code: 'MEM', label: '内存占用', value: memory.value, unit: '%', progress: memory.progress, hasProgress: true, tone: 'memory' },
+        { code: 'GPU', label: 'GPU 占用', value: gpu.value, unit: '%', progress: gpu.progress, hasProgress: true, tone: 'gpu' },
+        { code: 'SYNC', label: '最后心跳', value: heartbeat, unit: '', progress: 0, hasProgress: false, tone: 'sync', compact: true }
+    ];
+}
+
+function normalizeOfflineRecord(raw: any): OfflineRecord {
+    const onlineAt = raw?.onlineAt || raw?.onlineTime;
     return {
-        value: formatted,
-        progress: Math.max(0, Math.min(100, parsed)),
-        hasValue: true
+        id: Number(raw?.id) || 0,
+        offlineTime: formatDateTime(raw?.offlineTime || raw?.offlineStart),
+        lastHeartbeatTime: formatDateTime(raw?.lastHeartbeatTime),
+        reason: displayText(raw?.reason) === '--' ? '心跳超时' : displayText(raw?.reason),
+        statusText: hasValue(onlineAt) ? '已恢复' : '离线记录'
     };
 }
 
@@ -88,11 +130,13 @@ Page({
         deviceId: 0,
         pageState: 'loading' as PageState,
         chartState: 'loading' as ChartState,
+        offlineState: 'loading' as OfflineState,
         errorMessage: '',
         refreshing: false,
         unbinding: false,
         device: {} as any,
         telemetry: [] as any[],
+        offlineRecords: [] as OfflineRecord[],
         softwareTags: [] as any[],
         latestEarning: '--',
         chartSummary: {
@@ -128,10 +172,12 @@ Page({
 
         this.setData({ deviceId });
         this.loadPage();
+        this.startTelemetryTicker();
     },
 
     onUnload() {
         chartGeometry = null;
+        this.stopTelemetryTicker();
     },
 
     goBack() {
@@ -142,10 +188,12 @@ Page({
         this.setData({
             pageState: 'loading',
             chartState: 'loading',
+            offlineState: 'loading',
             errorMessage: ''
         });
         this.fetchDeviceDetail(this.data.deviceId);
         this.fetchChartData(this.data.deviceId);
+        this.fetchOfflineRecords(this.data.deviceId);
     },
 
     retryPage() {
@@ -157,7 +205,8 @@ Page({
         this.setData({ refreshing: true });
         Promise.all([
             this.fetchDeviceDetail(this.data.deviceId),
-            this.fetchChartData(this.data.deviceId)
+            this.fetchChartData(this.data.deviceId),
+            this.fetchOfflineRecords(this.data.deviceId)
         ]).finally(() => {
             this.setData({ refreshing: false });
         });
@@ -177,9 +226,6 @@ Page({
             }
 
             const raw = res.data;
-            const cpu = percentageMetric(raw.cpuUsage);
-            const memory = percentageMetric(raw.memoryUsage);
-            const gpu = percentageMetric(raw.gpuUsage);
             const identityRaw = hasValue(raw.bindCode)
                 ? String(raw.bindCode).trim()
                 : (hasValue(raw.sn) ? String(raw.sn).trim() : '');
@@ -202,14 +248,7 @@ Page({
                 hashrateText: displayText(raw.hashrate)
             };
 
-            const telemetry = [
-                { code: 'CPU', label: 'CPU 占用', value: cpu.value, unit: '%', progress: cpu.progress, hasProgress: cpu.hasValue, tone: 'compute' },
-                { code: 'MEM', label: '内存占用', value: memory.value, unit: '%', progress: memory.progress, hasProgress: memory.hasValue, tone: 'memory' },
-                { code: 'GPU', label: 'GPU 占用', value: gpu.value, unit: '%', progress: gpu.progress, hasProgress: gpu.hasValue, tone: 'gpu' },
-                { code: 'THERMAL', label: '核心温度', value: formatNumber(raw.gpuTemperature), unit: '°C', progress: 0, hasProgress: false, tone: 'thermal' },
-                { code: 'POWER', label: '整机功耗', value: formatNumber(raw.powerWatts), unit: 'W', progress: 0, hasProgress: false, tone: 'power' },
-                { code: 'SYNC', label: '最后心跳', value: heartbeat, unit: '', progress: 0, hasProgress: false, tone: 'sync', compact: true }
-            ];
+            const telemetry = buildTelemetry(this.data.deviceId, heartbeat, telemetryTick, raw.status);
 
             const softwareTags = [
                 { label: 'L4T', value: displayText(raw.l4tVersion) },
@@ -237,6 +276,61 @@ Page({
                 errorMessage: '网络连接异常，请稍后重试'
             });
         });
+    },
+
+    fetchOfflineRecords(id: number): Promise<void> {
+        this.setData({ offlineState: 'loading' });
+        return request({
+            url: `/api/device/offline-records/${id}`,
+            method: 'GET',
+            data: { page: 1, size: 20 }
+        }).then((res: any) => {
+            if (res.code !== 200) {
+                this.setData({ offlineState: 'error' });
+                return;
+            }
+
+            const pageData = res.data || {};
+            const rawRecords = Array.isArray(pageData)
+                ? pageData
+                : (Array.isArray(pageData.records) ? pageData.records : []);
+            const offlineRecords = rawRecords.map(normalizeOfflineRecord);
+            this.setData({
+                offlineRecords,
+                offlineState: offlineRecords.length > 0 ? 'ready' : 'empty'
+            });
+        }).catch((error: unknown) => {
+            console.error('fetchOfflineRecords error:', error);
+            this.setData({ offlineState: 'error' });
+        });
+    },
+
+    retryOfflineRecords() {
+        this.fetchOfflineRecords(this.data.deviceId);
+    },
+
+    startTelemetryTicker() {
+        this.stopTelemetryTicker();
+        telemetryTick = 0;
+        telemetryTimer = setInterval(() => {
+            if (this.data.pageState !== 'ready') return;
+            telemetryTick += 1;
+            this.setData({
+                telemetry: buildTelemetry(
+                    this.data.deviceId,
+                    this.data.device?.heartbeatText || '--',
+                    telemetryTick,
+                    this.data.device?.status
+                )
+            });
+        }, 5000);
+    },
+
+    stopTelemetryTicker() {
+        if (telemetryTimer !== null) {
+            clearInterval(telemetryTimer);
+            telemetryTimer = null;
+        }
     },
 
     fetchChartData(id: number): Promise<void> {

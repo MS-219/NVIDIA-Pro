@@ -5,9 +5,11 @@ import com.juxin.orin.common.Result;
 import com.juxin.orin.entity.ApiMerchant;
 import com.juxin.orin.entity.Device;
 import com.juxin.orin.entity.DeviceCommand;
+import com.juxin.orin.entity.DeviceOfflineLog;
 import com.juxin.orin.entity.SysUser;
 import com.juxin.orin.service.IDeviceCommandService;
 import com.juxin.orin.service.IDeviceService;
+import com.juxin.orin.service.IDeviceOfflineLogService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -26,6 +28,9 @@ public class DeviceController {
 
     @Autowired
     private IDeviceCommandService deviceCommandService;
+
+    @Autowired
+    private IDeviceOfflineLogService offlineLogService;
 
     @Autowired
     private com.juxin.orin.service.IDeviceEarningsService deviceEarningsService;
@@ -418,6 +423,51 @@ public class DeviceController {
     }
 
     /**
+     * 获取设备离线记录（设备所属用户或管理员可查看）。
+     * 记录来自离线检测任务，按离线发生时间倒序返回。
+     */
+    @GetMapping("/offline-records/{id}")
+    public Result<Object> offlineRecords(
+            @PathVariable Long id,
+            @RequestParam(defaultValue = "1") Integer page,
+            @RequestParam(defaultValue = "20") Integer size,
+            @RequestHeader(value = "Authorization", required = false) String token) {
+
+        if (token == null || token.isBlank()) {
+            return Result.error("未登录");
+        }
+
+        String rawToken = token.startsWith("Bearer ") ? token.substring(7).trim() : token.trim();
+        if (!com.juxin.orin.util.JwtUtil.validateToken(rawToken)) {
+            return Result.error("登录已过期");
+        }
+
+        Device device = deviceService.getById(id);
+        if (device == null) {
+            return Result.error("设备不存在");
+        }
+
+        String userType = com.juxin.orin.util.JwtUtil.getUserType(rawToken);
+        Long loggedInUserId = com.juxin.orin.util.JwtUtil.getUserId(rawToken);
+        if (!"admin".equals(userType)
+                && (loggedInUserId == null || device.getUserId() == null
+                || !device.getUserId().equals(loggedInUserId))) {
+            return Result.error("无权限查看此设备的离线记录");
+        }
+
+        int safePage = page == null ? 1 : Math.max(1, page);
+        int safeSize = size == null ? 20 : Math.max(1, Math.min(50, size));
+        Page<DeviceOfflineLog> pageParam = new Page<>(safePage, safeSize);
+        com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<DeviceOfflineLog> wrapper =
+                new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<>();
+        wrapper.eq(DeviceOfflineLog::getDeviceId, id)
+                .orderByDesc(DeviceOfflineLog::getOfflineTime)
+                .orderByDesc(DeviceOfflineLog::getCreateTime);
+
+        return Result.success(offlineLogService.page(pageParam, wrapper));
+    }
+
+    /**
      * 更新设备信息
      */
     @PostMapping("/update")
@@ -714,8 +764,21 @@ public class DeviceController {
             return Result.error(error);
         }
 
-        Long deviceId = Long.valueOf(params.get("deviceId").toString());
-        Long userId = Long.valueOf(params.get("userId").toString());
+        if (params == null || params.get("deviceId") == null || params.get("userId") == null) {
+            return Result.error("设备ID和用户ID不能为空");
+        }
+
+        Long deviceId;
+        Long userId;
+        try {
+            deviceId = Long.valueOf(params.get("deviceId").toString());
+            userId = Long.valueOf(params.get("userId").toString());
+        } catch (NumberFormatException e) {
+            return Result.error("设备ID或用户ID格式不正确");
+        }
+        if (deviceId <= 0 || userId <= 0) {
+            return Result.error("设备ID或用户ID格式不正确");
+        }
 
         Device device = deviceService.getById(deviceId);
         if (device == null) {
@@ -736,6 +799,7 @@ public class DeviceController {
         java.time.LocalDateTime now = java.time.LocalDateTime.now();
         boolean success = deviceService.lambdaUpdate()
                 .eq(Device::getId, deviceId)
+                .isNull(Device::getUserId)
                 .set(Device::getUserId, userId)
                 .set(Device::getBindTime, now)
                 .set(Device::getLastPayTime, now) // 初始化结算时间，让设备可以立即产生收益

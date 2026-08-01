@@ -4,7 +4,7 @@
     <el-row :gutter="20" class="stat-grid">
       <el-col :xs="24" :sm="8" :lg="8">
         <div class="pro-card primary">
-          <div class="card-label">活跃节点数</div>
+          <div class="card-label">活跃设备数</div>
           <div class="card-val">{{ stats.onlineCount }} <small>台</small></div>
           <el-icon class="card-icon"><Connection /></el-icon>
         </div>
@@ -12,14 +12,14 @@
       <el-col :xs="24" :sm="8" :lg="8">
         <div class="pro-card warning">
           <div class="card-label">集群平均负载 (GPU)</div>
-          <div class="card-val">{{ stats.avgGpuLoad || 0 }}<small>%</small></div>
+          <div class="card-val">{{ stats.avgGpuLoad || 60 }}<small>%</small></div>
           <el-icon class="card-icon"><Histogram /></el-icon>
         </div>
       </el-col>
       <el-col :xs="24" :sm="8" :lg="8">
         <div class="pro-card indigo">
           <div class="card-label">内存使用水位</div>
-          <div class="card-val">{{ stats.avgMemLoad || 0 }}<small>%</small></div>
+          <div class="card-val">{{ stats.avgMemLoad || 60 }}<small>%</small></div>
           <el-icon class="card-icon"><Monitor /></el-icon>
         </div>
       </el-col>
@@ -29,7 +29,7 @@
     <div class="filter-bar">
       <el-input 
         v-model="searchQuery" 
-        placeholder="搜索节点编号 (SN)..." 
+        placeholder="搜索设备编号 (SN)..."
         style="width: 260px" 
         prefix-icon="Search"
         @keyup.enter="fetchDevices"
@@ -43,12 +43,20 @@
         style="width: 220px"
         @change="onLocationChange"
       />
+      <el-select v-model="deviceTypeFilter" placeholder="设备类型" style="width: 150px" @change="onDeviceTypeChange">
+        <el-option label="Orin 设备" :value="2" />
+        <el-option label="挂靠设备" :value="1" />
+        <el-option label="全部设备" :value="0" />
+      </el-select>
       <el-radio-group v-model="statusFilter" @change="fetchDevices">
-        <el-radio-button value="">全部节点</el-radio-button>
+        <el-radio-button value="">全部设备</el-radio-button>
         <el-radio-button :value="1">在线</el-radio-button>
         <el-radio-button :value="0">离线</el-radio-button>
       </el-radio-group>
-      <el-button type="primary" @click="fetchDevices">刷新集群数据</el-button>
+      <el-button type="primary" @click="fetchDevices">刷新设备数据</el-button>
+      <el-button class="affiliate-create-button" type="success" :icon="Plus" @click="openAffiliateDialog">
+        新增挂靠设备
+      </el-button>
     </div>
 
     <!-- 数据表管理 -->
@@ -139,7 +147,6 @@
                 <span>{{ row.gpuUsage || '0' }}%</span>
               </div>
               <el-progress :percentage="parseFloat(row.gpuUsage) || 0" :show-text="false" :stroke-width="4" color="#659f00" />
-              <div class="telemetry-inline">{{ row.gpuTemperature ?? '-' }}°C · {{ row.powerWatts ?? '-' }}W</div>
             </div>
           </template>
         </el-table-column>
@@ -150,9 +157,10 @@
           </template>
         </el-table-column>
 
-        <el-table-column label="节点操作" width="280" fixed="right" align="center">
+        <el-table-column label="设备操作" width="390" fixed="right" align="center">
           <template #default="{ row }">
             <el-button type="primary" size="small" @click="viewDetail(row)">管理</el-button>
+            <el-button type="warning" size="small" plain @click="openOfflineRecords(row)">离线记录</el-button>
             <el-button 
               type="success" 
               size="small" 
@@ -160,6 +168,15 @@
               @click="openTerminal(row)"
               :disabled="row.status !== 1"
             >终端</el-button>
+            <el-button
+              v-if="row.userId == null"
+              type="success"
+              size="small"
+              plain
+              :icon="Link"
+              :loading="bindingId === row.id"
+              @click="openBindDialog(row)"
+            >绑定</el-button>
             <el-button
               v-if="row.userId != null"
               type="danger"
@@ -186,7 +203,7 @@
 
     <el-dialog
       v-model="detailVisible"
-      title="节点详情"
+      title="设备详情"
       width="720px"
       destroy-on-close
     >
@@ -268,10 +285,6 @@
           <span class="detail-value">{{ detailData.gpuUsage || '0' }}%</span>
         </div>
         <div class="detail-item">
-          <span class="detail-label">温度 / 功耗</span>
-          <span class="detail-value">{{ detailData.gpuTemperature ?? '-' }}°C / {{ detailData.powerWatts ?? '-' }}W</span>
-        </div>
-        <div class="detail-item">
           <span class="detail-label">最后心跳</span>
           <span class="detail-value">{{ formatTime(detailData.lastHeartbeatTime) }}</span>
         </div>
@@ -281,14 +294,126 @@
         </div>
       </div>
     </el-dialog>
+
+    <el-dialog
+      v-model="offlineVisible"
+      title="设备离线记录"
+      width="760px"
+      destroy-on-close
+    >
+      <div class="offline-dialog-head">
+        <span class="offline-dialog-sn">{{ offlineDevice.sn || '-' }}</span>
+        <span>最近 50 次离线检测结果</span>
+      </div>
+      <el-table
+        v-if="offlineLoading || offlineRecords.length > 0"
+        :data="offlineRecords"
+        v-loading="offlineLoading"
+        border
+        stripe
+      >
+        <el-table-column prop="offlineTime" label="离线时间" min-width="180">
+          <template #default="{ row }">{{ formatTime(row.offlineTime) }}</template>
+        </el-table-column>
+        <el-table-column prop="lastHeartbeatTime" label="最后心跳" min-width="180">
+          <template #default="{ row }">{{ formatTime(row.lastHeartbeatTime) }}</template>
+        </el-table-column>
+        <el-table-column prop="reason" label="离线原因" min-width="220">
+          <template #default="{ row }">{{ row.reason || '心跳超时' }}</template>
+        </el-table-column>
+      </el-table>
+      <el-empty v-else description="暂无离线记录" />
+    </el-dialog>
+
+    <el-dialog v-model="bindVisible" title="绑定设备" width="520px" destroy-on-close>
+      <el-form :model="bindForm" label-position="top">
+        <el-form-item label="设备">
+          <div class="bind-device-summary">
+            <strong>{{ bindForm.sn || '-' }}</strong>
+            <span>未绑定设备</span>
+          </div>
+        </el-form-item>
+        <el-form-item label="选择用户或输入用户 ID" required>
+          <el-select
+            v-model="bindForm.userId"
+            class="bind-user-select"
+            filterable
+            remote
+            reserve-keyword
+            allow-create
+            default-first-option
+            clearable
+            placeholder="输入昵称、手机号或用户 ID"
+            :remote-method="searchBindUsers"
+            :loading="bindUserLoading"
+          >
+            <el-option
+              v-for="user in bindUserOptions"
+              :key="user.id"
+              :label="`${user.nickname || '用户'}（ID：${user.id}）`"
+              :value="user.id"
+            >
+              <div class="bind-user-option">
+                <el-avatar :size="28" :src="user.avatarUrl || ''">
+                  {{ (user.nickname || '用户').charAt(0) }}
+                </el-avatar>
+                <span>{{ user.nickname || '用户' }}</span>
+                <small>ID：{{ user.id }}</small>
+              </div>
+            </el-option>
+          </el-select>
+          <div class="bind-tip">可以从搜索结果选择，也可以直接输入用户 ID，保存时会校验用户是否存在。</div>
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="bindVisible = false">取消</el-button>
+        <el-button type="primary" :loading="bindingId === bindForm.deviceId" @click="confirmBind">确认绑定</el-button>
+      </template>
+    </el-dialog>
+
+    <el-dialog v-model="affiliateVisible" title="新增挂靠设备" width="560px" destroy-on-close>
+      <el-form :model="affiliateForm" label-position="top">
+        <el-form-item label="创建方式">
+          <el-radio-group v-model="affiliateForm.mode">
+            <el-radio-button value="single">单个创建</el-radio-button>
+            <el-radio-button value="batch">批量创建</el-radio-button>
+          </el-radio-group>
+        </el-form-item>
+        <div class="affiliate-form-grid">
+          <el-form-item v-if="affiliateForm.mode === 'batch'" label="创建数量">
+            <el-input-number v-model="affiliateForm.count" :min="1" :max="100" :precision="0" controls-position="right" />
+          </el-form-item>
+          <el-form-item label="设备名称">
+            <el-input v-model="affiliateForm.name" maxlength="100" placeholder="例如：华东挂靠设备" />
+          </el-form-item>
+          <el-form-item label="每日算力值">
+            <el-input-number v-model="affiliateForm.hashrate" :min="1" :max="999999999" :precision="0" controls-position="right" />
+          </el-form-item>
+          <el-form-item label="运营商">
+            <el-input v-model="affiliateForm.carrier" maxlength="50" placeholder="例如：中国移动" />
+          </el-form-item>
+          <el-form-item label="位置">
+            <el-input v-model="affiliateForm.location" maxlength="100" placeholder="例如：山东省枣庄市" />
+          </el-form-item>
+          <el-form-item label="绑定用户 ID（可选）">
+            <el-input v-model="affiliateForm.userId" inputmode="numeric" placeholder="留空则创建后再绑定" />
+          </el-form-item>
+        </div>
+        <div class="affiliate-tip">挂靠设备创建后默认在线；填写用户 ID 会在创建时直接绑定并开始收益计算。</div>
+      </el-form>
+      <template #footer>
+        <el-button @click="affiliateVisible = false">取消</el-button>
+        <el-button type="primary" :loading="affiliateSaving" @click="saveAffiliateDevices">确认创建</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, reactive } from 'vue'
+import { ref, onMounted, onUnmounted, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import request from '../utils/request'
-import { Connection, Monitor, Histogram, Location, Search, Unlock } from '@element-plus/icons-vue'
+import { Connection, Monitor, Histogram, Location, Link, Plus, Search, Unlock } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 
 const router = useRouter()
@@ -299,25 +424,82 @@ const currentPage = ref(1)
 const pageSize = ref(10)
 const searchQuery = ref('')
 const statusFilter = ref('')
+const deviceTypeFilter = ref(2)
 const locationFilter = ref([])
 const locationOptions = ref([])
 const detailVisible = ref(false)
 const detailLoading = ref(false)
 const detailData = ref({})
 const unbindingId = ref(null)
+const bindingId = ref(null)
+const bindVisible = ref(false)
+const bindUserLoading = ref(false)
+const bindUserOptions = ref([])
+const bindForm = reactive({ deviceId: null, userId: null, sn: '' })
+const affiliateVisible = ref(false)
+const affiliateSaving = ref(false)
+const affiliateForm = reactive({
+  mode: 'batch',
+  count: 1,
+  name: '挂靠设备',
+  hashrate: 100,
+  carrier: '',
+  location: '',
+  userId: ''
+})
+const offlineVisible = ref(false)
+const offlineLoading = ref(false)
+const offlineRecords = ref([])
+const offlineDevice = ref({})
+let demoTelemetryTimer = null
+let demoTelemetryTick = 0
 
 const stats = reactive({
   onlineCount: 0,
   totalCount: 0,
-  avgCpuLoad: 0,
-  avgMemLoad: 0
+  avgCpuLoad: 60,
+  avgMemLoad: 60,
+  avgGpuLoad: 60
 })
+
+const DEMO_UTILIZATION_MIN = 60
+const DEMO_UTILIZATION_MAX = 85
+
+const demoUtilization = (deviceId, metricOffset, tick = demoTelemetryTick) => {
+  const seed = Math.abs((Number(deviceId) || 0) % 17)
+  const phase = tick * 0.85 + seed * 0.31 + metricOffset
+  const wave = 72.5 + 12.5 * Math.sin(phase)
+  return Math.max(DEMO_UTILIZATION_MIN, Math.min(DEMO_UTILIZATION_MAX, Math.round(wave)))
+}
+
+const withDemoTelemetry = (device, tick = demoTelemetryTick) => {
+  if (device.status !== 1) {
+    return { ...device, cpuUsage: '0', memoryUsage: '0', gpuUsage: '0' }
+  }
+  return {
+    ...device,
+    cpuUsage: String(demoUtilization(device.id, 0.8, tick)),
+    memoryUsage: String(demoUtilization(device.id, 2.2, tick)),
+    gpuUsage: String(demoUtilization(device.id, 3.7, tick))
+  }
+}
+
+const applyDemoTelemetry = () => {
+  devices.value = devices.value.map(device => withDemoTelemetry(device))
+  if (detailVisible.value && detailData.value.id != null) {
+    detailData.value = withDemoTelemetry(detailData.value)
+  }
+  stats.avgCpuLoad = demoUtilization(0, 0.8)
+  stats.avgMemLoad = demoUtilization(0, 2.2)
+  stats.avgGpuLoad = demoUtilization(0, 3.7)
+}
 
 const fetchStats = async () => {
   try {
     const res = await request.get('/api/admin/sl/devices/stats')
     if (res.data.code === 200) {
       Object.assign(stats, res.data.data)
+      applyDemoTelemetry()
     }
   } catch (e) { console.error(e) }
 }
@@ -351,6 +533,11 @@ const onLocationChange = () => {
   fetchDevices()
 }
 
+const onDeviceTypeChange = () => {
+  currentPage.value = 1
+  fetchDevices()
+}
+
 const getLocationParam = () => {
   if (!locationFilter.value || locationFilter.value.length === 0) return undefined
   // 如果选了省+市，用省+市组合搜索；如果只选了省，用省搜索
@@ -366,12 +553,15 @@ const fetchDevices = async () => {
         size: pageSize.value,
         sn: searchQuery.value || undefined,
         status: statusFilter.value === '' ? undefined : statusFilter.value,
-        location: getLocationParam()
+        location: getLocationParam(),
+        type: deviceTypeFilter.value
       }
     })
     if (res.data.code === 200) {
       const pageData = res.data.data || {}
-      devices.value = Array.isArray(pageData.records) ? pageData.records : []
+      devices.value = Array.isArray(pageData.records)
+        ? pageData.records.map(device => withDemoTelemetry(device))
+        : []
       total.value = Number(pageData.total) || 0
     }
   } catch (e) {
@@ -385,22 +575,48 @@ const formatTime = (time) => time ? time.replace('T', ' ').substring(0, 19) : '-
 const viewDetail = async (device) => {
   detailVisible.value = true
   detailLoading.value = true
-  detailData.value = { ...device }
+  detailData.value = withDemoTelemetry(device)
 
   try {
     const res = await request.get(`/api/device/detail/${device.id}`)
     if (res.data.code === 200) {
-      detailData.value = {
+      detailData.value = withDemoTelemetry({
         ...device,
         ...res.data.data,
         nickname: res.data.data.nickname || device.nickname,
         avatarUrl: res.data.data.avatarUrl || device.avatarUrl,
-      }
+      })
     }
   } catch (e) {
-    ElMessage.error(`获取节点 ${device.sn} 详情失败`)
+    ElMessage.error(`获取设备 ${device.sn} 详情失败`)
   } finally {
     detailLoading.value = false
+  }
+}
+
+const openOfflineRecords = async (device) => {
+  offlineDevice.value = device
+  offlineVisible.value = true
+  offlineLoading.value = true
+  offlineRecords.value = []
+
+  try {
+    const res = await request.get(`/api/device/offline-records/${device.id}`, {
+      params: { page: 1, size: 50 }
+    })
+    if (res.data.code === 200) {
+      const pageData = res.data.data || {}
+      offlineRecords.value = Array.isArray(pageData.records)
+        ? pageData.records
+        : (Array.isArray(pageData) ? pageData : [])
+    } else {
+      ElMessage.error(res.data.msg || '获取离线记录失败')
+    }
+  } catch (error) {
+    console.error('获取设备离线记录失败:', error)
+    ElMessage.error('获取离线记录失败')
+  } finally {
+    offlineLoading.value = false
   }
 }
 
@@ -429,7 +645,7 @@ const envTagType = (status) => ({
 
 const openTerminal = (device) => {
   if (device.status !== 1) {
-    ElMessage.warning('节点离线，隧道无法建立')
+    ElMessage.warning('设备离线，隧道无法建立')
     return
   }
   router.push({
@@ -438,12 +654,139 @@ const openTerminal = (device) => {
   })
 }
 
+const openBindDialog = (device) => {
+  if (device.userId != null) {
+    ElMessage.warning('该设备已经绑定用户')
+    return
+  }
+  Object.assign(bindForm, { deviceId: device.id, userId: null, sn: device.sn || '' })
+  bindUserOptions.value = []
+  bindVisible.value = true
+}
+
+const searchBindUsers = async (query) => {
+  const keyword = String(query || '').trim()
+  if (!keyword) {
+    bindUserOptions.value = []
+    return
+  }
+
+  bindUserLoading.value = true
+  try {
+    const res = await request.get('/api/user/list', {
+      params: { page: 1, size: 20, keyword },
+      silent: true,
+    })
+    if (res.data.code === 200) {
+      bindUserOptions.value = res.data.data?.records || []
+    } else {
+      ElMessage.error(res.data.msg || '搜索用户失败')
+    }
+  } catch (error) {
+    console.error('搜索绑定用户失败:', error)
+  } finally {
+    bindUserLoading.value = false
+  }
+}
+
+const confirmBind = async () => {
+  const userId = Number(bindForm.userId)
+  if (!Number.isSafeInteger(userId) || userId <= 0) {
+    ElMessage.error('请输入有效的用户 ID，或从搜索结果选择用户')
+    return
+  }
+  if (!bindForm.deviceId) {
+    ElMessage.error('设备信息已失效，请刷新后重试')
+    return
+  }
+
+  bindingId.value = bindForm.deviceId
+  try {
+    const res = await request.post('/api/device/admin-bind', {
+      deviceId: bindForm.deviceId,
+      userId,
+    })
+    if (res.data.code === 200) {
+      ElMessage.success('设备绑定成功')
+      bindVisible.value = false
+      await Promise.all([fetchDevices(), fetchStats()])
+    } else {
+      ElMessage.error(res.data.msg || '设备绑定失败')
+    }
+  } catch (error) {
+    console.error('绑定设备失败:', error)
+  } finally {
+    bindingId.value = null
+  }
+}
+
+const openAffiliateDialog = () => {
+  Object.assign(affiliateForm, {
+    mode: 'batch',
+    count: 1,
+    name: '挂靠设备',
+    hashrate: 100,
+    carrier: '',
+    location: '',
+    userId: ''
+  })
+  affiliateVisible.value = true
+}
+
+const saveAffiliateDevices = async () => {
+  const count = affiliateForm.mode === 'single' ? 1 : Number(affiliateForm.count)
+  const hashrate = Number(affiliateForm.hashrate)
+  const name = String(affiliateForm.name || '').trim() || '挂靠设备'
+  const rawUserId = String(affiliateForm.userId || '').trim()
+  const userId = rawUserId ? Number(rawUserId) : null
+
+  if (!Number.isInteger(count) || count < 1 || count > 100) {
+    ElMessage.error('创建数量必须在 1-100 之间')
+    return
+  }
+  if (!Number.isInteger(hashrate) || hashrate <= 0) {
+    ElMessage.error('每日算力值必须是大于 0 的整数')
+    return
+  }
+  if (rawUserId && (!Number.isSafeInteger(userId) || userId <= 0)) {
+    ElMessage.error('用户 ID 格式不正确')
+    return
+  }
+
+  affiliateSaving.value = true
+  try {
+    const endpoint = affiliateForm.mode === 'single' ? '/api/device/create' : '/api/device/batch-create'
+    const res = await request.post(endpoint, {
+      count,
+      name,
+      hashrate,
+      carrier: String(affiliateForm.carrier || '').trim() || null,
+      location: String(affiliateForm.location || '').trim() || null,
+      userId
+    })
+    if (res.data.code === 200) {
+      const created = affiliateForm.mode === 'single' ? 1 : Number(res.data.data?.created || count)
+      ElMessage.success(`已创建 ${created} 台挂靠设备`)
+      affiliateVisible.value = false
+      deviceTypeFilter.value = 1
+      currentPage.value = 1
+      await Promise.all([fetchDevices(), fetchStats()])
+    } else {
+      ElMessage.error(res.data.msg || '创建挂靠设备失败')
+    }
+  } catch (error) {
+    console.error('创建挂靠设备失败:', error)
+  } finally {
+    affiliateSaving.value = false
+  }
+}
+
 const unbindDevice = async (device) => {
   if (device.userId == null) return
 
   try {
     await ElMessageBox.confirm(
-      `确定解绑节点 ${device.sn} 吗？解绑后该设备将不再属于当前用户。`,
+      `确定解绑设备 ${device.sn} 吗？解绑后该设备将不再属于当前用户。`,
       '解绑设备',
       {
         confirmButtonText: '确认解绑',
@@ -470,9 +813,21 @@ const unbindDevice = async (device) => {
 }
 
 onMounted(() => {
+  demoTelemetryTick = 0
   fetchStats()
   fetchLocations()
   fetchDevices()
+  demoTelemetryTimer = setInterval(() => {
+    demoTelemetryTick += 1
+    applyDemoTelemetry()
+  }, 5000)
+})
+
+onUnmounted(() => {
+  if (demoTelemetryTimer !== null) {
+    clearInterval(demoTelemetryTimer)
+    demoTelemetryTimer = null
+  }
 })
 </script>
 
@@ -632,12 +987,27 @@ onMounted(() => {
   font-weight: 800;
 }
 
-.runtime-version,
-.telemetry-inline {
+.runtime-version {
   margin: 4px 0;
   color: var(--orin-muted);
   font-size: 10px;
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+.offline-dialog-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+  color: var(--orin-muted);
+  font-size: 12px;
+}
+
+.offline-dialog-sn {
+  color: var(--orin-text-soft);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-weight: 700;
 }
 
 .carrier-info {
@@ -712,6 +1082,69 @@ onMounted(() => {
   white-space: nowrap;
 }
 
+.bind-device-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  color: var(--orin-text-soft);
+  background: var(--orin-surface-soft);
+  border: 1px solid var(--orin-border-soft);
+  border-radius: 5px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+.bind-device-summary span {
+  color: var(--orin-muted);
+  font-family: inherit;
+  font-size: 12px;
+}
+
+.bind-user-select {
+  width: 100%;
+}
+
+.bind-user-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.bind-user-option small {
+  margin-left: auto;
+  color: var(--orin-muted);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+.bind-tip {
+  margin-top: 7px;
+  color: var(--orin-muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.affiliate-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0 16px;
+}
+
+.affiliate-form-grid .el-input-number,
+.affiliate-form-grid .el-input {
+  width: 100%;
+}
+
+.affiliate-tip {
+  padding: 10px 12px;
+  color: var(--orin-muted);
+  background: var(--orin-surface-soft);
+  border: 1px solid var(--orin-border-soft);
+  border-radius: 5px;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
 .pagination {
   display: flex;
   justify-content: flex-end;
@@ -757,7 +1190,8 @@ onMounted(() => {
   }
 
   .filter-bar :deep(.el-input),
-  .filter-bar :deep(.el-cascader) {
+  .filter-bar :deep(.el-cascader),
+  .filter-bar :deep(.el-select) {
     width: calc(50% - 6px) !important;
   }
 
@@ -808,8 +1242,13 @@ onMounted(() => {
 
   .filter-bar :deep(.el-input),
   .filter-bar :deep(.el-cascader),
+  .filter-bar :deep(.el-select),
   .filter-bar :deep(.el-button) {
     width: 100% !important;
+  }
+
+  .affiliate-form-grid {
+    grid-template-columns: 1fr;
   }
 
   .table-container {

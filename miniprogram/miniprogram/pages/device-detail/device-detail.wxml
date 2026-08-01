@@ -22,7 +22,7 @@
       <view class="skeleton summary-skeleton"></view>
       <view class="loading-label"><view class="loading-pulse"></view><text>正在同步节点状态</text></view>
       <view class="skeleton-grid">
-        <view class="skeleton" wx:for="{{[1, 2, 3, 4, 5, 6]}}" wx:key="*this"></view>
+        <view class="skeleton" wx:for="{{[1, 2, 3, 4]}}" wx:key="*this"></view>
       </view>
     </view>
 
@@ -103,6 +103,32 @@
         <view><text>设备型号</text><text>{{device.modelText}}</text></view>
         <view><text>部署位置</text><text>{{device.locationText}}</text></view>
         <view><text>绑定时间</text><text>{{device.bindTimeText}}</text></view>
+      </view>
+
+      <view class="section-heading offline-heading">
+        <view><text>离线记录</text><text>OFFLINE HISTORY</text></view>
+        <text>最近 20 次</text>
+      </view>
+      <view class="offline-panel" wx:if="{{offlineState === 'ready'}}">
+        <view class="offline-record" wx:for="{{offlineRecords}}" wx:key="id">
+          <view class="offline-record-main">
+            <view class="offline-record-title"><view></view><text>{{item.statusText}}</text></view>
+            <text class="offline-record-time">{{item.offlineTime}}</text>
+          </view>
+          <view class="offline-record-meta">
+            <text>最后心跳 {{item.lastHeartbeatTime}}</text>
+            <text>{{item.reason}}</text>
+          </view>
+        </view>
+      </view>
+      <view class="offline-state" wx:elif="{{offlineState === 'loading'}}">
+        <view class="offline-state-dot"></view><text>离线记录同步中</text>
+      </view>
+      <view class="offline-state" wx:elif="{{offlineState === 'empty'}}">
+        <text>暂无离线记录</text>
+      </view>
+      <view class="offline-state offline-state-error" wx:else>
+        <text>离线记录加载失败</text><button class="offline-retry" bindtap="retryOfflineRecords">重试</button>
       </view>
 
       <view class="section-heading chart-heading">
