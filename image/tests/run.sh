@@ -18,6 +18,8 @@ bash -n \
   "$IMAGE_DIR/tests/test-jetson-apt-sources.sh" \
   "$IMAGE_DIR/tests/test-firstboot.sh"
 
+grep -q '^SCRIPT_DIR=' "$IMAGE_DIR/build/install-jetpack-runtime.sh"
+
 grep -q 'L4T_VERSION="36.4.7-20250918154033"' \
   "$IMAGE_DIR/build/install-jetpack-runtime.sh"
 grep -q '"$board_config" external' \

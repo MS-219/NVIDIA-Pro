@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOTFS=""
 JETPACK_VERSION="6.2.1+b38"
 L4T_VERSION="36.4.7-20250918154033"
