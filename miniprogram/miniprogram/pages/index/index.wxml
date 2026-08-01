@@ -12,6 +12,13 @@
         <swiper-item wx:for="{{bannerList}}" wx:key="id">
           <view class="hero-banner-slide" bindtap="onBannerTap" data-index="{{index}}" hover-class="is-pressed" wx:if="{{item.imageUrl}}">
             <image class="hero-banner-image" src="{{item.imageUrl}}" mode="aspectFit" aria-label="{{item.title || '首页轮播图'}}" binderror="onBannerImageError" data-index="{{index}}"></image>
+            <view class="hero-banner-caption" wx:if="{{item.title || item.subtitle}}">
+              <view class="caption-accent"></view>
+              <view class="caption-copy">
+                <text class="caption-title" wx:if="{{item.title}}">{{item.title}}</text>
+                <text class="caption-subtitle" wx:if="{{item.subtitle}}">{{item.subtitle}}</text>
+              </view>
+            </view>
           </view>
 
           <view class="hero-default-slide" wx:else>
