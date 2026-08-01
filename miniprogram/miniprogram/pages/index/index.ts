@@ -380,6 +380,16 @@ Page({
   },
 
   // 点击公告
+  onNoticeImageError(e: any) {
+    const index = Number(e.currentTarget.dataset.index);
+    if (!Number.isInteger(index) || index < 0 || index >= this.data.notices.length) {
+      return;
+    }
+    this.setData({
+      [`notices[${index}].imageLoadFailed`]: true
+    });
+  },
+
   onNoticeTap(e: any) {
     const id = e.currentTarget.dataset.id;
     wx.navigateTo({
