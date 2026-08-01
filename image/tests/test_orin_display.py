@@ -182,13 +182,50 @@ class OrinDisplayTest(unittest.TestCase):
         self.assertNotIn("MAXN_SUPER", frame)
 
     def test_screen_metrics_float_between_sixty_and_eighty_five(self):
-        first = self.display.display_demo_metrics(0)
-        second = self.display.display_demo_metrics(20)
+        state = self.display.default_state()
+        state["connected"] = True
+        first = self.display.display_screen_metrics(state, 0)
+        second = self.display.display_screen_metrics(state, 120)
 
         for value in (*first.values(), *second.values()):
             self.assertGreaterEqual(value, 60)
             self.assertLessEqual(value, 85)
         self.assertNotEqual(first, second)
+
+    def test_offline_screen_metrics_stay_at_zero(self):
+        state = self.display.default_state()
+        state["connected"] = False
+
+        self.assertEqual(
+            {"cpu": 0, "ram": 0, "gpu": 0},
+            self.display.display_screen_metrics(state, 0),
+        )
+        self.assertEqual(
+            {"cpu": 0, "ram": 0, "gpu": 0},
+            self.display.display_screen_metrics(state, 600),
+        )
+
+    def test_offline_network_metrics_stay_at_zero(self):
+        state = self.display.default_state()
+        state.update(
+            {
+                "connected": False,
+                "telemetry": {
+                    "network_upload_mbps": 99,
+                    "network_download_mbps": 88,
+                    "network_latency_ms": 7,
+                },
+            }
+        )
+
+        self.assertEqual(
+            {"upload": 0.0, "download": 0.0, "latency": -1.0},
+            self.display.network_values_for_display(state),
+        )
+
+    def test_display_targets_sixty_frames_per_second(self):
+        self.assertEqual(60.0, self.display.TARGET_FPS)
+        self.assertAlmostEqual(1 / 60, self.display.FRAME_INTERVAL)
 
     def test_core_visual_asset_is_packaged_with_the_display(self):
         self.assertTrue(CORE_ASSET_PATH.is_file())
@@ -200,6 +237,19 @@ class OrinDisplayTest(unittest.TestCase):
 
         with mock.patch.object(self.display, "Image", legacy_image):
             self.assertEqual(1, self.display.lanczos_resampling())
+
+    @unittest.skipIf(os.environ.get("ORIN_TEST_PILLOW") != "1", "Pillow rendering is tested in image CI")
+    def test_resized_core_and_glow_are_cached(self):
+        self.display.resized_core_asset.cache_clear()
+        self.display.core_glow_sprite.cache_clear()
+
+        first_core = self.display.resized_core_asset(480, 240)
+        second_core = self.display.resized_core_asset(480, 240)
+        first_glow = self.display.core_glow_sprite(160, 28, 18)
+        second_glow = self.display.core_glow_sprite(160, 28, 18)
+
+        self.assertIs(first_core, second_core)
+        self.assertIs(first_glow, second_glow)
 
     def test_compute_panel_omits_ai_compute_and_network_has_no_demo_values(self):
         source = DISPLAY_PATH.read_text(encoding="utf-8")
