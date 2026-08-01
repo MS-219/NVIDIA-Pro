@@ -179,6 +179,76 @@ def safe_number(value: Any, default: float = 0.0) -> float:
         return default
 
 
+def default_network_interface() -> str:
+    try:
+        routes = Path("/proc/net/route").read_text(encoding="utf-8", errors="ignore")
+    except OSError:
+        return ""
+    for line in routes.splitlines()[1:]:
+        fields = line.split()
+        if len(fields) >= 4 and fields[1] == "00000000":
+            try:
+                if int(fields[3], 16) & 2:
+                    return fields[0]
+            except ValueError:
+                continue
+    return ""
+
+
+def interface_counters(interface: str) -> tuple[int, int]:
+    try:
+        counters = Path("/proc/net/dev").read_text(encoding="utf-8", errors="ignore")
+    except OSError:
+        return 0, 0
+    for line in counters.splitlines():
+        if ":" not in line:
+            continue
+        name, payload = (part.strip() for part in line.split(":", 1))
+        if name != interface:
+            continue
+        fields = payload.split()
+        if len(fields) >= 9:
+            try:
+                return int(fields[0]), int(fields[8])
+            except ValueError:
+                return 0, 0
+    return 0, 0
+
+
+def sample_network_throughput(
+    previous: dict[str, Any] | None,
+    now: float | None = None,
+) -> tuple[dict[str, float], dict[str, Any]]:
+    interface = default_network_interface()
+    received, transmitted = interface_counters(interface)
+    sampled_at = time.monotonic() if now is None else now
+    current = {
+        "interface": interface,
+        "rx": received,
+        "tx": transmitted,
+        "at": sampled_at,
+    }
+    if not previous or previous.get("interface") != interface:
+        return {"network_download_mbps": 0.0, "network_upload_mbps": 0.0}, current
+    elapsed = sampled_at - safe_number(previous.get("at"))
+    if elapsed <= 0:
+        return {"network_download_mbps": 0.0, "network_upload_mbps": 0.0}, current
+    download = max(0, received - int(previous.get("rx") or 0)) * 8 / elapsed / 1_000_000
+    upload = max(0, transmitted - int(previous.get("tx") or 0)) * 8 / elapsed / 1_000_000
+    return {
+        "network_download_mbps": round(download, 3),
+        "network_upload_mbps": round(upload, 3),
+    }, current
+
+
+def format_network_rate(value: float, direction: str) -> str:
+    if value < 0:
+        return f"{direction} --"
+    if value < 1:
+        return f"{direction} {value * 1000:.0f} Kbps"
+    return f"{direction} {value:.1f} Mbps"
+
+
 def read_sn() -> str:
     try:
         value = SN_FILE.read_text(encoding="utf-8", errors="ignore").strip()
@@ -811,8 +881,8 @@ def render_frame(
     download = network_metrics["download"]
     latency_value = network_metrics["latency"]
     for index, (label, value, history_key, numeric_value) in enumerate((
-        ("上行速率", f"↑ {upload:.1f} Mbps" if upload >= 0 else "↑ --", "upload", upload),
-        ("下行速率", f"↓ {download:.1f} Mbps" if download >= 0 else "↓ --", "download", download),
+        ("上行速率", format_network_rate(upload, "↑"), "upload", upload),
+        ("下行速率", format_network_rate(download, "↓"), "download", download),
     )):
         row_y = right_top[1] + round((84 + index * 92) * scale)
         draw.text((nx, row_y + round(27 * scale)), value, font=network_value_font, fill="#80EE41")
@@ -1069,6 +1139,8 @@ def main() -> int:
     state = default_state()
     state_refreshed_at = 0.0
     history_refreshed_at = 0.0
+    network_sample: dict[str, Any] = {}
+    live_network_metrics: dict[str, float] = {}
     animation_started_at = time.monotonic()
     next_frame_at = animation_started_at
     try:
@@ -1102,17 +1174,26 @@ def main() -> int:
             if now - history_refreshed_at >= HISTORY_REFRESH_INTERVAL:
                 history_refreshed_at = now
                 if connected:
+                    live_network_metrics, network_sample = sample_network_throughput(
+                        network_sample,
+                        now,
+                    )
+                    telemetry.update(live_network_metrics)
                     gpu_history.append(safe_number(telemetry.get("gpu_usage")))
                     for key, telemetry_key in (("upload", "network_upload_mbps"), ("download", "network_download_mbps")):
                         value = safe_number(telemetry.get(telemetry_key), -1)
                         if value >= 0:
                             network_history[key].append(value)
                 else:
+                    network_sample = {}
+                    live_network_metrics = {}
                     gpu_history.clear()
                     gpu_history.append(0.0)
                     for values in network_history.values():
                         values.clear()
                         values.append(0.0)
+            elif connected and live_network_metrics:
+                telemetry.update(live_network_metrics)
             if terminal.is_active():
                 if framebuffer is not None:
                     framebuffer.show(

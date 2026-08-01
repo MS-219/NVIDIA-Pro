@@ -223,6 +223,26 @@ class OrinDisplayTest(unittest.TestCase):
             self.display.network_values_for_display(state),
         )
 
+    def test_live_network_throughput_uses_interface_byte_deltas(self):
+        with mock.patch.object(self.display, "default_network_interface", return_value="eth0"), \
+             mock.patch.object(
+                 self.display,
+                 "interface_counters",
+                 return_value=(1_250_000, 2_500_000),
+             ):
+            metrics, sample = self.display.sample_network_throughput(
+                {"interface": "eth0", "rx": 1_000_000, "tx": 2_000_000, "at": 10.0},
+                now=12.0,
+            )
+
+        self.assertEqual(1.0, metrics["network_download_mbps"])
+        self.assertEqual(2.0, metrics["network_upload_mbps"])
+        self.assertEqual("eth0", sample["interface"])
+
+    def test_small_real_network_rates_are_shown_as_kbps(self):
+        self.assertEqual("↑ 12 Kbps", self.display.format_network_rate(0.012, "↑"))
+        self.assertEqual("↓ 1.2 Mbps", self.display.format_network_rate(1.25, "↓"))
+
     def test_display_targets_sixty_frames_per_second(self):
         self.assertEqual(60.0, self.display.TARGET_FPS)
         self.assertAlmostEqual(1 / 60, self.display.FRAME_INTERVAL)
