@@ -25,12 +25,12 @@
             <text class="detail-desc">{{product.description || '适用于边缘推理和节点任务的 Orin 设备'}}</text>
         </view>
 
-        <view class="price-table-card" wx:if="{{allPrices.length}}">
+        <view class="price-table-card" wx:if="{{currentPrice}}">
             <view class="section-heading"><view><text>等级报价</text><text>MEMBER MATRIX</text></view><text>当前等级 L{{userLevel}}</text></view>
             <view class="price-table">
-                <view class="price-row {{item.isCurrent ? 'price-row-active' : ''}}" wx:for="{{allPrices}}" wx:key="level">
-                    <text class="price-level-name">L{{item.level}} {{item.levelName}}</text>
-                    <view class="price-values"><text class="price-hashrate">{{item.hashratePrice}}</text><text class="price-rmb">¥{{item.price}}</text><text class="price-current-badge" wx:if="{{item.isCurrent}}">当前</text></view>
+                <view class="price-row price-row-active">
+                    <text class="price-level-name">L{{currentPrice.level}} {{currentPrice.levelName}}</text>
+                    <view class="price-values"><text class="price-hashrate">{{currentPrice.hashratePrice}}</text><text class="price-rmb">¥{{currentPrice.price}}</text><text class="price-current-badge">当前</text></view>
                 </view>
             </view>
         </view>

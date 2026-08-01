@@ -12,7 +12,7 @@ Page({
         loading: true,
         loaded: false,
         errorMessage: '',
-        levelNames: ['普通', '会员', '社区', '县级', '市级', '联创']
+        userLevelName: '普通用户'
     },
 
     onLoad() {
@@ -51,7 +51,9 @@ Page({
                 this.setData({
                     products: data.products || [],
                     userLevel: data.userLevel || 0,
-                    levelNames: data.levelNames || this.data.levelNames,
+                    userLevelName: data.userLevelName
+                        || data.levelNames?.[data.userLevel]
+                        || this.data.userLevelName,
                     hashrateRate: data.hashrateRate || 200,
                     availableHashrate: data.availableHashrate || 0,
                     loaded: true

@@ -7,8 +7,9 @@ Page({
         navBarHeight: 44,
         productId: 0,
         product: null as any,
-        allPrices: [] as any[],
+        currentPrice: null as any,
         userLevel: 0,
+        userLevelName: '普通用户',
         hashrateRate: 200,
         availableHashrate: 0,
         addresses: [] as any[],
@@ -20,8 +21,7 @@ Page({
         errorMessage: '',
         addressLoading: true,
         addressError: '',
-        submitting: false,
-        levelNames: ['普通', '会员', '社区', '县级', '市级', '联创']
+        submitting: false
     },
 
     onLoad(options: any) {
@@ -58,11 +58,16 @@ Page({
         }).then((res: any) => {
             if (res.code === 200) {
                 const data = res.data;
+                const fallbackCurrentPrice = (data.allPrices || []).find((item: any) => item.isCurrent)
+                    || (data.allPrices || []).find((item: any) => Number(item.level) === Number(data.userLevel))
+                    || null;
                 this.setData({
                     product: data.product || null,
-                    allPrices: data.allPrices || [],
+                    currentPrice: data.currentPrice || fallbackCurrentPrice,
                     userLevel: data.userLevel || 0,
-                    levelNames: data.levelNames || this.data.levelNames,
+                    userLevelName: data.userLevelName
+                        || data.levelNames?.[data.userLevel]
+                        || this.data.userLevelName,
                     hashrateRate: data.hashrateRate || 200,
                     availableHashrate: data.availableHashrate || 0,
                     loaded: true

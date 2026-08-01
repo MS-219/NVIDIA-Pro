@@ -14,7 +14,7 @@
     </view>
 
     <view class="level-tip" wx:if="{{userLevel < 1 && loaded}}"><view class="tip-mark">L0</view><text>当前等级暂未开放设备兑换，升级后可提交订单</text></view>
-    <view class="level-badge-bar" wx:if="{{userLevel >= 1}}"><text>账户等级</text><text>{{levelNames[userLevel]}}</text></view>
+    <view class="level-badge-bar" wx:if="{{userLevel >= 1}}"><text>账户等级</text><text>{{userLevelName}}</text></view>
 
     <view class="section-heading"><view><text>可兑换设备</text><text>EDGE HARDWARE</text></view><text wx:if="{{products.length}}">{{products.length}} 项</text></view>
 

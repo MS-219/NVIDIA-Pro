@@ -66,12 +66,10 @@ public class ExchangeController {
                     .orderByDesc(ExchangeProduct::getCreateTime)
                     .list();
 
-            // 填充当前用户等级对应的价格
-            for (ExchangeProduct product : products) {
-                BigDecimal userPrice = product.getPriceByLevel(userLevel);
-                product.setUserPrice(userPrice);
-                product.setUserHashratePrice(toHashrate(userPrice, hashrateRate));
-            }
+            // 只返回当前用户可见的价格，不向小程序暴露其他等级报价字段。
+            List<Map<String, Object>> visibleProducts = products.stream()
+                    .map(product -> toUserProductView(product, userLevel, hashrateRate))
+                    .toList();
 
             // 读取用户可用算力值
             BigDecimal balance = (user != null && user.getBalance() != null) ? user.getBalance() : BigDecimal.ZERO;
@@ -79,9 +77,9 @@ public class ExchangeController {
 
             result.put("code", 200);
             Map<String, Object> data = new HashMap<>();
-            data.put("products", products);
+            data.put("products", visibleProducts);
             data.put("userLevel", userLevel);
-            data.put("levelNames", getLevelNames());
+            data.put("userLevelName", inviteLevelConfigService.getLevelName(userLevel));
             data.put("hashrateRate", hashrateRate);
             data.put("availableHashrate", availableHashrate);
             result.put("data", data);
@@ -119,33 +117,21 @@ public class ExchangeController {
             String rateStr = configService.getConfig("earnings.hashratePerYuan", "100");
             long hashrateRate = Long.parseLong(rateStr);
 
-            // 设置当前用户价格
             BigDecimal userPrice = product.getPriceByLevel(userLevel);
-            product.setUserPrice(userPrice);
-            product.setUserHashratePrice(toHashrate(userPrice, hashrateRate));
-
-            // 构建所有等级价格列表
-            List<Map<String, Object>> allPrices = new ArrayList<>();
-            int levelCount = inviteLevelConfigService.getLevelCount();
-            for (int i = 1; i <= levelCount; i++) {
-                Map<String, Object> priceInfo = new HashMap<>();
-                priceInfo.put("level", i);
-                priceInfo.put("levelName", inviteLevelConfigService.getLevelName(i));
-                BigDecimal price = product.getPriceByLevel(i);
-                priceInfo.put("price", price);
-                priceInfo.put("hashratePrice", toHashrate(price, hashrateRate));
-                priceInfo.put("isCurrent", i == userLevel);
-                allPrices.add(priceInfo);
-            }
+            Map<String, Object> currentPrice = new LinkedHashMap<>();
+            currentPrice.put("level", userLevel);
+            currentPrice.put("levelName", inviteLevelConfigService.getLevelName(userLevel));
+            currentPrice.put("price", userPrice);
+            currentPrice.put("hashratePrice", toHashrate(userPrice, hashrateRate));
 
             BigDecimal balance = (user != null && user.getBalance() != null) ? user.getBalance() : BigDecimal.ZERO;
             long availableHashrate = toHashrate(balance, hashrateRate);
 
             Map<String, Object> data = new HashMap<>();
-            data.put("product", product);
-            data.put("allPrices", allPrices);
+            data.put("product", toUserProductView(product, userLevel, hashrateRate));
+            data.put("currentPrice", currentPrice);
             data.put("userLevel", userLevel);
-            data.put("levelNames", getLevelNames());
+            data.put("userLevelName", inviteLevelConfigService.getLevelName(userLevel));
             data.put("hashrateRate", hashrateRate);
             data.put("availableHashrate", availableHashrate);
 
@@ -158,13 +144,20 @@ public class ExchangeController {
         return result;
     }
 
-    private List<String> getLevelNames() {
-        List<String> names = new ArrayList<>();
-        names.add(inviteLevelConfigService.getLevelName(0));
-        for (int level = 1; level <= inviteLevelConfigService.getLevelCount(); level++) {
-            names.add(inviteLevelConfigService.getLevelName(level));
-        }
-        return names;
+    private Map<String, Object> toUserProductView(ExchangeProduct product, int userLevel, long hashrateRate) {
+        BigDecimal userPrice = product.getPriceByLevel(userLevel);
+        Map<String, Object> view = new LinkedHashMap<>();
+        view.put("id", product.getId());
+        view.put("name", product.getName());
+        view.put("description", product.getDescription());
+        view.put("imageUrl", product.getImageUrl());
+        view.put("images", product.getImages());
+        view.put("stock", product.getStock());
+        view.put("status", product.getStatus());
+        view.put("sortOrder", product.getSortOrder());
+        view.put("userPrice", userPrice);
+        view.put("userHashratePrice", toHashrate(userPrice, hashrateRate));
+        return view;
     }
 
     /**
