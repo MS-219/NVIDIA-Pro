@@ -88,12 +88,12 @@
           </template>
         </el-table-column>
         
-        <el-table-column prop="sn" label="SN 序列号" width="220">
+        <el-table-column prop="bindCode" label="绑定码" width="220">
           <template #default="{ row }">
             <div>
-              <b style="font-family: monospace; font-size: 14px;">{{ row.sn }}</b>
+              <b class="device-bind-code">{{ row.bindCode || '未生成' }}</b>
               <div style="margin-top: 4px; color: #909399; font-size: 12px;">
-                版本 {{ row.agentVersion || '待上报' }}
+                {{ row.type === 1 ? '挂靠设备' : `版本 ${row.agentVersion || '待上报'}` }}
               </div>
             </div>
           </template>
@@ -1266,6 +1266,13 @@ onUnmounted(() => {
   margin-top: 4px;
   color: var(--orin-muted);
   font-size: 11px;
+}
+
+.device-bind-code {
+  color: var(--orin-text-soft);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 14px;
+  letter-spacing: 0;
 }
 
 .env-cell {

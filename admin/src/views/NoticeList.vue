@@ -318,11 +318,62 @@ const deleteNotice = async (row) => {
   }
 }
 
+const loadCoverImage = (file) => new Promise((resolve, reject) => {
+  const image = new Image()
+  const objectUrl = URL.createObjectURL(file)
+  image.onload = () => {
+    URL.revokeObjectURL(objectUrl)
+    resolve(image)
+  }
+  image.onerror = () => {
+    URL.revokeObjectURL(objectUrl)
+    reject(new Error('无法读取图片，请更换图片后重试'))
+  }
+  image.src = objectUrl
+})
+
+const canvasToWebp = (canvas, quality) => new Promise((resolve, reject) => {
+  canvas.toBlob(
+    blob => blob ? resolve(blob) : reject(new Error('图片压缩失败，请更换图片后重试')),
+    'image/webp',
+    quality
+  )
+})
+
+const optimizeNoticeCover = async (file) => {
+  const gatewaySafeSize = 900 * 1024
+  if (file.size <= gatewaySafeSize) return file
+
+  const image = await loadCoverImage(file)
+  const maxWidth = 1600
+  const maxHeight = 1000
+  const scale = Math.min(1, maxWidth / image.naturalWidth, maxHeight / image.naturalHeight)
+  const canvas = document.createElement('canvas')
+  canvas.width = Math.max(1, Math.round(image.naturalWidth * scale))
+  canvas.height = Math.max(1, Math.round(image.naturalHeight * scale))
+  const context = canvas.getContext('2d')
+  if (!context) throw new Error('当前浏览器不支持图片压缩')
+  context.drawImage(image, 0, 0, canvas.width, canvas.height)
+
+  let blob = null
+  for (const quality of [0.86, 0.76, 0.66, 0.56]) {
+    blob = await canvasToWebp(canvas, quality)
+    if (blob.size <= gatewaySafeSize) break
+  }
+  if (!blob || blob.size > gatewaySafeSize) {
+    throw new Error('图片内容过于复杂，请换一张图片或将图片压缩到 1MB 以内')
+  }
+
+  const baseName = String(file.name || 'notice-cover').replace(/\.[^.]+$/, '')
+  return new File([blob], `${baseName}.webp`, { type: 'image/webp', lastModified: Date.now() })
+}
+
 const uploadNoticeImage = async ({ file, onSuccess, onError }) => {
   imageUploading.value = true
   try {
+    const uploadFile = await optimizeNoticeCover(file)
     const formData = new FormData()
-    formData.append('file', file)
+    formData.append('file', uploadFile)
     const res = await axios.post('/api/upload/image', formData, { silent: true })
     if (res.data.code !== 200 || !res.data.data?.url) {
       throw new Error(res.data.msg || '服务器未返回图片地址')
