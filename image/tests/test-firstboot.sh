@@ -7,7 +7,10 @@ TEMP_ROOT_2="$(mktemp -d)"
 TEMP_ROOT_3="$(mktemp -d)"
 TEMP_ROOT_4="$(mktemp -d)"
 TEMP_ROOT_5="$(mktemp -d)"
-trap 'rm -rf "$TEMP_ROOT" "$TEMP_ROOT_2" "$TEMP_ROOT_3" "$TEMP_ROOT_4" "$TEMP_ROOT_5"' EXIT
+TEMP_ROOT_6="$(mktemp -d)"
+TEMP_ROOT_7="$(mktemp -d)"
+TEMP_ROOT_8="$(mktemp -d)"
+trap 'rm -rf "$TEMP_ROOT" "$TEMP_ROOT_2" "$TEMP_ROOT_3" "$TEMP_ROOT_4" "$TEMP_ROOT_5" "$TEMP_ROOT_6" "$TEMP_ROOT_7" "$TEMP_ROOT_8"' EXIT
 
 mkdir -p \
   "$TEMP_ROOT/etc/juxin-orin" \
@@ -143,4 +146,41 @@ fallback_digest="$(printf 'juxin-orin-v2|mac:3C6D66C39BBC' | sha256sum | awk '{p
 [[ "$(cat "$TEMP_ROOT_5/var/lib/juxin-orin/device-sn")" == "ORIN-${fallback_digest:0:16}" ]]
 [[ "$(cat "$TEMP_ROOT_5/var/lib/juxin-orin/hardware-fingerprint")" == "$fallback_digest" ]]
 
-echo "firstboot identity test: PASS (${first_sn}, ${second_sn}, legacy compatible)"
+for root in "$TEMP_ROOT_6" "$TEMP_ROOT_7" "$TEMP_ROOT_8"; do
+  mkdir -p \
+    "$root/etc/juxin-orin" \
+    "$root/etc" \
+    "$root/sys/module/tegra_fuse/parameters" \
+    "$root/sys/class/net/eth0/device" \
+    "$root/proc"
+  cp "$TEMP_ROOT/etc/juxin-orin/image.env" "$root/etc/juxin-orin/image.env"
+  cp "$TEMP_ROOT/etc/hosts" "$root/etc/hosts"
+done
+
+printf '0x80012344705DF24B3000000013FF80C0\n' \
+  >"$TEMP_ROOT_6/sys/module/tegra_fuse/parameters/tegra_chip_uid"
+printf '3c:6d:66:c3:9b:01\n' >"$TEMP_ROOT_6/sys/class/net/eth0/address"
+
+printf '0x80012344705DF24B3000000013FF80C0\n' \
+  >"$TEMP_ROOT_7/sys/module/tegra_fuse/parameters/tegra_chip_uid"
+printf '3c:6d:66:c3:9b:02\n' >"$TEMP_ROOT_7/sys/class/net/eth0/address"
+
+printf '0x80012344705E010F0C000000020002C0\n' \
+  >"$TEMP_ROOT_8/sys/module/tegra_fuse/parameters/tegra_chip_uid"
+printf '3c:6d:66:c3:9b:01\n' >"$TEMP_ROOT_8/sys/class/net/eth0/address"
+
+for root in "$TEMP_ROOT_6" "$TEMP_ROOT_7" "$TEMP_ROOT_8"; do
+  ORIN_ROOT_PREFIX="$root" \
+  ORIN_SYS_ROOT="$root/sys" \
+  ORIN_PROC_ROOT="$root/proc" \
+  ORIN_SKIP_PLATFORM_CHECK=1 \
+    "$IMAGE_DIR/agent/orin-firstboot.sh"
+done
+
+fuse_sn_1="$(cat "$TEMP_ROOT_6/var/lib/juxin-orin/device-sn")"
+fuse_sn_2="$(cat "$TEMP_ROOT_7/var/lib/juxin-orin/device-sn")"
+fuse_sn_3="$(cat "$TEMP_ROOT_8/var/lib/juxin-orin/device-sn")"
+[[ "$fuse_sn_1" == "$fuse_sn_2" ]]
+[[ "$fuse_sn_1" != "$fuse_sn_3" ]]
+
+echo "firstboot identity test: PASS (${first_sn}, ${second_sn}, fuse stable, legacy compatible)"

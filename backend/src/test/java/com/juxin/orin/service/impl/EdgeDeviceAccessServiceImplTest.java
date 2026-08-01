@@ -15,6 +15,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
 
+import java.time.LocalDateTime;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -110,25 +111,29 @@ class EdgeDeviceAccessServiceImplTest {
     }
 
     @Test
-    void enrollNeverReissuesTokenForAlreadyEnrolledDevice() {
-        Device existing = new Device();
-        existing.setId(8L);
-        existing.setSn("ORIN-001");
-        existing.setHardwareFingerprint("0123456789abcdef");
-        existing.setDeviceTokenHash("a".repeat(64));
+    void reflashRecoversSameTokenAndBindCodeAfterEnrollmentWindow() {
+        when(deviceMapper.selectOne(any(LambdaQueryWrapper.class))).thenReturn(null, null, null);
+        doAnswer(invocation -> {
+            Device device = invocation.getArgument(0);
+            device.setId(8L);
+            return 1;
+        }).when(deviceMapper).insert(any(Device.class));
 
-        when(deviceMapper.selectOne(any(LambdaQueryWrapper.class))).thenReturn(existing, existing);
+        EdgeEnrollRequest request = enrollmentRequest("ORIN-REFLASH");
+        EdgeEnrollResponse first = service.enroll(request, "203.0.113.10");
 
-        EdgeDeviceApiException exception = assertThrows(EdgeDeviceApiException.class, () -> service.enroll(
-                new EdgeEnrollRequest(
-                        "ORIN-001",
-                        "orin-l4t-36.4.7-v1",
-                        "0123456789abcdef",
-                        Map.of()),
-                "203.0.113.10"));
+        ArgumentCaptor<Device> deviceCaptor = ArgumentCaptor.forClass(Device.class);
+        verify(deviceMapper).insert(deviceCaptor.capture());
+        Device stored = deviceCaptor.getValue();
+        stored.setEnrolledAt(LocalDateTime.now().minusDays(30));
+        when(deviceMapper.selectOne(any(LambdaQueryWrapper.class))).thenReturn(stored, stored);
 
-        assertEquals(HttpStatus.CONFLICT, exception.getStatus());
-        verify(deviceMapper, never()).updateById(any(Device.class));
+        EdgeEnrollResponse reflashed = service.enroll(request, "203.0.113.11");
+
+        assertEquals(first.deviceToken(), reflashed.deviceToken());
+        assertEquals(first.bindCode(), reflashed.bindCode());
+        assertEquals("203.0.113.11", stored.getIp());
+        verify(deviceMapper).updateById(stored);
     }
 
     @Test
@@ -201,6 +206,26 @@ class EdgeDeviceAccessServiceImplTest {
 
         assertEquals(HttpStatus.CONFLICT, exception.getStatus());
         verify(deviceMapper, never()).insert(any(Device.class));
+    }
+
+    @Test
+    void reflashRejectsDifferentFingerprintForSameSn() {
+        Device existing = new Device();
+        existing.setId(9L);
+        existing.setSn("ORIN-REFLASH");
+        existing.setHardwareFingerprint("0123456789abcdef");
+        when(deviceMapper.selectOne(any(LambdaQueryWrapper.class))).thenReturn(null, existing);
+
+        EdgeDeviceApiException exception = assertThrows(EdgeDeviceApiException.class, () -> service.enroll(
+                new EdgeEnrollRequest(
+                        "ORIN-REFLASH",
+                        "orin-l4t-36.4.7-v1",
+                        "fedcba9876543210",
+                        Map.of()),
+                "203.0.113.11"));
+
+        assertEquals(HttpStatus.CONFLICT, exception.getStatus());
+        verify(deviceMapper, never()).updateById(any(Device.class));
     }
 
     @Test

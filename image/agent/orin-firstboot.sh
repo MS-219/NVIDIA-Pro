@@ -48,6 +48,23 @@ read_first_identifier() {
   return 1
 }
 
+read_fuse_uid() {
+  local path value
+  for path in \
+    "${SYS_ROOT}/module/tegra_fuse/parameters/tegra_chip_uid" \
+    "${SYS_ROOT}/devices/platform/tegra-fuse/uid"; do
+    if [[ -r "$path" ]]; then
+      value="$(tr '[:lower:]' '[:upper:]' <"$path" | tr -d '\000\r\n ')"
+      value="${value#0X}"
+      if [[ "$value" =~ ^[A-F0-9]{16,64}$ && ! "$value" =~ ^0+$ ]]; then
+        printf '%s' "$value"
+        return 0
+      fi
+    fi
+  done
+  return 1
+}
+
 read_mac() {
   local require_device="$1"
   local interface value
@@ -75,12 +92,18 @@ platform_check() {
 }
 
 generate_identity() {
-  local hardware_id="" mac="" seed="" digest=""
+  local hardware_id="" fuse_uid="" mac="" seed="" digest=""
   hardware_id="$(read_first_identifier || true)"
 
   if [[ -n "$hardware_id" ]]; then
     seed="serial:${hardware_id}"
   else
+    fuse_uid="$(read_fuse_uid || true)"
+  fi
+
+  if [[ -z "$seed" && -n "$fuse_uid" ]]; then
+    seed="fuse:${fuse_uid}"
+  elif [[ -z "$seed" ]]; then
     mac="$(read_first_mac || true)"
   fi
 

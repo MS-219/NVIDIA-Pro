@@ -18,7 +18,6 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
-import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.Base64;
 import java.util.Locale;
@@ -33,7 +32,6 @@ public class EdgeDeviceAccessServiceImpl implements IEdgeDeviceAccessService {
 
     private static final SecureRandom SECURE_RANDOM = new SecureRandom();
     private static final int TOKEN_BYTES = 32;
-    private static final Duration ENROLLMENT_RECOVERY_WINDOW = Duration.ofMinutes(15);
     private static final Pattern SN_PATTERN = Pattern.compile("[A-Za-z0-9][A-Za-z0-9._:-]{0,63}");
     private static final Pattern TOKEN_PATTERN = Pattern.compile("[A-Za-z0-9_-]{43}");
 
@@ -89,7 +87,7 @@ public class EdgeDeviceAccessServiceImpl implements IEdgeDeviceAccessService {
         } else {
             validateExistingIdentity(device, hardwareFingerprint);
             if (hasText(device.getDeviceTokenHash())) {
-                return recoverRecentEnrollment(
+                return recoverEnrollment(
                         device, imageVersion, hardwareFingerprint, request.telemetry(), clientIp);
             }
             if (!hasText(device.getBindCode())) {
@@ -156,18 +154,16 @@ public class EdgeDeviceAccessServiceImpl implements IEdgeDeviceAccessService {
             throw new EdgeDeviceApiException(HttpStatus.CONFLICT, "设备入网发生并发冲突，请重试");
         }
         validateExistingIdentity(enrolled, hardwareFingerprint);
-        return recoverRecentEnrollment(enrolled, imageVersion, hardwareFingerprint, telemetry, clientIp);
+        return recoverEnrollment(enrolled, imageVersion, hardwareFingerprint, telemetry, clientIp);
     }
 
-    private EdgeEnrollResponse recoverRecentEnrollment(
+    private EdgeEnrollResponse recoverEnrollment(
             Device device,
             String imageVersion,
             String hardwareFingerprint,
             Map<String, Object> telemetry,
             String clientIp) {
-        if (!hasText(device.getDeviceTokenSeed()) || !hasText(device.getDeviceTokenHash())
-                || device.getEnrolledAt() == null
-                || LocalDateTime.now().isAfter(device.getEnrolledAt().plus(ENROLLMENT_RECOVERY_WINDOW))) {
+        if (!hasText(device.getDeviceTokenSeed()) || !hasText(device.getDeviceTokenHash())) {
             throw new EdgeDeviceApiException(HttpStatus.CONFLICT, "设备已完成入网，不能重复签发令牌");
         }
 
