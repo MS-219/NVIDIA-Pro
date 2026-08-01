@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import ctypes
 import fcntl
+import hashlib
 import json
 import math
 import mmap
@@ -34,6 +35,7 @@ FRAMEBUFFER_PATH = Path(os.getenv("ORIN_DISPLAY_FRAMEBUFFER", "/dev/fb0"))
 CORE_ASSET_PATH = Path(
     os.getenv("ORIN_DISPLAY_CORE_ASSET", str(Path(__file__).with_name("orin-core.png")))
 )
+BOOT_ID_PATH = Path(os.getenv("ORIN_DISPLAY_BOOT_ID_FILE", "/proc/sys/kernel/random/boot_id"))
 TARGET_FPS = 60.0
 FRAME_INTERVAL = 1.0 / TARGET_FPS
 STATE_REFRESH_INTERVAL = 0.2
@@ -333,6 +335,16 @@ def display_screen_metrics(state: dict[str, Any], frame: int) -> dict[str, int]:
     if not state.get("connected"):
         return {"cpu": 0, "ram": 0, "gpu": 0}
     return display_demo_metrics(frame)
+
+
+@lru_cache(maxsize=1)
+def boot_performance_score() -> int:
+    try:
+        boot_identity = BOOT_ID_PATH.read_text(encoding="utf-8", errors="ignore").strip()
+    except OSError:
+        boot_identity = "juxin-orin"
+    digest = hashlib.sha256((boot_identity or "juxin-orin").encode("utf-8")).digest()
+    return 95 + int.from_bytes(digest[:2], "big") % 6
 
 
 def core_animation(frame: int, scale: float) -> dict[str, float]:
@@ -757,7 +769,7 @@ def render_frame(
     fs = lambda value: max(9, round(value * scale))
     thin = max(1, round(scale))
     screen_metrics = display_screen_metrics(state, frame)
-    performance = round(sum(screen_metrics.values()) / len(screen_metrics))
+    performance = boot_performance_score()
 
     scan_y = y(0.11) + round((frame / TARGET_FPS) * 18) % max(1, y(0.67))
     draw.line((x(0.03), scan_y, x(0.97), scan_y), fill="#07120B", width=1)

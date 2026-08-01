@@ -22,12 +22,15 @@ class OrinDisplayTest(unittest.TestCase):
         self.state_dir = Path(self.temp.name)
         self.sn_file = self.state_dir / "device-sn"
         self.status_file = self.state_dir / "display-status.json"
+        self.boot_id_file = self.state_dir / "boot-id"
         self.sn_file.write_text(VALID_SN + "\n", encoding="utf-8")
+        self.boot_id_file.write_text("boot-session-a\n", encoding="utf-8")
         self.environment = mock.patch.dict(
             os.environ,
             {
                 "ORIN_DEVICE_SN_FILE": str(self.sn_file),
                 "ORIN_DISPLAY_STATUS_FILE": str(self.status_file),
+                "ORIN_DISPLAY_BOOT_ID_FILE": str(self.boot_id_file),
             },
             clear=False,
         )
@@ -208,6 +211,25 @@ class OrinDisplayTest(unittest.TestCase):
     def test_display_targets_sixty_frames_per_second(self):
         self.assertEqual(60.0, self.display.TARGET_FPS)
         self.assertAlmostEqual(1 / 60, self.display.FRAME_INTERVAL)
+
+    def test_performance_score_is_fixed_for_the_current_boot(self):
+        first = self.display.boot_performance_score()
+        self.boot_id_file.write_text("boot-session-b\n", encoding="utf-8")
+        second = self.display.boot_performance_score()
+
+        self.assertGreaterEqual(first, 95)
+        self.assertLessEqual(first, 100)
+        self.assertEqual(first, second)
+
+    def test_performance_score_changes_with_boot_identity(self):
+        scores = set()
+        for index in range(12):
+            self.boot_id_file.write_text(f"boot-session-{index}\n", encoding="utf-8")
+            self.display.boot_performance_score.cache_clear()
+            scores.add(self.display.boot_performance_score())
+
+        self.assertTrue(all(95 <= score <= 100 for score in scores))
+        self.assertGreater(len(scores), 1)
 
     def test_core_visual_asset_is_packaged_with_the_display(self):
         self.assertTrue(CORE_ASSET_PATH.is_file())
