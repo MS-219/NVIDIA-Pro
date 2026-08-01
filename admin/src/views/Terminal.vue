@@ -467,12 +467,16 @@ onBeforeUnmount(() => {
 .terminal-body {
   flex: 1;
   padding: 15px;
-  background: var(--orin-canvas);
+  background: #070908;
   overflow: hidden;
 }
 
 .xterm-view {
   height: 100%;
+  background: #0b0d0c;
+  border: 1px solid rgba(118, 185, 0, 0.2);
+  border-radius: 4px;
+  overflow: hidden;
 }
 
 .terminal-selector {
@@ -535,11 +539,30 @@ onBeforeUnmount(() => {
 }
 
 :deep(.xterm-viewport) {
-  background: var(--orin-canvas) !important;
+  background: #0b0d0c !important;
 }
 
 :deep(.xterm-rows) {
-  color: var(--orin-text-soft);
+  color: #c2c8bd;
+}
+
+:deep(.xterm),
+:deep(.xterm-screen) {
+  background: #0b0d0c !important;
+}
+
+:deep(.xterm-viewport::-webkit-scrollbar) {
+  width: 9px;
+}
+
+:deep(.xterm-viewport::-webkit-scrollbar-track) {
+  background: #0b0d0c;
+}
+
+:deep(.xterm-viewport::-webkit-scrollbar-thumb) {
+  background: #353b33;
+  border: 2px solid #0b0d0c;
+  border-radius: 8px;
 }
 
 @media (max-width: 760px) {
