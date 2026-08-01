@@ -36,6 +36,9 @@ CORE_ASSET_PATH = Path(
     os.getenv("ORIN_DISPLAY_CORE_ASSET", str(Path(__file__).with_name("orin-core.png")))
 )
 BOOT_ID_PATH = Path(os.getenv("ORIN_DISPLAY_BOOT_ID_FILE", "/proc/sys/kernel/random/boot_id"))
+PERFORMANCE_STATE_PATH = Path(
+    os.getenv("ORIN_DISPLAY_PERFORMANCE_STATE_FILE", "/var/lib/juxin-orin/display-performance.json")
+)
 TARGET_FPS = 60.0
 FRAME_INTERVAL = 1.0 / TARGET_FPS
 STATE_REFRESH_INTERVAL = 0.2
@@ -321,13 +324,27 @@ def display_power_mode(state: dict[str, Any]) -> str:
     )
 
 
+@lru_cache(maxsize=1)
+def boot_metric_phases() -> tuple[float, float, float, float, float, float]:
+    try:
+        boot_identity = BOOT_ID_PATH.read_text(encoding="utf-8", errors="ignore").strip()
+    except OSError:
+        boot_identity = "juxin-orin"
+    digest = hashlib.sha256((boot_identity or "juxin-orin").encode("utf-8")).digest()
+    return tuple((digest[index] / 255.0) * math.tau for index in range(6))
+
+
 def display_demo_metrics(frame: int) -> dict[str, int]:
-    """Render lively screen-only utilization values without changing telemetry."""
+    """Render smooth, workload-shaped screen values without changing real telemetry."""
     elapsed = frame / TARGET_FPS
+    cpu_a, cpu_b, ram_a, ram_b, gpu_a, gpu_b = boot_metric_phases()
+    cpu = 22.5 + 4.7 * math.sin(elapsed * 0.23 + cpu_a) + 2.3 * math.sin(elapsed * 0.57 + cpu_b)
+    ram = 35.0 + 4.2 * math.sin(elapsed * 0.09 + ram_a) + 1.8 * math.sin(elapsed * 0.25 + ram_b)
+    gpu = 67.5 + 5.3 * math.sin(elapsed * 0.17 + gpu_a) + 2.0 * math.sin(elapsed * 0.41 + gpu_b)
     return {
-        "cpu": round(72.5 + 12.5 * math.sin(elapsed * 0.62)),
-        "ram": round(72.5 + 12.5 * math.sin(elapsed * 0.50 + 1.7)),
-        "gpu": round(72.5 + 12.5 * math.sin(elapsed * 0.78 + 3.1)),
+        "cpu": round(max(15.0, min(30.0, cpu))),
+        "ram": round(max(28.0, min(42.0, ram))),
+        "gpu": round(max(60.0, min(75.0, gpu))),
     }
 
 
@@ -343,8 +360,31 @@ def boot_performance_score() -> int:
         boot_identity = BOOT_ID_PATH.read_text(encoding="utf-8", errors="ignore").strip()
     except OSError:
         boot_identity = "juxin-orin"
+    previous: dict[str, Any] = {}
+    try:
+        parsed = json.loads(PERFORMANCE_STATE_PATH.read_text(encoding="utf-8"))
+        if isinstance(parsed, dict):
+            previous = parsed
+    except (OSError, ValueError, json.JSONDecodeError):
+        pass
+    previous_score = int(safe_number(previous.get("score"), 0))
+    if previous.get("bootId") == boot_identity and 95 <= previous_score <= 100:
+        return previous_score
     digest = hashlib.sha256((boot_identity or "juxin-orin").encode("utf-8")).digest()
-    return 95 + int.from_bytes(digest[:2], "big") % 6
+    score = 95 + int.from_bytes(digest[:2], "big") % 6
+    if 95 <= previous_score <= 100 and score == previous_score:
+        score = 95 + (score - 94) % 6
+    try:
+        PERFORMANCE_STATE_PATH.parent.mkdir(parents=True, exist_ok=True)
+        temporary = PERFORMANCE_STATE_PATH.with_suffix(".tmp")
+        temporary.write_text(
+            json.dumps({"bootId": boot_identity, "score": score}, separators=(",", ":")),
+            encoding="utf-8",
+        )
+        os.replace(temporary, PERFORMANCE_STATE_PATH)
+    except OSError:
+        pass
+    return score
 
 
 def core_animation(frame: int, scale: float) -> dict[str, float]:

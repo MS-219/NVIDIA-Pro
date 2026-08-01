@@ -23,6 +23,7 @@ class OrinDisplayTest(unittest.TestCase):
         self.sn_file = self.state_dir / "device-sn"
         self.status_file = self.state_dir / "display-status.json"
         self.boot_id_file = self.state_dir / "boot-id"
+        self.performance_state_file = self.state_dir / "display-performance.json"
         self.sn_file.write_text(VALID_SN + "\n", encoding="utf-8")
         self.boot_id_file.write_text("boot-session-a\n", encoding="utf-8")
         self.environment = mock.patch.dict(
@@ -31,6 +32,7 @@ class OrinDisplayTest(unittest.TestCase):
                 "ORIN_DEVICE_SN_FILE": str(self.sn_file),
                 "ORIN_DISPLAY_STATUS_FILE": str(self.status_file),
                 "ORIN_DISPLAY_BOOT_ID_FILE": str(self.boot_id_file),
+                "ORIN_DISPLAY_PERFORMANCE_STATE_FILE": str(self.performance_state_file),
             },
             clear=False,
         )
@@ -184,16 +186,21 @@ class OrinDisplayTest(unittest.TestCase):
         self.assertIn("GPU READY  |  25W  |  NODE ATTACHED", frame)
         self.assertNotIn("MAXN_SUPER", frame)
 
-    def test_screen_metrics_float_between_sixty_and_eighty_five(self):
+    def test_screen_metrics_follow_realistic_orin_workload_ranges(self):
         state = self.display.default_state()
         state["connected"] = True
-        first = self.display.display_screen_metrics(state, 0)
-        second = self.display.display_screen_metrics(state, 120)
+        samples = [
+            self.display.display_screen_metrics(state, frame)
+            for frame in range(0, 3601, 300)
+        ]
 
-        for value in (*first.values(), *second.values()):
-            self.assertGreaterEqual(value, 60)
-            self.assertLessEqual(value, 85)
-        self.assertNotEqual(first, second)
+        self.assertTrue(all(15 <= sample["cpu"] <= 30 for sample in samples))
+        self.assertTrue(all(28 <= sample["ram"] <= 42 for sample in samples))
+        self.assertTrue(all(60 <= sample["gpu"] <= 75 for sample in samples))
+        self.assertGreater(len({sample["cpu"] for sample in samples}), 1)
+        self.assertGreater(len({sample["ram"] for sample in samples}), 1)
+        self.assertGreater(len({sample["gpu"] for sample in samples}), 1)
+        self.assertTrue(any(sample["gpu"] > sample["cpu"] for sample in samples))
 
     def test_offline_screen_metrics_stay_at_zero(self):
         state = self.display.default_state()
@@ -221,15 +228,18 @@ class OrinDisplayTest(unittest.TestCase):
         self.assertLessEqual(first, 100)
         self.assertEqual(first, second)
 
-    def test_performance_score_changes_with_boot_identity(self):
-        scores = set()
-        for index in range(12):
-            self.boot_id_file.write_text(f"boot-session-{index}\n", encoding="utf-8")
-            self.display.boot_performance_score.cache_clear()
-            scores.add(self.display.boot_performance_score())
+    def test_performance_score_changes_on_the_next_boot(self):
+        first = self.display.boot_performance_score()
+        self.boot_id_file.write_text("boot-session-b\n", encoding="utf-8")
+        self.display.boot_performance_score.cache_clear()
+        second = self.display.boot_performance_score()
+        self.display.boot_performance_score.cache_clear()
+        same_boot = self.display.boot_performance_score()
 
-        self.assertTrue(all(95 <= score <= 100 for score in scores))
-        self.assertGreater(len(scores), 1)
+        self.assertGreaterEqual(second, 95)
+        self.assertLessEqual(second, 100)
+        self.assertNotEqual(first, second)
+        self.assertEqual(second, same_boot)
 
     def test_core_visual_asset_is_packaged_with_the_display(self):
         self.assertTrue(CORE_ASSET_PATH.is_file())
