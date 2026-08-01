@@ -332,7 +332,9 @@ const uploadNoticeImage = async ({ file, onSuccess, onError }) => {
     onSuccess?.(res.data)
     ElMessage.success('封面上传成功')
   } catch (error) {
-    const message = error?.response?.data?.msg || error?.message || '封面上传失败'
+    const message = error?.response?.status === 413
+      ? '图片过大，封面图不能超过 5MB'
+      : (error?.response?.data?.msg || error?.message || '封面上传失败')
     ElMessage.error(message)
     onError?.(error)
   } finally {
