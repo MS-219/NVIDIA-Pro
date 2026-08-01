@@ -47,6 +47,8 @@ grep -q 'fonts-noto-cjk' "$IMAGE_DIR/build/install-jetpack-runtime.sh"
 grep -q 'python3-pil' "$IMAGE_DIR/build/install-jetpack-runtime.sh"
 grep -q 'python3-websocket' "$IMAGE_DIR/build/install-jetpack-runtime.sh"
 grep -q 'iputils-ping' "$IMAGE_DIR/build/install-jetpack-runtime.sh"
+grep -q 'required_packages+=(util-linux)' "$IMAGE_DIR/agent/install-agent.sh"
+grep -q 'setsid is not installed in rootfs' "$IMAGE_DIR/build/inject-rootfs.sh"
 grep -q 'python3-websocket is not installed in rootfs' \
   "$IMAGE_DIR/build/inject-rootfs.sh"
 grep -q 'iputils-ping is not installed in rootfs' \

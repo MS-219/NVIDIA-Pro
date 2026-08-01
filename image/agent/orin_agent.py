@@ -61,6 +61,7 @@ RUNTIME_DIR = Path(os.getenv("ORIN_RUNTIME_DIR", "/opt/juxin-orin/runtime"))
 TASK_RUNNER = Path(os.getenv("ORIN_TASK_RUNNER", str(RUNTIME_DIR / "task-runner")))
 OLLAMA_API_BASE = os.getenv("ORIN_OLLAMA_API_BASE_URL", "http://127.0.0.1:11434").rstrip("/")
 TERMINAL_USER = os.getenv("ORIN_TERMINAL_USER", "juxin").strip() or "juxin"
+TERMINAL_SETSID_BIN = os.getenv("ORIN_TERMINAL_SETSID_BIN", "/usr/bin/setsid")
 TERMINAL_KEEPALIVE_INTERVAL = min(
     300, max(10, int(os.getenv("ORIN_TERMINAL_KEEPALIVE_INTERVAL", "25")))
 )
@@ -325,6 +326,8 @@ class TerminalShell:
                 raise RuntimeError("terminal user account is invalid")
             home = fields[5] or f"/home/{TERMINAL_USER}"
             shell = fields[6] or "/bin/bash"
+            if not os.access(TERMINAL_SETSID_BIN, os.X_OK):
+                raise RuntimeError(f"terminal session helper {TERMINAL_SETSID_BIN} is unavailable")
             master, slave = pty.openpty()
             environment = os.environ.copy()
             environment.update(
@@ -338,13 +341,21 @@ class TerminalShell:
             )
             try:
                 self.process = subprocess.Popen(
-                    ["/usr/sbin/runuser", "-u", TERMINAL_USER, "--", shell, "--login"],
+                    [
+                        TERMINAL_SETSID_BIN,
+                        "--ctty",
+                        "/usr/sbin/runuser",
+                        "-u",
+                        TERMINAL_USER,
+                        "--",
+                        shell,
+                        "--login",
+                    ],
                     stdin=slave,
                     stdout=slave,
                     stderr=slave,
                     cwd=home,
                     env=environment,
-                    start_new_session=True,
                     close_fds=True,
                 )
             except Exception:

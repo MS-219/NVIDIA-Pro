@@ -66,6 +66,9 @@ if ! dpkg-query --admindir="$ROOTFS/var/lib/dpkg" -W -f='${Status}\n' \
   iputils-ping 2>/dev/null | grep -qx 'install ok installed'; then
   die "iputils-ping is not installed in rootfs; run install-jetpack-runtime.sh first"
 fi
+if [[ ! -x "$ROOTFS/usr/bin/setsid" ]]; then
+  die "setsid is not installed in rootfs; install util-linux first"
+fi
 
 SSH_PUBLIC_KEY="$(head -n 1 "$SSH_PUBLIC_KEY_FILE" | tr -d '\r\n')"
 [[ "$SSH_PUBLIC_KEY" =~ ^ssh-(ed25519|rsa)[[:space:]]+[A-Za-z0-9+/=]+([[:space:]].*)?$ ]] \

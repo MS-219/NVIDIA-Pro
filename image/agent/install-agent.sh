@@ -21,10 +21,14 @@ install -d -m 0755 \
 install -m 0755 "${SCRIPT_DIR}/orin_agent.py" /opt/juxin-orin/agent/orin_agent.py
 install -m 0644 "${SCRIPT_DIR}/juxin-orin-agent.service" /etc/systemd/system/juxin-orin-agent.service
 
-if ! python3 -c 'import websocket' >/dev/null 2>&1 || ! command -v ping >/dev/null 2>&1; then
+required_packages=()
+python3 -c 'import websocket' >/dev/null 2>&1 || required_packages+=(python3-websocket)
+command -v ping >/dev/null 2>&1 || required_packages+=(iputils-ping)
+command -v setsid >/dev/null 2>&1 || required_packages+=(util-linux)
+if [[ "${#required_packages[@]}" -gt 0 ]]; then
   apt-get update
   DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
-    iputils-ping python3-websocket
+    "${required_packages[@]}"
 fi
 
 if [[ -f "${SCRIPT_DIR}/orin_display.py" && -f "${SCRIPT_DIR}/juxin-orin-display.service" ]]; then

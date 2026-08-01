@@ -378,6 +378,46 @@ class OrinAgentTest(unittest.TestCase):
         shell.resize.assert_called_once_with(120, 40)
         shell.close.assert_called_once()
 
+    def test_terminal_shell_uses_a_controlling_pty_session(self):
+        shell = self.agent.TerminalShell(mock.Mock())
+        account = self.agent.subprocess.CompletedProcess(
+            args=[],
+            returncode=0,
+            stdout="juxin:x:1000:1000::/home/juxin:/bin/bash\n",
+            stderr="",
+        )
+        process = mock.Mock(pid=4321)
+        reader = mock.Mock()
+
+        with mock.patch.object(self.agent.subprocess, "run", return_value=account), \
+                mock.patch.object(self.agent.os, "access", return_value=True), \
+                mock.patch.object(self.agent.pty, "openpty", return_value=(10, 11)), \
+                mock.patch.object(self.agent.subprocess, "Popen", return_value=process) as popen, \
+                mock.patch.object(self.agent.os, "close"), \
+                mock.patch.object(self.agent.threading, "Thread", return_value=reader), \
+                mock.patch.object(shell, "resize"):
+            shell.open(120, 40)
+
+        command, = popen.call_args.args
+        self.assertEqual(
+            [
+                self.agent.TERMINAL_SETSID_BIN,
+                "--ctty",
+                "/usr/sbin/runuser",
+                "-u",
+                "juxin",
+                "--",
+                "/bin/bash",
+                "--login",
+            ],
+            command,
+        )
+        self.assertNotIn("start_new_session", popen.call_args.kwargs)
+        self.assertEqual(11, popen.call_args.kwargs["stdin"])
+        self.assertEqual(11, popen.call_args.kwargs["stdout"])
+        self.assertEqual(11, popen.call_args.kwargs["stderr"])
+        reader.start.assert_called_once()
+
     def test_terminal_connection_authenticates_with_device_token(self):
         self.agent.atomic_write_secret(self.agent.TOKEN_FILE, "terminal-device-token")
         connection = mock.Mock()
