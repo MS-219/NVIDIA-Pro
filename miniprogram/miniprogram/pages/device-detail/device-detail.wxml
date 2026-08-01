@@ -100,7 +100,6 @@
       </view>
       <view class="identity-panel">
         <view><text>节点编号</text><text selectable>{{device.businessIdText}}</text></view>
-        <view><text>设备型号</text><text>{{device.modelText}}</text></view>
         <view><text>部署位置</text><text>{{device.locationText}}</text></view>
         <view><text>绑定时间</text><text>{{device.bindTimeText}}</text></view>
       </view>

@@ -41,10 +41,13 @@
           <view class="product-wrap"><image src="/images/product.png" mode="aspectFit"></image></view>
           <view class="device-info">
             <view class="device-name-line">
-              <text>{{item.remarks || 'Orin 边缘节点'}}</text>
+              <view class="device-code-copy" catchtap="onCopyContent" data-content="{{item.bindCode}}" aria-label="复制设备绑定码">
+                <text>{{item.bindCode || '绑定码待分配'}}</text>
+                <text class="device-copy-tip">复制</text>
+              </view>
               <view class="device-head-actions"><view class="status-pill {{item.status}}"><view></view>{{item.statusText}}</view><view class="more-control" catchtap="onManageDevice" data-id="{{item.id}}" aria-label="设备管理"><view></view><view></view><view></view></view></view>
             </view>
-            <text class="device-sn">SN {{item.bindCode || item.sn || '待分配'}}</text>
+            <text class="device-remark">备注 {{item.remarks || '暂无备注'}}</text>
             <view class="device-location"><text>部署位置</text><text>{{item.location || '未设置'}}</text></view>
           </view>
         </view>

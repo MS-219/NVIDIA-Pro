@@ -325,33 +325,20 @@ def display_power_mode(state: dict[str, Any]) -> str:
 
 
 @lru_cache(maxsize=1)
-def boot_metric_phases() -> tuple[float, float, float, float, float, float]:
-    try:
-        boot_identity = BOOT_ID_PATH.read_text(encoding="utf-8", errors="ignore").strip()
-    except OSError:
-        boot_identity = "juxin-orin"
-    digest = hashlib.sha256((boot_identity or "juxin-orin").encode("utf-8")).digest()
-    return tuple((digest[index] / 255.0) * math.tau for index in range(6))
-
-
-def display_demo_metrics(frame: int) -> dict[str, int]:
-    """Render smooth, workload-shaped screen values without changing real telemetry."""
-    elapsed = frame / TARGET_FPS
-    cpu_a, cpu_b, ram_a, ram_b, gpu_a, gpu_b = boot_metric_phases()
-    cpu = 22.5 + 4.7 * math.sin(elapsed * 0.23 + cpu_a) + 2.3 * math.sin(elapsed * 0.57 + cpu_b)
-    ram = 35.0 + 4.2 * math.sin(elapsed * 0.09 + ram_a) + 1.8 * math.sin(elapsed * 0.25 + ram_b)
-    gpu = 67.5 + 5.3 * math.sin(elapsed * 0.17 + gpu_a) + 2.0 * math.sin(elapsed * 0.41 + gpu_b)
-    return {
-        "cpu": round(max(15.0, min(30.0, cpu))),
-        "ram": round(max(28.0, min(42.0, ram))),
-        "gpu": round(max(60.0, min(75.0, gpu))),
-    }
+def display_metric(value: Any) -> int:
+    bounded = max(0.0, min(100.0, safe_number(value)))
+    return int(math.floor(bounded + 0.5))
 
 
 def display_screen_metrics(state: dict[str, Any], frame: int) -> dict[str, int]:
     if not state.get("connected"):
         return {"cpu": 0, "ram": 0, "gpu": 0}
-    return display_demo_metrics(frame)
+    telemetry = state.get("telemetry") or {}
+    return {
+        "cpu": display_metric(telemetry.get("cpu_load")),
+        "ram": display_metric(telemetry.get("mem_load")),
+        "gpu": display_metric(telemetry.get("gpu_usage")),
+    }
 
 
 @lru_cache(maxsize=1)

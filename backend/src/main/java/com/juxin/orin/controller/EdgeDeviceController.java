@@ -14,13 +14,13 @@ import com.juxin.orin.service.IDeviceCommandService;
 import com.juxin.orin.service.IEdgeDeviceAccessService;
 import com.juxin.orin.service.IDeviceService;
 import com.juxin.orin.service.IDeviceUpgradeService;
+import com.juxin.orin.util.ClientIpResolver;
 import com.juxin.orin.util.OrinPowerMode;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
-import java.net.InetAddress;
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
@@ -278,52 +278,14 @@ public class EdgeDeviceController {
     }
 
     private String resolveHeartbeatIp(HttpServletRequest request, String reportedIp) {
-        String clientIp = getClientIp(request);
-        if (isPublicIp(clientIp)) {
+        String clientIp = ClientIpResolver.resolve(request);
+        if (ClientIpResolver.isPublicAddress(clientIp)) {
             return clientIp;
         }
         if (reportedIp != null && !reportedIp.isBlank()) {
             return reportedIp.trim();
         }
         return clientIp;
-    }
-
-    private String getClientIp(HttpServletRequest request) {
-        // 优先使用 CDN 或代理写入的可靠 Header
-        String ip = request.getHeader("CF-Connecting-IP");
-        if (ip == null || ip.isBlank() || "unknown".equalsIgnoreCase(ip)) {
-            ip = request.getHeader("X-Real-IP");
-        }
-        if (ip == null || ip.isBlank() || "unknown".equalsIgnoreCase(ip)) {
-            ip = request.getHeader("X-Forwarded-For");
-            if (ip != null && ip.contains(",")) {
-                // 如果有多个代理，取最左边第一个（或者是客户端伪造的，这取决于Nginx配置）
-                ip = ip.split(",")[0].trim();
-            }
-        }
-        if (ip == null || ip.isBlank() || "unknown".equalsIgnoreCase(ip)) {
-            ip = request.getHeader("Proxy-Client-IP");
-        }
-        if (ip == null || ip.isBlank() || "unknown".equalsIgnoreCase(ip)) {
-            ip = request.getRemoteAddr();
-        }
-        return ip;
-    }
-
-    private boolean isPublicIp(String ip) {
-        if (ip == null || ip.isBlank() || "unknown".equalsIgnoreCase(ip)) {
-            return false;
-        }
-        try {
-            InetAddress address = InetAddress.getByName(ip.trim());
-            return !(address.isAnyLocalAddress()
-                    || address.isLoopbackAddress()
-                    || address.isSiteLocalAddress()
-                    || address.isLinkLocalAddress()
-                    || address.isMulticastAddress());
-        } catch (Exception e) {
-            return false;
-        }
     }
 
     /**

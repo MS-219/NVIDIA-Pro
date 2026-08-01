@@ -113,7 +113,11 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device> impleme
     private void updateDeviceIpInfo(Device device, String rawLocation) {
         if (rawLocation == null || rawLocation.isEmpty() || rawLocation.equals("未知位置")
                 || rawLocation.equals("局域网/本地")) {
-            device.setLocation(rawLocation != null && !rawLocation.isEmpty() ? rawLocation : "未知位置");
+            String currentLocation = device.getLocation();
+            if (currentLocation == null || currentLocation.isEmpty() || currentLocation.equals("未知位置")
+                    || currentLocation.equals("局域网/本地")) {
+                device.setLocation(rawLocation != null && !rawLocation.isEmpty() ? rawLocation : "未知位置");
+            }
             return;
         }
 

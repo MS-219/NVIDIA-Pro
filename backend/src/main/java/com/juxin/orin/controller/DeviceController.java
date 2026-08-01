@@ -218,25 +218,7 @@ public class DeviceController {
      * 获取客户端真实 IP 地址
      */
     private String getClientIp(jakarta.servlet.http.HttpServletRequest request) {
-        // 优先使用 CDN 或代理写入的可靠 Header
-        String ip = request.getHeader("CF-Connecting-IP");
-        if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
-            ip = request.getHeader("X-Real-IP");
-        }
-        if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
-            ip = request.getHeader("X-Forwarded-For");
-            // X-Forwarded-For 可能包含多个 IP，如果有多个代理，取最左边第一个（但这可能被客户端伪造，具体取决于 Nginx）
-            if (ip != null && ip.contains(",")) {
-                ip = ip.split(",")[0].trim();
-            }
-        }
-        if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
-            ip = request.getHeader("Proxy-Client-IP");
-        }
-        if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
-            ip = request.getRemoteAddr();
-        }
-        return ip;
+        return com.juxin.orin.util.ClientIpResolver.resolve(request);
     }
 
     // 小程序端绑定 (支持 SN 或绑定码)

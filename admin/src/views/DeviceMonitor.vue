@@ -643,8 +643,8 @@ const earningsChartRef = ref(null)
 const earningsChartLoading = ref(false)
 const earningsChartData = reactive({ dates: [], earnings: [] })
 let earningsChart = null
-let demoTelemetryTimer = null
-let demoTelemetryTick = 0
+let liveTelemetryTimer = null
+let liveTelemetryRefreshing = false
 
 const selectedBoundDevices = computed(() => selectedDevices.value.filter(device => device.userId != null))
 const selectedDeletableDevices = computed(() => selectedDevices.value.filter(
@@ -662,36 +662,23 @@ const stats = reactive({
   avgGpuLoad: 60
 })
 
-const DEMO_UTILIZATION_MIN = 60
-const DEMO_UTILIZATION_MAX = 85
-
-const demoUtilization = (deviceId, metricOffset, tick = demoTelemetryTick) => {
-  const seed = Math.abs((Number(deviceId) || 0) % 17)
-  const phase = tick * 0.85 + seed * 0.31 + metricOffset
-  const wave = 72.5 + 12.5 * Math.sin(phase)
-  return Math.max(DEMO_UTILIZATION_MIN, Math.min(DEMO_UTILIZATION_MAX, Math.round(wave)))
+const normalizeTelemetryPercentage = (value) => {
+  const parsed = Number.parseFloat(String(value ?? '').replace('%', ''))
+  return Number.isFinite(parsed)
+    ? String(Math.round(Math.max(0, Math.min(100, parsed))))
+    : '0'
 }
 
-const withDemoTelemetry = (device, tick = demoTelemetryTick) => {
+const withLiveTelemetry = (device) => {
   if (device.status !== 1) {
     return { ...device, cpuUsage: '0', memoryUsage: '0', gpuUsage: '0' }
   }
   return {
     ...device,
-    cpuUsage: String(demoUtilization(device.id, 0.8, tick)),
-    memoryUsage: String(demoUtilization(device.id, 2.2, tick)),
-    gpuUsage: String(demoUtilization(device.id, 3.7, tick))
+    cpuUsage: normalizeTelemetryPercentage(device.cpuUsage),
+    memoryUsage: normalizeTelemetryPercentage(device.memoryUsage),
+    gpuUsage: normalizeTelemetryPercentage(device.gpuUsage)
   }
-}
-
-const applyDemoTelemetry = () => {
-  devices.value = devices.value.map(device => withDemoTelemetry(device))
-  if (detailVisible.value && detailData.value.id != null) {
-    detailData.value = withDemoTelemetry(detailData.value)
-  }
-  stats.avgCpuLoad = demoUtilization(0, 0.8)
-  stats.avgMemLoad = demoUtilization(0, 2.2)
-  stats.avgGpuLoad = demoUtilization(0, 3.7)
 }
 
 const fetchStats = async () => {
@@ -699,7 +686,6 @@ const fetchStats = async () => {
     const res = await request.get('/api/admin/sl/devices/stats')
     if (res.data.code === 200) {
       Object.assign(stats, res.data.data)
-      applyDemoTelemetry()
     }
   } catch (e) { console.error(e) }
 }
@@ -744,8 +730,9 @@ const getLocationParam = () => {
   return locationFilter.value.join('')
 }
 
-const fetchDevices = async () => {
-  loading.value = true
+const fetchDevices = async (options = {}) => {
+  const silent = options === true || options?.silent === true
+  if (!silent) loading.value = true
   try {
     const res = await request.get('/api/admin/sl/devices/list', {
       params: {
@@ -760,14 +747,18 @@ const fetchDevices = async () => {
     if (res.data.code === 200) {
       const pageData = res.data.data || {}
       devices.value = Array.isArray(pageData.records)
-        ? pageData.records.map(device => withDemoTelemetry(device))
+        ? pageData.records.map(device => withLiveTelemetry(device))
         : []
       total.value = Number(pageData.total) || 0
+      if (detailVisible.value && detailData.value.id != null) {
+        const current = devices.value.find(device => device.id === detailData.value.id)
+        if (current) detailData.value = { ...detailData.value, ...current }
+      }
     }
   } catch (e) {
-    ElMessage.error('获取列表失败')
+    if (!silent) ElMessage.error('获取列表失败')
   } finally {
-    loading.value = false
+    if (!silent) loading.value = false
   }
 }
 
@@ -1094,14 +1085,14 @@ const disposeEarningsChart = () => {
 const viewDetail = async (device) => {
   detailVisible.value = true
   detailLoading.value = true
-  detailData.value = withDemoTelemetry(device)
+  detailData.value = withLiveTelemetry(device)
   await nextTick()
   loadEarningsChart(device.id)
 
   try {
     const res = await request.get(`/api/device/detail/${device.id}`)
     if (res.data.code === 200) {
-      detailData.value = withDemoTelemetry({
+      detailData.value = withLiveTelemetry({
         ...device,
         ...res.data.data,
         nickname: res.data.data.nickname || device.nickname,
@@ -1538,20 +1529,24 @@ const unbindDevice = async (device) => {
 }
 
 onMounted(() => {
-  demoTelemetryTick = 0
   fetchStats()
   fetchLocations()
   fetchDevices()
-  demoTelemetryTimer = setInterval(() => {
-    demoTelemetryTick += 1
-    applyDemoTelemetry()
-  }, 5000)
+  liveTelemetryTimer = setInterval(async () => {
+    if (liveTelemetryRefreshing) return
+    liveTelemetryRefreshing = true
+    try {
+      await Promise.all([fetchStats(), fetchDevices({ silent: true })])
+    } finally {
+      liveTelemetryRefreshing = false
+    }
+  }, 10000)
 })
 
 onUnmounted(() => {
-  if (demoTelemetryTimer !== null) {
-    clearInterval(demoTelemetryTimer)
-    demoTelemetryTimer = null
+  if (liveTelemetryTimer !== null) {
+    clearInterval(liveTelemetryTimer)
+    liveTelemetryTimer = null
   }
 })
 </script>

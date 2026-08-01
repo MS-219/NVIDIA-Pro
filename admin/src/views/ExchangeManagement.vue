@@ -264,14 +264,18 @@
             <div class="image-editor">
               <el-upload
                 class="product-uploader"
-                action="/api/upload/image"
                 name="file"
-                :headers="uploadHeaders"
                 :show-file-list="false"
+                accept=".jpg,.jpeg,.png,.gif,.webp,.bmp"
+                :http-request="uploadProductImage"
                 :before-upload="beforeProductImageUpload"
-                :on-success="handleProductImageSuccess"
+                :disabled="productImageUploading"
               >
                 <img v-if="productForm.imageUrl" :src="productForm.imageUrl" alt="" />
+                <div v-else-if="productImageUploading" class="upload-empty">
+                  <el-icon class="is-loading"><Loading /></el-icon>
+                  <span>上传中</span>
+                </div>
                 <div v-else class="upload-empty">
                   <el-icon><Picture /></el-icon>
                   <span>上传主图</span>
@@ -397,6 +401,7 @@ import {
   Delete,
   Edit,
   Goods,
+  Loading,
   Picture,
   Plus,
   Refresh,
@@ -410,6 +415,7 @@ import request from '../utils/request'
 
 const activeView = ref('products')
 const productLoading = ref(false)
+const productImageUploading = ref(false)
 const orderLoading = ref(false)
 const productSaving = ref(false)
 const orderSubmitting = ref(false)
@@ -481,10 +487,6 @@ const orderDetailVisible = ref(false)
 const orderDetailLoading = ref(false)
 const currentOrder = ref(null)
 const orderLogistics = ref([])
-
-const uploadHeaders = {
-  Authorization: `Bearer ${localStorage.getItem('orin_admin_token') || ''}`,
-}
 
 function createEmptyProduct() {
   return {
@@ -690,8 +692,9 @@ const deleteProduct = async (product) => {
 }
 
 const beforeProductImageUpload = (file) => {
-  if (!file.type?.startsWith('image/')) {
-    ElMessage.error('只能上传图片文件')
+  const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/bmp']
+  if (!allowedTypes.includes(file.type)) {
+    ElMessage.error('仅支持 JPG、PNG、GIF、WEBP、BMP 图片')
     return false
   }
   if (file.size > 5 * 1024 * 1024) {
@@ -701,11 +704,27 @@ const beforeProductImageUpload = (file) => {
   return true
 }
 
-const handleProductImageSuccess = (response) => {
-  if (response.code === 200) {
-    productForm.imageUrl = response.data?.url || ''
-  } else {
-    ElMessage.error(response.msg || '图片上传失败')
+const uploadProductImage = async ({ file, onSuccess, onError }) => {
+  productImageUploading.value = true
+  try {
+    const formData = new FormData()
+    formData.append('file', file)
+    const res = await request.post('/api/upload/image', formData, { silent: true })
+    if (res.data.code !== 200 || !res.data.data?.url) {
+      throw new Error(res.data.msg || '服务器未返回图片地址')
+    }
+
+    productForm.imageUrl = res.data.data.url
+    onSuccess?.(res.data)
+    ElMessage.success('设备图片上传成功')
+  } catch (error) {
+    const message = error?.response?.status === 413
+      ? '图片过大，设备图片不能超过 5MB'
+      : (error?.response?.data?.msg || error?.message || '设备图片上传失败，请稍后重试')
+    ElMessage.error(message)
+    onError?.(error)
+  } finally {
+    productImageUploading.value = false
   }
 }
 

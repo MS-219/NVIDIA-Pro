@@ -186,21 +186,37 @@ class OrinDisplayTest(unittest.TestCase):
         self.assertIn("GPU READY  |  25W  |  NODE ATTACHED", frame)
         self.assertNotIn("MAXN_SUPER", frame)
 
-    def test_screen_metrics_follow_realistic_orin_workload_ranges(self):
+    def test_screen_metrics_use_reported_agent_telemetry(self):
         state = self.display.default_state()
         state["connected"] = True
-        samples = [
-            self.display.display_screen_metrics(state, frame)
-            for frame in range(0, 3601, 300)
-        ]
+        state["telemetry"] = {
+            "cpu_load": "79.4",
+            "mem_load": "61.2",
+            "gpu_usage": 83.0,
+        }
 
-        self.assertTrue(all(15 <= sample["cpu"] <= 30 for sample in samples))
-        self.assertTrue(all(28 <= sample["ram"] <= 42 for sample in samples))
-        self.assertTrue(all(60 <= sample["gpu"] <= 75 for sample in samples))
-        self.assertGreater(len({sample["cpu"] for sample in samples}), 1)
-        self.assertGreater(len({sample["ram"] for sample in samples}), 1)
-        self.assertGreater(len({sample["gpu"] for sample in samples}), 1)
-        self.assertTrue(any(sample["gpu"] > sample["cpu"] for sample in samples))
+        self.assertEqual(
+            {"cpu": 79, "ram": 61, "gpu": 83},
+            self.display.display_screen_metrics(state, 0),
+        )
+        self.assertEqual(
+            {"cpu": 79, "ram": 61, "gpu": 83},
+            self.display.display_screen_metrics(state, 600),
+        )
+
+    def test_screen_metrics_are_bounded_to_percent_range(self):
+        state = self.display.default_state()
+        state["connected"] = True
+        state["telemetry"] = {
+            "cpu_load": "-5",
+            "mem_load": "not-a-number",
+            "gpu_usage": "112.7",
+        }
+
+        self.assertEqual(
+            {"cpu": 0, "ram": 0, "gpu": 100},
+            self.display.display_screen_metrics(state, 0),
+        )
 
     def test_offline_screen_metrics_stay_at_zero(self):
         state = self.display.default_state()

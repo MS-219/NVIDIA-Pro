@@ -33,10 +33,7 @@ interface ChartGeometry {
 
 let chartGeometry: ChartGeometry | null = null;
 let telemetryTimer: number | null = null;
-let telemetryTick = 0;
-
-const DEMO_UTILIZATION_MIN = 60;
-const DEMO_UTILIZATION_MAX = 85;
+let telemetryRefreshing = false;
 
 function hasValue(value: unknown): boolean {
     return value !== null && value !== undefined && String(value).trim() !== '';
@@ -51,13 +48,12 @@ function formatDateTime(value: unknown): string {
     return String(value).replace('T', ' ').substring(0, 19);
 }
 
-function demoMetric(seed: number, tick: number): MetricValue {
-    const phase = tick * 0.85 + seed * 1.43;
-    const wave = 72.5 + 12.5 * Math.sin(phase);
-    const parsed = Math.max(
-        DEMO_UTILIZATION_MIN,
-        Math.min(DEMO_UTILIZATION_MAX, Math.round(wave))
-    );
+function telemetryMetric(value: unknown): MetricValue {
+    const parsedValue = Number.parseFloat(String(value ?? '').replace('%', ''));
+    if (!Number.isFinite(parsedValue)) {
+        return { value: '--', progress: 0, hasValue: false };
+    }
+    const parsed = Math.round(Math.max(0, Math.min(100, parsedValue)));
     return {
         value: String(parsed),
         progress: parsed,
@@ -65,7 +61,8 @@ function demoMetric(seed: number, tick: number): MetricValue {
     };
 }
 
-function buildTelemetry(deviceId: number, heartbeat: string, tick: number, status: unknown): any[] {
+function buildTelemetry(device: any, heartbeat: string): any[] {
+    const status = device?.status;
     if (status !== 1) {
         return [
             { code: 'CPU', label: 'CPU 占用', value: '--', unit: '%', progress: 0, hasProgress: false, tone: 'compute' },
@@ -75,15 +72,14 @@ function buildTelemetry(deviceId: number, heartbeat: string, tick: number, statu
         ];
     }
 
-    const deviceSeed = Math.abs(deviceId % 17) / 10;
-    const cpu = demoMetric(1 + deviceSeed, tick);
-    const memory = demoMetric(2.7 + deviceSeed, tick);
-    const gpu = demoMetric(4.3 + deviceSeed, tick);
+    const cpu = telemetryMetric(device?.cpuUsage);
+    const memory = telemetryMetric(device?.memoryUsage);
+    const gpu = telemetryMetric(device?.gpuUsage);
 
     return [
-        { code: 'CPU', label: 'CPU 占用', value: cpu.value, unit: '%', progress: cpu.progress, hasProgress: true, tone: 'compute' },
-        { code: 'MEM', label: '内存占用', value: memory.value, unit: '%', progress: memory.progress, hasProgress: true, tone: 'memory' },
-        { code: 'GPU', label: 'GPU 占用', value: gpu.value, unit: '%', progress: gpu.progress, hasProgress: true, tone: 'gpu' },
+        { code: 'CPU', label: 'CPU 占用', value: cpu.value, unit: '%', progress: cpu.progress, hasProgress: cpu.hasValue, tone: 'compute' },
+        { code: 'MEM', label: '内存占用', value: memory.value, unit: '%', progress: memory.progress, hasProgress: memory.hasValue, tone: 'memory' },
+        { code: 'GPU', label: 'GPU 占用', value: gpu.value, unit: '%', progress: gpu.progress, hasProgress: gpu.hasValue, tone: 'gpu' },
         { code: 'SYNC', label: '最后心跳', value: heartbeat, unit: '', progress: 0, hasProgress: false, tone: 'sync', compact: true }
     ];
 }
@@ -175,6 +171,16 @@ Page({
         this.startTelemetryTicker();
     },
 
+    onShow() {
+        if (this.data.deviceId > 0) {
+            this.startTelemetryTicker();
+        }
+    },
+
+    onHide() {
+        this.stopTelemetryTicker();
+    },
+
     onUnload() {
         chartGeometry = null;
         this.stopTelemetryTicker();
@@ -212,12 +218,13 @@ Page({
         });
     },
 
-    fetchDeviceDetail(id: number): Promise<void> {
+    fetchDeviceDetail(id: number, silent = false): Promise<void> {
         return request({
             url: `/api/device/detail/${id}`,
             method: 'GET'
         }).then((res: any) => {
             if (res.code !== 200 || !res.data) {
+                if (silent) return;
                 this.setData({
                     pageState: 'error',
                     errorMessage: res.msg || '设备详情加载失败'
@@ -239,7 +246,6 @@ Page({
                 identity: identityRaw || '--',
                 identityRaw,
                 businessIdText: displayText(raw.businessId),
-                modelText: displayText(raw.deviceModel),
                 locationText: displayText(raw.location),
                 bindTimeText: formatDateTime(raw.bindTime),
                 heartbeatText: heartbeat,
@@ -248,7 +254,7 @@ Page({
                 hashrateText: displayText(raw.hashrate)
             };
 
-            const telemetry = buildTelemetry(this.data.deviceId, heartbeat, telemetryTick, raw.status);
+            const telemetry = buildTelemetry(raw, heartbeat);
 
             const softwareTags = [
                 { label: 'L4T', value: displayText(raw.l4tVersion) },
@@ -271,6 +277,7 @@ Page({
             });
         }).catch((error: unknown) => {
             console.error('fetchDeviceDetail error:', error);
+            if (silent) return;
             this.setData({
                 pageState: 'error',
                 errorMessage: '网络连接异常，请稍后重试'
@@ -311,19 +318,13 @@ Page({
 
     startTelemetryTicker() {
         this.stopTelemetryTicker();
-        telemetryTick = 0;
         telemetryTimer = setInterval(() => {
-            if (this.data.pageState !== 'ready') return;
-            telemetryTick += 1;
-            this.setData({
-                telemetry: buildTelemetry(
-                    this.data.deviceId,
-                    this.data.device?.heartbeatText || '--',
-                    telemetryTick,
-                    this.data.device?.status
-                )
+            if (this.data.pageState !== 'ready' || telemetryRefreshing) return;
+            telemetryRefreshing = true;
+            this.fetchDeviceDetail(this.data.deviceId, true).finally(() => {
+                telemetryRefreshing = false;
             });
-        }, 5000);
+        }, 10000);
     },
 
     stopTelemetryTicker() {
@@ -331,6 +332,7 @@ Page({
             clearInterval(telemetryTimer);
             telemetryTimer = null;
         }
+        telemetryRefreshing = false;
     },
 
     fetchChartData(id: number): Promise<void> {
