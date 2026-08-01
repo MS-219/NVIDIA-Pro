@@ -234,6 +234,18 @@ class OrinAgentTest(unittest.TestCase):
         self.assertEqual(42.25, metrics["gpu_temperature"])
         self.assertEqual(5.52, metrics["power_watts"])
 
+    def test_display_utilization_matches_product_ranges(self):
+        first = self.agent.display_utilization_metrics(120.0)
+        second = self.agent.display_utilization_metrics(120.0)
+
+        self.assertEqual(first, second)
+        self.assertGreaterEqual(first["cpu_load"], 15)
+        self.assertLessEqual(first["cpu_load"], 30)
+        self.assertGreaterEqual(first["mem_load"], 28)
+        self.assertLessEqual(first["mem_load"], 42)
+        self.assertGreaterEqual(first["gpu_usage"], 60)
+        self.assertLessEqual(first["gpu_usage"], 75)
+
     def test_network_throughput_uses_real_interface_byte_counters(self):
         self.agent.NETWORK_SAMPLE = {}
         with mock.patch.object(self.agent, "default_network_interface", return_value="eth0"), \

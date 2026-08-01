@@ -102,11 +102,15 @@ public class AdminOperationLogFilter extends OncePerRequestFilter {
             return;
         }
 
-        ContentCachingRequestWrapper wrappedRequest = new ContentCachingRequestWrapper(request);
+        ContentCachingRequestWrapper wrappedRequest = shouldCacheRequestBody(request)
+                ? new ContentCachingRequestWrapper(request)
+                : null;
+        HttpServletRequest requestForChain = wrappedRequest != null ? wrappedRequest : request;
         long startTime = System.currentTimeMillis();
 
         try {
-            filterChain.doFilter(wrappedRequest, response);
+            // Multipart requests must reach Spring's multipart resolver unchanged.
+            filterChain.doFilter(requestForChain, response);
         } finally {
             String path = request.getRequestURI();
             if (!EXCLUDED_PATHS.contains(path)) {
@@ -114,7 +118,7 @@ public class AdminOperationLogFilter extends OncePerRequestFilter {
                 String ip = getClientIp(request);
                 String method = request.getMethod();
                 String query = request.getQueryString();
-                String body = getRequestBody(wrappedRequest);
+                String body = wrappedRequest != null ? getRequestBody(wrappedRequest) : "-";
                 String operator = getOperator(request);
                 Long operatorId = getOperatorId(request);
                 int status = response.getStatus();
@@ -134,6 +138,13 @@ public class AdminOperationLogFilter extends OncePerRequestFilter {
                         body);
             }
         }
+    }
+
+    static boolean shouldCacheRequestBody(HttpServletRequest request) {
+        String contentType = request.getContentType();
+        return contentType != null
+                && (contentType.contains(MediaType.APPLICATION_JSON_VALUE)
+                        || contentType.contains(MediaType.APPLICATION_FORM_URLENCODED_VALUE));
     }
 
     private String getOperator(HttpServletRequest request) {

@@ -324,7 +324,6 @@ def display_power_mode(state: dict[str, Any]) -> str:
     )
 
 
-@lru_cache(maxsize=1)
 def display_metric(value: Any) -> int:
     bounded = max(0.0, min(100.0, safe_number(value)))
     return int(math.floor(bounded + 0.5))
