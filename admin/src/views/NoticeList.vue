@@ -160,6 +160,7 @@
 import { ref, reactive, onMounted } from 'vue'
 import { Loading, Plus } from '@element-plus/icons-vue'
 import axios from '../utils/request'
+import { uploadImageFile } from '../utils/upload'
 import { ElMessage, ElMessageBox } from 'element-plus'
 
 const noticeList = ref([])
@@ -329,20 +330,15 @@ const uploadNoticeImage = async ({ file, onSuccess, onError }) => {
   imageUploading.value = true
   try {
     const uploadFile = await optimizeNoticeCover(file)
-    const formData = new FormData()
-    formData.append('file', uploadFile)
-    const res = await axios.post('/api/upload/image', formData, { silent: true })
-    if (res.data.code !== 200 || !res.data.data?.url) {
-      throw new Error(res.data.msg || '服务器未返回图片地址')
-    }
+    const payload = await uploadImageFile(uploadFile)
 
-    editForm.imageUrl = res.data.data.url
-    onSuccess?.(res.data)
+    editForm.imageUrl = payload.data.url
+    onSuccess?.(payload)
     ElMessage.success('封面上传成功')
   } catch (error) {
-    const message = error?.response?.status === 413
+    const message = error?.status === 413
       ? '图片过大，封面图不能超过 5MB'
-      : (error?.response?.data?.msg || error?.message || '封面上传失败')
+      : (error?.message || '封面上传失败')
     ElMessage.error(message)
     onError?.(error)
   } finally {

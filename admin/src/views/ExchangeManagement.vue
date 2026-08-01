@@ -412,6 +412,7 @@ import {
 } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import request from '../utils/request'
+import { uploadImageFile } from '../utils/upload'
 
 const activeView = ref('products')
 const productLoading = ref(false)
@@ -707,20 +708,15 @@ const beforeProductImageUpload = (file) => {
 const uploadProductImage = async ({ file, onSuccess, onError }) => {
   productImageUploading.value = true
   try {
-    const formData = new FormData()
-    formData.append('file', file)
-    const res = await request.post('/api/upload/image', formData, { silent: true })
-    if (res.data.code !== 200 || !res.data.data?.url) {
-      throw new Error(res.data.msg || '服务器未返回图片地址')
-    }
+    const payload = await uploadImageFile(file)
 
-    productForm.imageUrl = res.data.data.url
-    onSuccess?.(res.data)
+    productForm.imageUrl = payload.data.url
+    onSuccess?.(payload)
     ElMessage.success('设备图片上传成功')
   } catch (error) {
-    const message = error?.response?.status === 413
+    const message = error?.status === 413
       ? '图片过大，设备图片不能超过 5MB'
-      : (error?.response?.data?.msg || error?.message || '设备图片上传失败，请稍后重试')
+      : (error?.message || '设备图片上传失败，请稍后重试')
     ElMessage.error(message)
     onError?.(error)
   } finally {
