@@ -179,76 +179,6 @@ def safe_number(value: Any, default: float = 0.0) -> float:
         return default
 
 
-def default_network_interface() -> str:
-    try:
-        routes = Path("/proc/net/route").read_text(encoding="utf-8", errors="ignore")
-    except OSError:
-        return ""
-    for line in routes.splitlines()[1:]:
-        fields = line.split()
-        if len(fields) >= 4 and fields[1] == "00000000":
-            try:
-                if int(fields[3], 16) & 2:
-                    return fields[0]
-            except ValueError:
-                continue
-    return ""
-
-
-def interface_counters(interface: str) -> tuple[int, int]:
-    try:
-        counters = Path("/proc/net/dev").read_text(encoding="utf-8", errors="ignore")
-    except OSError:
-        return 0, 0
-    for line in counters.splitlines():
-        if ":" not in line:
-            continue
-        name, payload = (part.strip() for part in line.split(":", 1))
-        if name != interface:
-            continue
-        fields = payload.split()
-        if len(fields) >= 9:
-            try:
-                return int(fields[0]), int(fields[8])
-            except ValueError:
-                return 0, 0
-    return 0, 0
-
-
-def sample_network_throughput(
-    previous: dict[str, Any] | None,
-    now: float | None = None,
-) -> tuple[dict[str, float], dict[str, Any]]:
-    interface = default_network_interface()
-    received, transmitted = interface_counters(interface)
-    sampled_at = time.monotonic() if now is None else now
-    current = {
-        "interface": interface,
-        "rx": received,
-        "tx": transmitted,
-        "at": sampled_at,
-    }
-    if not previous or previous.get("interface") != interface:
-        return {"network_download_mbps": 0.0, "network_upload_mbps": 0.0}, current
-    elapsed = sampled_at - safe_number(previous.get("at"))
-    if elapsed <= 0:
-        return {"network_download_mbps": 0.0, "network_upload_mbps": 0.0}, current
-    download = max(0, received - int(previous.get("rx") or 0)) * 8 / elapsed / 1_000_000
-    upload = max(0, transmitted - int(previous.get("tx") or 0)) * 8 / elapsed / 1_000_000
-    return {
-        "network_download_mbps": round(download, 3),
-        "network_upload_mbps": round(upload, 3),
-    }, current
-
-
-def format_network_rate(value: float, direction: str) -> str:
-    if value < 0:
-        return f"{direction} --"
-    if value < 1:
-        return f"{direction} {value * 1000:.0f} Kbps"
-    return f"{direction} {value:.1f} Mbps"
-
-
 def read_sn() -> str:
     try:
         value = SN_FILE.read_text(encoding="utf-8", errors="ignore").strip()
@@ -403,17 +333,6 @@ def display_screen_metrics(state: dict[str, Any], frame: int) -> dict[str, int]:
     if not state.get("connected"):
         return {"cpu": 0, "ram": 0, "gpu": 0}
     return display_demo_metrics(frame)
-
-
-def network_values_for_display(state: dict[str, Any]) -> dict[str, float]:
-    if not state.get("connected"):
-        return {"upload": 0.0, "download": 0.0, "latency": -1.0}
-    telemetry = state.get("telemetry") or {}
-    return {
-        "upload": safe_number(telemetry.get("network_upload_mbps"), -1),
-        "download": safe_number(telemetry.get("network_download_mbps"), -1),
-        "latency": safe_number(telemetry.get("network_latency_ms"), -1),
-    }
 
 
 def core_animation(frame: int, scale: float) -> dict[str, float]:
@@ -787,23 +706,12 @@ def static_dashboard(width: int, height: int):
 
     left_top = (x(0.035), y(0.14), x(0.282), y(0.49))
     left_bottom = (x(0.035), y(0.52), x(0.282), y(0.79))
-    right_top = (x(0.718), y(0.14), x(0.965), y(0.49))
-    right_bottom = (x(0.718), y(0.52), x(0.965), y(0.79))
-    for panel in (left_top, left_bottom, right_top, right_bottom):
+    right_panel = (x(0.718), y(0.14), x(0.965), y(0.79))
+    for panel in (left_top, left_bottom, right_panel):
         draw_tech_panel(draw, panel, scale)
     draw_panel_heading(draw, left_top, "节点状态", "NODE STATUS", scale)
     draw_panel_heading(draw, left_bottom, "算力信息", "COMPUTE INFO", scale)
-    draw_panel_heading(draw, right_top, "网络状态", "NETWORK STATUS", scale)
-    draw_panel_heading(draw, right_bottom, "节点性能", "PERFORMANCE", scale)
-
-    network_font = font(fs(14))
-    nx = right_top[0] + round(32 * scale)
-    for index, label in enumerate(("上行速率", "下行速率")):
-        row_y = right_top[1] + round((84 + index * 92) * scale)
-        draw.text((nx, row_y), label, font=network_font, fill="#82978B")
-    divider_y = right_top[1] + round(270 * scale)
-    draw.line((nx, divider_y, right_top[2] - round(28 * scale), divider_y), fill="#142C1D", width=thin)
-    draw.text((nx, divider_y + round(24 * scale)), "网络延迟", font=network_font, fill="#82978B")
+    draw_panel_heading(draw, right_panel, "节点性能", "PERFORMANCE", scale)
 
     engine_box = (x(0.325), y(0.505), x(0.675), y(0.555))
     identity_box = (x(0.325), y(0.58), x(0.675), y(0.75))
@@ -833,7 +741,6 @@ def render_frame(
     height: int,
     frame: int,
     gpu_history: list[float] | None = None,
-    network_history: dict[str, list[float]] | None = None,
 ):
     if Image is None or ImageDraw is None:
         raise RuntimeError("Pillow is not installed")
@@ -849,9 +756,7 @@ def render_frame(
     y = lambda value: round(height * value)
     fs = lambda value: max(9, round(value * scale))
     thin = max(1, round(scale))
-    connected = bool(state.get("connected"))
     screen_metrics = display_screen_metrics(state, frame)
-    network_history = network_history or {}
     performance = round(sum(screen_metrics.values()) / len(screen_metrics))
 
     scan_y = y(0.11) + round((frame / TARGET_FPS) * 18) % max(1, y(0.67))
@@ -859,8 +764,7 @@ def render_frame(
 
     left_top = (x(0.035), y(0.14), x(0.282), y(0.49))
     left_bottom = (x(0.035), y(0.52), x(0.282), y(0.79))
-    right_top = (x(0.718), y(0.14), x(0.965), y(0.49))
-    right_bottom = (x(0.718), y(0.52), x(0.965), y(0.79))
+    right_panel = (x(0.718), y(0.14), x(0.965), y(0.79))
     draw_panel_row(draw, left_top, 0, "运行状态", "正常运行" if state.get("connected") else "连接中", scale, accent=True)
     draw_panel_row(draw, left_top, 1, "在线时长", display_uptime(), scale)
     draw_panel_row(draw, left_top, 2, "CPU 使用", f"{screen_metrics['cpu']}%", scale, progress=screen_metrics["cpu"])
@@ -872,32 +776,8 @@ def render_frame(
     draw_panel_row(draw, left_bottom, 1, "CUDA 核心", "1024", scale)
     draw_panel_row(draw, left_bottom, 2, "CUDA 版本", cuda, scale)
 
-    network_value_font = font(fs(23), bold=True)
-    nx = right_top[0] + round(32 * scale)
-    chart_left = right_top[0] + round(196 * scale)
-    chart_width = max(round(70 * scale), right_top[2] - chart_left - round(24 * scale))
-    network_metrics = network_values_for_display(state)
-    upload = network_metrics["upload"]
-    download = network_metrics["download"]
-    latency_value = network_metrics["latency"]
-    for index, (label, value, history_key, numeric_value) in enumerate((
-        ("上行速率", format_network_rate(upload, "↑"), "upload", upload),
-        ("下行速率", format_network_rate(download, "↓"), "download", download),
-    )):
-        row_y = right_top[1] + round((84 + index * 92) * scale)
-        draw.text((nx, row_y + round(27 * scale)), value, font=network_value_font, fill="#80EE41")
-        history = (
-            network_history.get(history_key) or ([numeric_value] if numeric_value >= 0 else [])
-            if connected
-            else [0.0, 0.0]
-        )
-        draw_network_chart(draw, chart_left, row_y + round(10 * scale), chart_width, round(42 * scale), history)
-    divider_y = right_top[1] + round(270 * scale)
-    latency = f"{latency_value:.0f} ms" if latency_value >= 0 else "--"
-    draw.text((nx, divider_y + round(50 * scale)), latency, font=network_value_font, fill=COLORS["white"])
-
-    gauge_center = ((right_bottom[0] + right_bottom[2]) // 2, right_bottom[1] + round(175 * scale))
-    draw_performance_gauge(draw, gauge_center, round(74 * scale), performance, scale)
+    gauge_center = ((right_panel[0] + right_panel[2]) // 2, right_panel[1] + round(280 * scale))
+    draw_performance_gauge(draw, gauge_center, round(96 * scale), performance, scale)
 
     main_font = font(fs(36), bold=True)
     centered_text(draw, width, y(0.17), copy["main"], main_font, COLORS["white"])
@@ -1132,15 +1012,9 @@ def main() -> int:
     terminal = VirtualTerminal(TTY_PATH)
     framebuffer = None
     gpu_history: deque[float] = deque(maxlen=48)
-    network_history: dict[str, deque[float]] = {
-        "upload": deque(maxlen=48),
-        "download": deque(maxlen=48),
-    }
     state = default_state()
     state_refreshed_at = 0.0
     history_refreshed_at = 0.0
-    network_sample: dict[str, Any] = {}
-    live_network_metrics: dict[str, float] = {}
     animation_started_at = time.monotonic()
     next_frame_at = animation_started_at
     try:
@@ -1174,26 +1048,10 @@ def main() -> int:
             if now - history_refreshed_at >= HISTORY_REFRESH_INTERVAL:
                 history_refreshed_at = now
                 if connected:
-                    live_network_metrics, network_sample = sample_network_throughput(
-                        network_sample,
-                        now,
-                    )
-                    telemetry.update(live_network_metrics)
                     gpu_history.append(safe_number(telemetry.get("gpu_usage")))
-                    for key, telemetry_key in (("upload", "network_upload_mbps"), ("download", "network_download_mbps")):
-                        value = safe_number(telemetry.get(telemetry_key), -1)
-                        if value >= 0:
-                            network_history[key].append(value)
                 else:
-                    network_sample = {}
-                    live_network_metrics = {}
                     gpu_history.clear()
                     gpu_history.append(0.0)
-                    for values in network_history.values():
-                        values.clear()
-                        values.append(0.0)
-            elif connected and live_network_metrics:
-                telemetry.update(live_network_metrics)
             if terminal.is_active():
                 if framebuffer is not None:
                     framebuffer.show(
@@ -1203,7 +1061,6 @@ def main() -> int:
                             framebuffer.height,
                             frame,
                             list(gpu_history),
-                            {key: list(values) for key, values in network_history.items()},
                         )
                     )
                 else:

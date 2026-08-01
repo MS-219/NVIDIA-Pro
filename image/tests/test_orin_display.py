@@ -205,44 +205,6 @@ class OrinDisplayTest(unittest.TestCase):
             self.display.display_screen_metrics(state, 600),
         )
 
-    def test_offline_network_metrics_stay_at_zero(self):
-        state = self.display.default_state()
-        state.update(
-            {
-                "connected": False,
-                "telemetry": {
-                    "network_upload_mbps": 99,
-                    "network_download_mbps": 88,
-                    "network_latency_ms": 7,
-                },
-            }
-        )
-
-        self.assertEqual(
-            {"upload": 0.0, "download": 0.0, "latency": -1.0},
-            self.display.network_values_for_display(state),
-        )
-
-    def test_live_network_throughput_uses_interface_byte_deltas(self):
-        with mock.patch.object(self.display, "default_network_interface", return_value="eth0"), \
-             mock.patch.object(
-                 self.display,
-                 "interface_counters",
-                 return_value=(1_250_000, 2_500_000),
-             ):
-            metrics, sample = self.display.sample_network_throughput(
-                {"interface": "eth0", "rx": 1_000_000, "tx": 2_000_000, "at": 10.0},
-                now=12.0,
-            )
-
-        self.assertEqual(1.0, metrics["network_download_mbps"])
-        self.assertEqual(2.0, metrics["network_upload_mbps"])
-        self.assertEqual("eth0", sample["interface"])
-
-    def test_small_real_network_rates_are_shown_as_kbps(self):
-        self.assertEqual("↑ 12 Kbps", self.display.format_network_rate(0.012, "↑"))
-        self.assertEqual("↓ 1.2 Mbps", self.display.format_network_rate(1.25, "↓"))
-
     def test_display_targets_sixty_frames_per_second(self):
         self.assertEqual(60.0, self.display.TARGET_FPS)
         self.assertAlmostEqual(1 / 60, self.display.FRAME_INTERVAL)
@@ -271,11 +233,15 @@ class OrinDisplayTest(unittest.TestCase):
         self.assertIs(first_core, second_core)
         self.assertIs(first_glow, second_glow)
 
-    def test_compute_panel_omits_ai_compute_and_network_has_no_demo_values(self):
+    def test_compute_panel_omits_ai_compute_and_screen_omits_network_status(self):
         source = DISPLAY_PATH.read_text(encoding="utf-8")
         self.assertNotIn('"AI 算力"', source)
         self.assertNotIn('"丢包率"', source)
-        self.assertNotIn("display_network_metrics", source)
+        self.assertNotIn('"网络状态"', source)
+        self.assertNotIn('"NETWORK STATUS"', source)
+        self.assertNotIn('"上行速率"', source)
+        self.assertNotIn('"下行速率"', source)
+        self.assertNotIn('"网络延迟"', source)
 
     def test_screen_hides_temperature_and_power(self):
         state = self.display.default_state()
@@ -328,8 +294,7 @@ class OrinDisplayTest(unittest.TestCase):
         )
         state = self.display.load_state(now=1001)
 
-        network_history = {"upload": [0.5, 1.0, 1.25], "download": [4.0, 6.5, 8.75]}
-        image = self.display.render_frame(state, 1280, 720, 5, [2, 8, 17, 37], network_history)
+        image = self.display.render_frame(state, 1280, 720, 5, [2, 8, 17, 37])
         portrait = self.display.render_frame(state, 1452, 1088, 5, [2, 8, 17, 37])
 
         self.assertEqual((1280, 720), image.size)
