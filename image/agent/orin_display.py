@@ -515,6 +515,13 @@ def load_core_asset():
     return asset.crop(visible) if visible else asset
 
 
+def lanczos_resampling():
+    if Image is None:
+        raise RuntimeError("Pillow is not installed")
+    resampling = getattr(Image, "Resampling", None)
+    return resampling.LANCZOS if resampling is not None else Image.LANCZOS
+
+
 def display_uptime() -> str:
     try:
         seconds = int(float(Path("/proc/uptime").read_text().split()[0]))
@@ -740,7 +747,7 @@ def render_frame(
         max_w = core_box[2] - core_box[0]
         max_h = core_box[3] - core_box[1]
         resized = core.copy()
-        resized.thumbnail((max_w, max_h), Image.Resampling.LANCZOS)
+        resized.thumbnail((max_w, max_h), lanczos_resampling())
         core_x = (width - resized.width) // 2
         core_y = core_box[1] + (max_h - resized.height) // 2 + round(animation["offset"])
         center_x = core_x + resized.width // 2

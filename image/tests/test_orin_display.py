@@ -194,6 +194,13 @@ class OrinDisplayTest(unittest.TestCase):
         self.assertTrue(CORE_ASSET_PATH.is_file())
         self.assertGreater(CORE_ASSET_PATH.stat().st_size, 100_000)
 
+    def test_core_asset_resampling_supports_ubuntu_pillow_9_0(self):
+        legacy_image = mock.Mock(spec=[])
+        legacy_image.LANCZOS = 1
+
+        with mock.patch.object(self.display, "Image", legacy_image):
+            self.assertEqual(1, self.display.lanczos_resampling())
+
     def test_compute_panel_omits_ai_compute_and_network_has_no_demo_values(self):
         source = DISPLAY_PATH.read_text(encoding="utf-8")
         self.assertNotIn('"AI 算力"', source)
