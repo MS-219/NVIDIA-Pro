@@ -8,6 +8,7 @@ import com.juxin.orin.entity.Device;
 import com.juxin.orin.exception.EdgeDeviceApiException;
 import com.juxin.orin.mapper.DeviceMapper;
 import com.juxin.orin.service.IEdgeDeviceAccessService;
+import com.juxin.orin.util.DeviceBindCodeGenerator;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.http.HttpStatus;
@@ -20,7 +21,6 @@ import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.time.LocalDateTime;
 import java.util.Base64;
-import java.util.Locale;
 import java.util.Map;
 import java.util.regex.Pattern;
 
@@ -245,7 +245,7 @@ public class EdgeDeviceAccessServiceImpl implements IEdgeDeviceAccessService {
     private String generateAvailableBindCode(String sn) {
         String seed = sn;
         for (int attempt = 0; attempt < 10; attempt++) {
-            String candidate = "Orin-" + sha256(seed).substring(0, 6).toUpperCase(Locale.ROOT);
+            String candidate = DeviceBindCodeGenerator.fromSeed(seed);
             Device owner = deviceMapper.selectOne(new LambdaQueryWrapper<Device>()
                     .eq(Device::getBindCode, candidate)
                     .last("LIMIT 1"));

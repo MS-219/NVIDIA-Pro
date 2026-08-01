@@ -10,6 +10,7 @@ import com.juxin.orin.entity.SysUser;
 import com.juxin.orin.service.IDeviceCommandService;
 import com.juxin.orin.service.IDeviceService;
 import com.juxin.orin.service.IDeviceOfflineLogService;
+import com.juxin.orin.util.DeviceBindCodeGenerator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -1268,23 +1269,16 @@ public class DeviceController {
         return success ? Result.success("删除成功") : Result.error("删除失败");
     }
 
-    /**
-     * 生成8位绑定码 (JX + 6位字母数字混合)
-     */
+    /** 生成 Orin 设备绑定码。 */
     private String generateBindCode() {
-        String chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-        java.util.Random random = new java.util.Random();
         String code;
         int attempts = 0;
         do {
-            StringBuilder sb = new StringBuilder("JX");
-            for (int i = 0; i < 6; i++) {
-                sb.append(chars.charAt(random.nextInt(chars.length())));
-            }
-            code = sb.toString();
+            code = DeviceBindCodeGenerator.randomCode();
             attempts++;
             if (attempts > 100) {
-                code = "JX" + System.currentTimeMillis() % 1000000;
+                code = DeviceBindCodeGenerator.fromSeed(
+                        "affiliate:" + System.currentTimeMillis() + ':' + System.nanoTime());
                 break;
             }
         } while (deviceService.lambdaQuery().eq(Device::getBindCode, code).exists());

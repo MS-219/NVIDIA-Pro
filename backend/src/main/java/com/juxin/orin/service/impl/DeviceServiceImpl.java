@@ -6,6 +6,7 @@ import com.juxin.orin.entity.Device;
 import com.juxin.orin.mapper.DeviceMapper;
 import com.juxin.orin.service.IDeviceService;
 import com.juxin.orin.util.IpUtil;
+import com.juxin.orin.util.DeviceBindCodeGenerator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -249,16 +250,6 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device> impleme
     private String generateBindCodeFromSn(String sn) {
         if (sn == null)
             return null;
-        try {
-            String salt = "juxin_salt_2025";
-            java.security.MessageDigest md = java.security.MessageDigest.getInstance("MD5");
-            byte[] bytes = md.digest((sn + salt).getBytes(java.nio.charset.StandardCharsets.UTF_8));
-            StringBuilder sb = new StringBuilder();
-            for (byte b : bytes)
-                sb.append(String.format("%02x", b));
-            return "JX" + sb.toString().substring(0, 6).toUpperCase();
-        } catch (Exception e) {
-            return "JX" + Integer.toHexString(sn.hashCode()).toUpperCase();
-        }
+        return DeviceBindCodeGenerator.fromSeed(sn);
     }
 }
