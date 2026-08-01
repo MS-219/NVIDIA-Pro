@@ -869,6 +869,17 @@ public class DeviceController {
 
         java.util.List<Device> devices = query.list();
         java.util.List<Map<String, Object>> result = new java.util.ArrayList<>();
+        java.util.Set<Long> userIds = devices.stream()
+                .map(Device::getUserId)
+                .filter(java.util.Objects::nonNull)
+                .collect(java.util.stream.Collectors.toSet());
+        java.util.Map<Long, String> userNicknameMap = userIds.isEmpty()
+                ? java.util.Collections.emptyMap()
+                : appUserService.listByIds(userIds).stream()
+                        .collect(java.util.stream.Collectors.toMap(
+                                com.juxin.orin.entity.AppUser::getId,
+                                user -> user.getNickname() != null ? user.getNickname() : "",
+                                (left, right) -> left));
 
         int index = 1;
         for (Device device : devices) {
@@ -876,9 +887,21 @@ public class DeviceController {
             item.put("index", index++);
             item.put("sn", device.getSn());
             item.put("bindCode", device.getBindCode() != null ? device.getBindCode() : "");
+            item.put("name", device.getName() != null ? device.getName() : "");
+            item.put("type", device.getType());
             item.put("status", device.getStatus() != null && device.getStatus() == 1 ? "在线" : "离线");
             item.put("bound", device.getUserId() != null ? "已绑定" : "未绑定");
+            item.put("userId", device.getUserId());
+            item.put("location", device.getLocation() != null ? device.getLocation() : "");
+            item.put("carrier", device.getCarrier() != null ? device.getCarrier() : "");
+            item.put("hashrate", device.getHashrate());
+            item.put("lastHeartbeatTime",
+                    device.getLastHeartbeatTime() != null ? device.getLastHeartbeatTime().toString() : "");
             item.put("createTime", device.getCreateTime() != null ? device.getCreateTime().toString() : "");
+
+            item.put("nickname", device.getUserId() != null
+                    ? userNicknameMap.getOrDefault(device.getUserId(), "")
+                    : "");
             result.add(item);
         }
 

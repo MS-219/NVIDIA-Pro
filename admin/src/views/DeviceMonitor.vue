@@ -54,6 +54,12 @@
         <el-radio-button :value="0">离线</el-radio-button>
       </el-radio-group>
       <el-button type="primary" @click="fetchDevices">刷新设备数据</el-button>
+      <el-button type="warning" plain :icon="Document" :loading="csvExportLoading" @click="exportDeviceCsv">
+        导出设备 CSV
+      </el-button>
+      <el-button type="info" plain :icon="Clock" @click="openGlobalOfflineRecords">
+        全局离线记录
+      </el-button>
       <el-button class="affiliate-create-button" type="success" :icon="Plus" @click="openAffiliateDialog">
         新增挂靠设备
       </el-button>
@@ -64,7 +70,29 @@
 
     <!-- 数据表管理 -->
     <div class="table-container">
-      <el-table :data="devices" border stripe v-loading="loading">
+      <div v-if="selectedDevices.length > 0" class="batch-toolbar">
+        <span>已选择 {{ selectedDevices.length }} 台设备</span>
+        <el-button
+          type="warning"
+          size="small"
+          :disabled="selectedBoundDevices.length === 0"
+          :loading="batchUnbinding"
+          @click="batchUnbindDevices"
+        >
+          批量解绑（{{ selectedBoundDevices.length }}）
+        </el-button>
+        <el-button
+          type="danger"
+          size="small"
+          :disabled="selectedDeletableDevices.length === 0"
+          :loading="batchDeleting"
+          @click="batchDeleteDevices"
+        >
+          批量删除（{{ selectedDeletableDevices.length }}）
+        </el-button>
+      </div>
+      <el-table :data="devices" border stripe v-loading="loading" @selection-change="handleSelectionChange">
+        <el-table-column type="selection" width="48" fixed="left" />
         <el-table-column label="运行状态" width="120" align="center">
           <template #default="{ row }">
             <el-tag :type="row.status === 1 ? 'success' : 'danger'" effect="plain">
@@ -160,9 +188,10 @@
           </template>
         </el-table-column>
 
-        <el-table-column label="设备操作" width="390" fixed="right" align="center">
+        <el-table-column label="设备操作" width="520" fixed="right" align="center">
           <template #default="{ row }">
             <el-button type="primary" size="small" @click="viewDetail(row)">管理</el-button>
+            <el-button type="primary" size="small" plain :icon="Edit" @click="openEditDialog(row)">编辑</el-button>
             <el-button type="warning" size="small" plain @click="openOfflineRecords(row)">离线记录</el-button>
             <el-button 
               type="success" 
@@ -189,6 +218,15 @@
               :loading="unbindingId === row.id"
               @click="unbindDevice(row)"
             >解绑</el-button>
+            <el-button
+              v-if="row.userId == null && row.merchantId == null"
+              type="danger"
+              size="small"
+              plain
+              :icon="Delete"
+              :loading="deletingId === row.id"
+              @click="deleteDevice(row)"
+            >删除</el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -207,8 +245,9 @@
     <el-dialog
       v-model="detailVisible"
       title="设备详情"
-      width="720px"
+      width="860px"
       destroy-on-close
+      @closed="disposeEarningsChart"
     >
       <div v-loading="detailLoading" class="detail-grid">
         <div class="detail-item">
@@ -296,6 +335,53 @@
           <span class="detail-value">{{ formatTime(detailData.createTime) }}</span>
         </div>
       </div>
+      <div class="earnings-chart-panel">
+        <div class="earnings-chart-head">
+          <div>
+            <strong>设备收益趋势</strong>
+            <span>最近 7 天</span>
+          </div>
+          <span class="earnings-chart-total">合计 ¥{{ earningsTotal }}</span>
+        </div>
+        <div v-loading="earningsChartLoading" ref="earningsChartRef" class="earnings-chart"></div>
+      </div>
+    </el-dialog>
+
+    <el-dialog v-model="editVisible" title="编辑设备" width="560px" destroy-on-close>
+      <el-form :model="editForm" label-position="top">
+        <div class="edit-form-grid">
+          <el-form-item label="设备名称">
+            <el-input v-model="editForm.name" maxlength="100" placeholder="请输入设备名称或备注" />
+          </el-form-item>
+          <el-form-item label="设备类型">
+            <el-select v-model="editForm.type" style="width: 100%">
+              <el-option label="实体设备" :value="0" />
+              <el-option label="挂靠设备" :value="1" />
+              <el-option label="Orin 设备" :value="2" />
+            </el-select>
+          </el-form-item>
+          <el-form-item label="所在位置">
+            <el-input v-model="editForm.location" maxlength="100" placeholder="例如：山东省枣庄市" />
+          </el-form-item>
+          <el-form-item label="运营商">
+            <el-input v-model="editForm.carrier" maxlength="50" placeholder="例如：中国移动" />
+          </el-form-item>
+          <el-form-item label="算力值" class="span-2">
+            <el-input-number
+              v-model="editForm.hashrate"
+              :min="0"
+              :max="999999999"
+              :precision="0"
+              controls-position="right"
+              style="width: 100%"
+            />
+          </el-form-item>
+        </div>
+      </el-form>
+      <template #footer>
+        <el-button @click="editVisible = false">取消</el-button>
+        <el-button type="primary" :loading="editSaving" @click="saveDeviceEdit">保存修改</el-button>
+      </template>
     </el-dialog>
 
     <el-dialog
@@ -326,6 +412,44 @@
         </el-table-column>
       </el-table>
       <el-empty v-else description="暂无离线记录" />
+    </el-dialog>
+
+    <el-dialog v-model="globalOfflineVisible" title="全局设备离线记录" width="980px" destroy-on-close>
+      <div class="global-offline-toolbar">
+        <el-input
+          v-model="globalOfflineSearch"
+          clearable
+          placeholder="搜索绑定码或 SN"
+          style="width: 280px"
+          @keyup.enter="searchGlobalOfflineRecords"
+          @clear="searchGlobalOfflineRecords"
+        />
+        <el-button type="primary" :icon="Search" @click="searchGlobalOfflineRecords">查询</el-button>
+      </div>
+      <el-table :data="globalOfflineRecords" v-loading="globalOfflineLoading" border stripe>
+        <el-table-column prop="bindCode" label="绑定码" width="180">
+          <template #default="{ row }">{{ row.bindCode || '-' }}</template>
+        </el-table-column>
+        <el-table-column prop="sn" label="SN 序列号" min-width="220" show-overflow-tooltip />
+        <el-table-column prop="offlineTime" label="离线时间" width="180">
+          <template #default="{ row }">{{ formatTime(row.offlineTime) }}</template>
+        </el-table-column>
+        <el-table-column prop="lastHeartbeatTime" label="最后心跳" width="180">
+          <template #default="{ row }">{{ formatTime(row.lastHeartbeatTime) }}</template>
+        </el-table-column>
+        <el-table-column prop="reason" label="离线原因" min-width="180">
+          <template #default="{ row }">{{ row.reason || '心跳超时' }}</template>
+        </el-table-column>
+      </el-table>
+      <div class="pagination">
+        <el-pagination
+          v-model:current-page="globalOfflinePage"
+          :page-size="globalOfflinePageSize"
+          :total="globalOfflineTotal"
+          layout="total, prev, pager, next"
+          @current-change="fetchGlobalOfflineRecords"
+        />
+      </div>
     </el-dialog>
 
     <el-dialog v-model="bindVisible" title="绑定设备" width="520px" destroy-on-close>
@@ -448,11 +572,12 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted, reactive } from 'vue'
+import { computed, nextTick, ref, onMounted, onUnmounted, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import request from '../utils/request'
-import { Connection, Monitor, Histogram, Location, Link, Plus, Search, Unlock, Download } from '@element-plus/icons-vue'
+import { Clock, Connection, Delete, Document, Download, Edit, Histogram, Link, Location, Monitor, Plus, Search, Unlock } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import * as echarts from 'echarts'
 import QRCode from 'qrcode'
 import JSZip from 'jszip'
 
@@ -470,6 +595,14 @@ const locationOptions = ref([])
 const detailVisible = ref(false)
 const detailLoading = ref(false)
 const detailData = ref({})
+const editVisible = ref(false)
+const editSaving = ref(false)
+const editForm = reactive({ id: null, name: '', location: '', carrier: '', type: 2, hashrate: 0 })
+const deletingId = ref(null)
+const selectedDevices = ref([])
+const batchUnbinding = ref(false)
+const batchDeleting = ref(false)
+const csvExportLoading = ref(false)
 const unbindingId = ref(null)
 const bindingId = ref(null)
 const bindVisible = ref(false)
@@ -499,8 +632,27 @@ const offlineVisible = ref(false)
 const offlineLoading = ref(false)
 const offlineRecords = ref([])
 const offlineDevice = ref({})
+const globalOfflineVisible = ref(false)
+const globalOfflineLoading = ref(false)
+const globalOfflineRecords = ref([])
+const globalOfflineSearch = ref('')
+const globalOfflinePage = ref(1)
+const globalOfflinePageSize = 10
+const globalOfflineTotal = ref(0)
+const earningsChartRef = ref(null)
+const earningsChartLoading = ref(false)
+const earningsChartData = reactive({ dates: [], earnings: [] })
+let earningsChart = null
 let demoTelemetryTimer = null
 let demoTelemetryTick = 0
+
+const selectedBoundDevices = computed(() => selectedDevices.value.filter(device => device.userId != null))
+const selectedDeletableDevices = computed(() => selectedDevices.value.filter(
+  device => device.userId == null && device.merchantId == null
+))
+const earningsTotal = computed(() => (
+  earningsChartData.earnings.reduce((sum, amount) => sum + Number(amount || 0), 0)
+).toFixed(2))
 
 const stats = reactive({
   onlineCount: 0,
@@ -620,10 +772,331 @@ const fetchDevices = async () => {
 }
 
 const formatTime = (time) => time ? time.replace('T', ' ').substring(0, 19) : '-'
+
+const handleSelectionChange = (rows) => {
+  selectedDevices.value = Array.isArray(rows) ? rows : []
+}
+
+const openEditDialog = (device) => {
+  Object.assign(editForm, {
+    id: device.id,
+    name: device.name || '',
+    location: device.location || '',
+    carrier: device.carrier || '',
+    type: Number.isInteger(Number(device.type)) ? Number(device.type) : 2,
+    hashrate: Number(device.hashrate || 0)
+  })
+  editVisible.value = true
+}
+
+const saveDeviceEdit = async () => {
+  if (!editForm.id) {
+    ElMessage.error('设备信息已失效，请刷新后重试')
+    return
+  }
+  if (!Number.isInteger(Number(editForm.hashrate)) || Number(editForm.hashrate) < 0) {
+    ElMessage.error('算力值必须是大于或等于 0 的整数')
+    return
+  }
+
+  editSaving.value = true
+  try {
+    const res = await request.post('/api/device/update', {
+      id: editForm.id,
+      name: String(editForm.name || '').trim() || null,
+      location: String(editForm.location || '').trim() || null,
+      carrier: String(editForm.carrier || '').trim() || null,
+      type: Number(editForm.type),
+      hashrate: Number(editForm.hashrate)
+    })
+    if (res.data.code === 200) {
+      ElMessage.success('设备信息已更新')
+      editVisible.value = false
+      await Promise.all([fetchDevices(), fetchStats(), fetchLocations()])
+    } else {
+      ElMessage.error(res.data.msg || '设备信息保存失败')
+    }
+  } catch (error) {
+    console.error('保存设备信息失败:', error)
+  } finally {
+    editSaving.value = false
+  }
+}
+
+const deleteDevice = async (device) => {
+  if (device.userId != null || device.merchantId != null) {
+    ElMessage.warning('只能删除未绑定且不属于商户的设备')
+    return
+  }
+
+  try {
+    await ElMessageBox.confirm(
+      `确定删除设备 ${device.bindCode || device.sn} 吗？删除后不可恢复。`,
+      '删除设备',
+      {
+        confirmButtonText: '确认删除',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }
+    )
+  } catch (error) {
+    return
+  }
+
+  deletingId.value = device.id
+  try {
+    const res = await request.delete(`/api/device/delete/${device.id}`)
+    if (res.data.code === 200) {
+      ElMessage.success('设备已删除')
+      if (devices.value.length === 1 && currentPage.value > 1) currentPage.value -= 1
+      await Promise.all([fetchDevices(), fetchStats()])
+    } else {
+      ElMessage.error(res.data.msg || '删除设备失败')
+    }
+  } catch (error) {
+    console.error('删除设备失败:', error)
+  } finally {
+    deletingId.value = null
+  }
+}
+
+const batchUnbindDevices = async () => {
+  const targets = selectedBoundDevices.value
+  if (targets.length === 0) {
+    ElMessage.warning('所选设备中没有已绑定设备')
+    return
+  }
+
+  try {
+    await ElMessageBox.confirm(
+      `确定批量解绑所选的 ${targets.length} 台设备吗？`,
+      '批量解绑设备',
+      {
+        confirmButtonText: '确认解绑',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }
+    )
+  } catch (error) {
+    return
+  }
+
+  batchUnbinding.value = true
+  try {
+    const res = await request.post('/api/device/batch-unbind', { ids: targets.map(device => device.id) })
+    if (res.data.code === 200) {
+      ElMessage.success(`已解绑 ${targets.length} 台设备`)
+      selectedDevices.value = []
+      await Promise.all([fetchDevices(), fetchStats()])
+    } else {
+      ElMessage.error(res.data.msg || '批量解绑失败')
+    }
+  } catch (error) {
+    console.error('批量解绑失败:', error)
+  } finally {
+    batchUnbinding.value = false
+  }
+}
+
+const batchDeleteDevices = async () => {
+  const targets = selectedDeletableDevices.value
+  if (targets.length === 0) {
+    ElMessage.warning('所选设备中没有可删除的未绑定设备')
+    return
+  }
+
+  try {
+    await ElMessageBox.confirm(
+      `确定批量删除所选的 ${targets.length} 台未绑定设备吗？删除后不可恢复。`,
+      '批量删除设备',
+      {
+        confirmButtonText: '确认删除',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }
+    )
+  } catch (error) {
+    return
+  }
+
+  batchDeleting.value = true
+  try {
+    const res = await request.post('/api/device/batch-delete', { ids: targets.map(device => device.id) })
+    if (res.data.code === 200) {
+      ElMessage.success(res.data.msg || `已删除 ${targets.length} 台设备`)
+      selectedDevices.value = []
+      if (targets.length >= devices.value.length && currentPage.value > 1) currentPage.value -= 1
+      await Promise.all([fetchDevices(), fetchStats()])
+    } else {
+      ElMessage.error(res.data.msg || '批量删除失败')
+    }
+  } catch (error) {
+    console.error('批量删除设备失败:', error)
+  } finally {
+    batchDeleting.value = false
+  }
+}
+
+const csvCell = (value) => `"${String(value ?? '').replaceAll('"', '""')}"`
+
+const exportDeviceCsv = async () => {
+  csvExportLoading.value = true
+  try {
+    const res = await request.get('/api/device/export-sn', { params: { unboundOnly: false } })
+    if (res.data.code !== 200) {
+      ElMessage.error(res.data.msg || '获取设备清单失败')
+      return
+    }
+
+    const records = Array.isArray(res.data.data?.list) ? res.data.data.list : []
+    if (records.length === 0) {
+      ElMessage.warning('暂无设备可导出')
+      return
+    }
+
+    const rows = [
+      ['序号', '绑定码', 'SN 序列号', '设备名称', '设备类型', '运行状态', '绑定状态', '绑定用户ID', '绑定用户', '位置', '运营商', '算力值', '最后心跳', '创建时间'],
+      ...records.map(record => [
+        record.index,
+        record.bindCode,
+        record.sn,
+        record.name,
+        formatDeviceType(record.type),
+        record.status,
+        record.bound,
+        record.userId,
+        record.nickname,
+        record.location,
+        record.carrier,
+        record.hashrate,
+        formatTime(record.lastHeartbeatTime),
+        formatTime(record.createTime)
+      ])
+    ]
+    const csv = `\uFEFF${rows.map(row => row.map(csvCell).join(',')).join('\r\n')}`
+    const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }))
+    const anchor = document.createElement('a')
+    anchor.href = url
+    anchor.download = `聚芯Orin_设备清单_${new Date().toISOString().slice(0, 10)}.csv`
+    document.body.appendChild(anchor)
+    anchor.click()
+    anchor.remove()
+    URL.revokeObjectURL(url)
+    ElMessage.success(`已导出 ${records.length} 台设备`)
+  } catch (error) {
+    console.error('导出设备 CSV 失败:', error)
+  } finally {
+    csvExportLoading.value = false
+  }
+}
+
+const fetchGlobalOfflineRecords = async () => {
+  globalOfflineLoading.value = true
+  try {
+    const res = await request.get('/api/admin/device-offline-log/list', {
+      params: {
+        page: globalOfflinePage.value,
+        size: globalOfflinePageSize,
+        sn: String(globalOfflineSearch.value || '').trim() || undefined
+      }
+    })
+    if (res.data.code === 200) {
+      const pageData = res.data.data || {}
+      globalOfflineRecords.value = Array.isArray(pageData.records) ? pageData.records : []
+      globalOfflineTotal.value = Number(pageData.total || 0)
+    } else {
+      ElMessage.error(res.data.msg || '获取全局离线记录失败')
+    }
+  } catch (error) {
+    console.error('获取全局离线记录失败:', error)
+  } finally {
+    globalOfflineLoading.value = false
+  }
+}
+
+const openGlobalOfflineRecords = () => {
+  globalOfflineVisible.value = true
+  globalOfflinePage.value = 1
+  fetchGlobalOfflineRecords()
+}
+
+const searchGlobalOfflineRecords = () => {
+  globalOfflinePage.value = 1
+  fetchGlobalOfflineRecords()
+}
+
+const renderEarningsChart = () => {
+  if (!earningsChartRef.value) return
+  earningsChart?.dispose()
+  earningsChart = echarts.init(earningsChartRef.value)
+  earningsChart.setOption({
+    color: ['#659f00'],
+    grid: { top: 28, right: 22, bottom: 28, left: 58 },
+    tooltip: {
+      trigger: 'axis',
+      formatter: (items) => {
+        const item = items?.[0]
+        return item ? `${item.axisValue}<br/>收益：¥${Number(item.value || 0).toFixed(2)}` : ''
+      }
+    },
+    xAxis: {
+      type: 'category',
+      boundaryGap: false,
+      data: earningsChartData.dates,
+      axisLabel: { color: '#6b7280', fontSize: 11 },
+      axisLine: { lineStyle: { color: '#d7ddd2' } }
+    },
+    yAxis: {
+      type: 'value',
+      name: '收益（元）',
+      nameTextStyle: { color: '#6b7280', fontSize: 11 },
+      axisLabel: { color: '#6b7280', formatter: value => `¥${value}` },
+      splitLine: { lineStyle: { color: '#edf0eb' } }
+    },
+    series: [{
+      name: '收益',
+      type: 'line',
+      smooth: true,
+      symbolSize: 7,
+      data: earningsChartData.earnings,
+      areaStyle: { color: 'rgba(101, 159, 0, 0.12)' },
+      lineStyle: { width: 3 }
+    }]
+  })
+}
+
+const loadEarningsChart = async (deviceId) => {
+  earningsChartLoading.value = true
+  earningsChartData.dates = []
+  earningsChartData.earnings = []
+  try {
+    const res = await request.get(`/api/device/chart-data/${deviceId}`)
+    if (res.data.code === 200) {
+      earningsChartData.dates = Array.isArray(res.data.data?.dates) ? res.data.data.dates : []
+      earningsChartData.earnings = Array.isArray(res.data.data?.earnings) ? res.data.data.earnings : []
+      await nextTick()
+      renderEarningsChart()
+    } else {
+      ElMessage.error(res.data.msg || '获取设备收益趋势失败')
+    }
+  } catch (error) {
+    console.error('获取设备收益趋势失败:', error)
+  } finally {
+    earningsChartLoading.value = false
+  }
+}
+
+const disposeEarningsChart = () => {
+  earningsChart?.dispose()
+  earningsChart = null
+}
+
 const viewDetail = async (device) => {
   detailVisible.value = true
   detailLoading.value = true
   detailData.value = withDemoTelemetry(device)
+  await nextTick()
+  loadEarningsChart(device.id)
 
   try {
     const res = await request.get(`/api/device/detail/${device.id}`)
@@ -1197,6 +1670,24 @@ onUnmounted(() => {
   box-shadow: none;
 }
 
+.batch-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+  padding: 10px 12px;
+  color: var(--orin-text-soft);
+  background: var(--orin-surface-soft);
+  border: 1px solid var(--orin-border-soft);
+  border-radius: 5px;
+  font-size: 13px;
+}
+
+.batch-toolbar span {
+  margin-right: auto;
+  font-weight: 700;
+}
+
 .detail-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1237,6 +1728,66 @@ onUnmounted(() => {
   color: var(--orin-green-bright);
   font-size: 18px;
   font-weight: 800;
+}
+
+.earnings-chart-panel {
+  margin-top: 18px;
+  padding: 16px;
+  background: var(--orin-surface-soft);
+  border: 1px solid var(--orin-border-soft);
+  border-radius: 6px;
+}
+
+.earnings-chart-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.earnings-chart-head > div {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.earnings-chart-head strong {
+  color: var(--orin-text);
+  font-size: 15px;
+}
+
+.earnings-chart-head span {
+  color: var(--orin-muted);
+  font-size: 12px;
+}
+
+.earnings-chart-total {
+  color: var(--orin-green) !important;
+  font-size: 15px !important;
+  font-weight: 800;
+}
+
+.earnings-chart {
+  width: 100%;
+  height: 280px;
+  margin-top: 10px;
+}
+
+.edit-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0 16px;
+}
+
+.edit-form-grid .span-2 {
+  grid-column: 1 / -1;
+}
+
+.global-offline-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
 }
 
 .runtime-version {
@@ -1483,8 +2034,27 @@ onUnmounted(() => {
   }
 
   .affiliate-form-grid,
+  .edit-form-grid,
   .qr-preview-grid {
     grid-template-columns: 1fr;
+  }
+
+  .edit-form-grid .span-2 {
+    grid-column: auto;
+  }
+
+  .batch-toolbar,
+  .global-offline-toolbar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .batch-toolbar span {
+    margin-right: 0;
+  }
+
+  .global-offline-toolbar > * {
+    width: 100% !important;
   }
 
   .qr-export-toolbar {
