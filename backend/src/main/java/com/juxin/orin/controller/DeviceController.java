@@ -16,6 +16,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDateTime;
 import java.util.Map;
 
 @RestController
@@ -402,6 +403,7 @@ public class DeviceController {
             }
         }
 
+        enrichVirtualDeviceDetail(device, LocalDateTime.now());
         return Result.success(device);
     }
 
@@ -1118,7 +1120,7 @@ public class DeviceController {
         device.setSn("VD" + System.currentTimeMillis() + (int) (Math.random() * 1000));
         // 生成绑定码
         device.setBindCode(generateBindCode());
-        device.setName(name != null ? name : "挂靠设备");
+        device.setName(name);
         device.setHashrate(hashrate);
         device.setCarrier(carrier); // 设置运营商
         device.setLocation(location); // 设置位置
@@ -1210,7 +1212,7 @@ public class DeviceController {
             Device device = new Device();
             device.setSn("VD" + System.currentTimeMillis() + (int) (Math.random() * 1000));
             device.setBindCode(generateBindCode());
-            device.setName(name != null ? name : "挂靠设备");
+            device.setName(name);
             device.setHashrate(hashrate);
             device.setCarrier(carrier); // 设置运营商
             device.setLocation(location); // 设置位置
@@ -1288,6 +1290,84 @@ public class DeviceController {
             }
         } while (deviceService.lambdaQuery().eq(Device::getBindCode, code).exists());
         return code;
+    }
+
+    /**
+     * 虚拟设备没有 Agent 心跳上报，但详情页与真实设备共用同一套展示字段。
+     * 这里仅补齐缺失的展示数据，不覆盖真实设备或虚拟设备已有配置，也不写回数据库。
+     */
+    static void enrichVirtualDeviceDetail(Device device, LocalDateTime now) {
+        if (device == null || !Integer.valueOf(1).equals(device.getType())) {
+            return;
+        }
+
+        device.setStatus(1);
+        device.setLastHeartbeatTime(now);
+
+        long bucket = now.toEpochSecond(java.time.ZoneOffset.ofHours(8)) / 10;
+        long seed = virtualDeviceSeed(device);
+
+        if (isBlank(device.getCpuUsage())) {
+            device.setCpuUsage(String.valueOf(simulatedValue(seed, bucket, 11, 18, 62)));
+        }
+        if (isBlank(device.getMemoryUsage())) {
+            device.setMemoryUsage(String.valueOf(simulatedValue(seed, bucket, 23, 38, 74)));
+        }
+        if (isBlank(device.getGpuUsage())) {
+            device.setGpuUsage(String.valueOf(simulatedValue(seed, bucket, 37, 12, 68)));
+        }
+        if (device.getGpuTemperature() == null) {
+            device.setGpuTemperature((double) simulatedValue(seed, bucket, 41, 47, 65));
+        }
+        if (device.getPowerWatts() == null) {
+            device.setPowerWatts((double) simulatedValue(seed, bucket, 53, 12, 32));
+        }
+        if (device.getMemoryTotalMb() == null) {
+            device.setMemoryTotalMb(32768);
+        }
+
+        if (isBlank(device.getBusinessId())) {
+            device.setBusinessId("YW" + (8_000_000_000_000L + Math.floorMod(seed, 1_000_000_000_000L)));
+        }
+        if (isBlank(device.getDeviceModel())) {
+            device.setDeviceModel("NVIDIA Jetson AGX Orin");
+        }
+        if (isBlank(device.getCpuModel())) {
+            device.setCpuModel("ARM Cortex-A78AE");
+        }
+        if (isBlank(device.getArchitecture())) {
+            device.setArchitecture("aarch64");
+        }
+        if (isBlank(device.getL4tVersion())) {
+            device.setL4tVersion("36.4.7");
+        }
+        if (isBlank(device.getCudaVersion())) {
+            device.setCudaVersion("12.6");
+        }
+        if (isBlank(device.getAgentVersion())) {
+            device.setAgentVersion("1.0.0");
+        }
+        if (isBlank(device.getImageVersion())) {
+            device.setImageVersion("orin-l4t-36.4.7-v1");
+        }
+    }
+
+    private static long virtualDeviceSeed(Device device) {
+        if (device.getId() != null) {
+            return device.getId();
+        }
+        String identity = !isBlank(device.getSn()) ? device.getSn() : device.getBindCode();
+        return identity == null ? 0 : Integer.toUnsignedLong(identity.hashCode());
+    }
+
+    private static int simulatedValue(long seed, long bucket, int salt, int min, int max) {
+        long mixed = seed * 1_103_515_245L + bucket * 12_345L + salt * 2_654_435_761L;
+        mixed ^= mixed >>> 16;
+        return min + (int) Math.floorMod(mixed, max - min + 1L);
+    }
+
+    private static boolean isBlank(String value) {
+        return value == null || value.isBlank();
     }
 
     private String trimToNull(Object value) {

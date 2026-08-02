@@ -511,7 +511,7 @@
             <el-input-number v-model="affiliateForm.count" :min="1" :max="100" :precision="0" controls-position="right" />
           </el-form-item>
           <el-form-item label="设备名称">
-            <el-input v-model="affiliateForm.name" maxlength="100" placeholder="例如：华东挂靠设备" />
+            <el-input v-model="affiliateForm.name" maxlength="100" placeholder="选填，例如：华东节点" />
           </el-form-item>
           <el-form-item label="每日算力值">
             <el-input-number v-model="affiliateForm.hashrate" :min="1" :max="999999999" :precision="0" controls-position="right" />
@@ -614,7 +614,7 @@ const affiliateSaving = ref(false)
 const affiliateForm = reactive({
   mode: 'batch',
   count: 1,
-  name: '挂靠设备',
+  name: '',
   hashrate: 100,
   carrier: '',
   location: '',
@@ -1236,7 +1236,7 @@ const openAffiliateDialog = () => {
   Object.assign(affiliateForm, {
     mode: 'batch',
     count: 1,
-    name: '挂靠设备',
+    name: '',
     hashrate: 100,
     carrier: '',
     location: '',
@@ -1248,7 +1248,7 @@ const openAffiliateDialog = () => {
 const saveAffiliateDevices = async () => {
   const count = affiliateForm.mode === 'single' ? 1 : Number(affiliateForm.count)
   const hashrate = Number(affiliateForm.hashrate)
-  const name = String(affiliateForm.name || '').trim() || '挂靠设备'
+  const name = String(affiliateForm.name || '').trim()
   const rawUserId = String(affiliateForm.userId || '').trim()
   const userId = rawUserId ? Number(rawUserId) : null
 
@@ -1270,7 +1270,7 @@ const saveAffiliateDevices = async () => {
     const endpoint = affiliateForm.mode === 'single' ? '/api/device/create' : '/api/device/batch-create'
     const res = await request.post(endpoint, {
       count,
-      name,
+      name: name || null,
       hashrate,
       carrier: String(affiliateForm.carrier || '').trim() || null,
       location: String(affiliateForm.location || '').trim() || null,
