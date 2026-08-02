@@ -110,7 +110,7 @@ public class SettingsController {
         earnings.put("maxDailyOfflineHours",
                 Double.parseDouble(configService.getConfig(KEY_MAX_DAILY_OFFLINE_HOURS, "24")));
         earnings.put("hashratePerYuan", Integer.parseInt(configService.getConfig(KEY_HASHRATE_PER_YUAN, "100")));
-        earnings.put("minWithdraw", Double.parseDouble(configService.getConfig(KEY_MIN_WITHDRAW, "10")));
+        earnings.put("minWithdraw", 0.01D);
         earnings.put("withdrawFee", Double.parseDouble(configService.getConfig(KEY_WITHDRAW_FEE, "1")));
         earnings.put("earningsRate", Double.parseDouble(configService.getConfig(KEY_EARNINGS_RATE, "0.1")));
 
@@ -161,8 +161,7 @@ public class SettingsController {
         settings.put("system", system);
 
         // 提现日期限制配置 (1=周一, 7=周日，空字符串表示不限制)
-        String withdrawDays = configService.getConfig(KEY_WITHDRAW_ALLOWED_DAYS, "");
-        settings.put("withdrawAllowedDays", withdrawDays);
+        settings.put("withdrawAllowedDays", configService.getConfig(KEY_WITHDRAW_ALLOWED_DAYS, ""));
 
         return Result.success(settings);
     }
@@ -255,7 +254,7 @@ public class SettingsController {
             configService.setConfig(KEY_HASHRATE_PER_YUAN, params.get("hashratePerYuan").toString());
         }
         if (params.get("minWithdraw") != null) {
-            configService.setConfig(KEY_MIN_WITHDRAW, params.get("minWithdraw").toString());
+            configService.setConfig(KEY_MIN_WITHDRAW, "0.01");
         }
         if (params.get("withdrawFee") != null) {
             configService.setConfig(KEY_WITHDRAW_FEE, params.get("withdrawFee").toString());
@@ -493,7 +492,7 @@ public class SettingsController {
     public Result<Object> getEarningsConfig() {
         Map<String, Object> config = new HashMap<>();
         config.put("hashratePerYuan", Integer.parseInt(configService.getConfig(KEY_HASHRATE_PER_YUAN, "100")));
-        config.put("minWithdraw", Double.parseDouble(configService.getConfig(KEY_MIN_WITHDRAW, "10")));
+        config.put("minWithdraw", 0.01D);
         config.put("withdrawFee", Double.parseDouble(configService.getConfig(KEY_WITHDRAW_FEE, "1")));
         config.put("dailyMinRate", getDailyRangeRate(KEY_DAILY_MIN_RATE));
         config.put("dailyMaxRate", getDailyRangeRate(KEY_DAILY_MAX_RATE));
@@ -536,8 +535,14 @@ public class SettingsController {
         }
 
         String allowedDays = params.get("allowedDays") != null ? params.get("allowedDays").toString() : "";
-        configService.setConfig(KEY_WITHDRAW_ALLOWED_DAYS, allowedDays);
-        return Result.success("提现日期限制设置已保存");
+        String normalizedDays;
+        try {
+            normalizedDays = normalizeWithdrawDays(allowedDays);
+        } catch (IllegalArgumentException exception) {
+            return Result.error(exception.getMessage());
+        }
+        configService.setConfig(KEY_WITHDRAW_ALLOWED_DAYS, normalizedDays);
+        return Result.success("提现日期设置已保存");
     }
 
     /**
@@ -546,56 +551,57 @@ public class SettingsController {
      */
     @GetMapping("/withdraw-status")
     public Result<Object> getWithdrawStatus() {
-        String allowedDays = configService.getConfig(KEY_WITHDRAW_ALLOWED_DAYS, "");
+        String allowedDays;
+        try {
+            allowedDays = normalizeWithdrawDays(configService.getConfig(KEY_WITHDRAW_ALLOWED_DAYS, ""));
+        } catch (IllegalArgumentException exception) {
+            allowedDays = "";
+        }
+        boolean unrestricted = allowedDays.isEmpty();
+        int today = java.time.LocalDate.now().getDayOfWeek().getValue();
+        boolean canWithdraw = unrestricted || java.util.Arrays.stream(allowedDays.split(","))
+                .anyMatch(day -> !day.isBlank() && Integer.parseInt(day) == today);
+        String allowedDaysText = unrestricted ? "每天" : formatWithdrawDays(allowedDays);
 
         Map<String, Object> result = new HashMap<>();
         result.put("allowedDays", allowedDays);
-
-        // 如果没有配置限制，则任何时候都可以提现
-        if (allowedDays == null || allowedDays.trim().isEmpty()) {
-            result.put("canWithdraw", true);
-            result.put("message", "");
-            return Result.success(result);
-        }
-
-        // 检查今天是否在允许的日期内
-        // Java: 1=周一, 7=周日 (使用 DayOfWeek)
-        int todayDayOfWeek = java.time.LocalDate.now().getDayOfWeek().getValue();
-        String[] days = allowedDays.split(",");
-        boolean canWithdraw = false;
-
-        for (String day : days) {
-            try {
-                if (Integer.parseInt(day.trim()) == todayDayOfWeek) {
-                    canWithdraw = true;
-                    break;
-                }
-            } catch (NumberFormatException ignored) {
-            }
-        }
-
+        result.put("allowedDaysText", allowedDaysText);
         result.put("canWithdraw", canWithdraw);
-
-        if (!canWithdraw) {
-            // 生成提示信息
-            String[] dayNames = { "", "周一", "周二", "周三", "周四", "周五", "周六", "周日" };
-            StringBuilder sb = new StringBuilder("提现日为每周");
-            for (int i = 0; i < days.length; i++) {
-                try {
-                    int d = Integer.parseInt(days[i].trim());
-                    if (d >= 1 && d <= 7) {
-                        if (i > 0)
-                            sb.append("、");
-                        sb.append(dayNames[d]);
-                    }
-                } catch (NumberFormatException ignored) {
-                }
-            }
-            result.put("message", sb.toString());
-        } else {
-            result.put("message", "");
-        }
-
+        result.put("message", canWithdraw
+                ? "今日可申请提现"
+                : "今日暂不可申请，允许提现日为" + allowedDaysText);
+        result.put("minWithdraw", 0.01D);
+        result.put("processingTime", "1-3个工作日");
         return Result.success(result);
+    }
+
+    private String normalizeWithdrawDays(String value) {
+        if (value == null || value.trim().isEmpty()) {
+            return "";
+        }
+        java.util.SortedSet<Integer> days = new java.util.TreeSet<>();
+        for (String item : value.split(",")) {
+            try {
+                int day = Integer.parseInt(item.trim());
+                if (day < 1 || day > 7) {
+                    throw new IllegalArgumentException("提现日期只能选择周一至周日");
+                }
+                days.add(day);
+            } catch (NumberFormatException exception) {
+                throw new IllegalArgumentException("提现日期格式不正确");
+            }
+        }
+        return days.stream().map(String::valueOf).collect(java.util.stream.Collectors.joining(","));
+    }
+
+    private String formatWithdrawDays(String allowedDays) {
+        if (allowedDays.split(",").length == 7) {
+            return "每天（周一至周日）";
+        }
+        String[] names = { "", "周一", "周二", "周三", "周四", "周五", "周六", "周日" };
+        return java.util.Arrays.stream(allowedDays.split(","))
+                .filter(day -> !day.isBlank())
+                .map(day -> names[Integer.parseInt(day)])
+                .collect(java.util.stream.Collectors.joining("、"));
     }
 }

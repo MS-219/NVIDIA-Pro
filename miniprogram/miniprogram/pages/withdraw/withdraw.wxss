@@ -181,6 +181,25 @@ page {
     border: 1px solid rgba(192, 138, 47, .28) !important;
 }
 
+.withdraw-limit-card.rule-open-card {
+    border-color: rgba(19, 117, 112, .28) !important;
+}
+
+.withdraw-limit-card.rule-open-card .calendar-mark {
+    border-color: rgba(19, 117, 112, .4);
+    background: rgba(19, 117, 112, .08);
+}
+
+.withdraw-limit-card.rule-open-card .calendar-mark::before,
+.withdraw-limit-card.rule-open-card .calendar-mark::after,
+.withdraw-limit-card.rule-open-card .calendar-mark view {
+    background: #137570;
+}
+
+.withdraw-limit-card.rule-open-card .calendar-mark view {
+    box-shadow: 8px 0 0 rgba(19, 117, 112, .6), 0 8px 0 rgba(19, 117, 112, .6), 8px 8px 0 rgba(19, 117, 112, .6);
+}
+
 .contract-card {
     border: 1px solid rgba(19, 117, 112, .24) !important;
 }

@@ -26,10 +26,10 @@ public class WithdrawController {
     private com.juxin.orin.service.IAppUserService appUserService;
 
     @Autowired
-    private com.juxin.orin.service.ISystemConfigService configService;
+    private com.juxin.orin.service.IBossKgService bossKgService;
 
     @Autowired
-    private com.juxin.orin.service.IBossKgService bossKgService;
+    private com.juxin.orin.service.ISystemConfigService configService;
 
     // ========== 小程序端 API ==========
 
@@ -98,37 +98,22 @@ public class WithdrawController {
      */
     @PostMapping("/apply")
     public Result<String> apply(@RequestBody Map<String, Object> params) {
-        // 检查今天是否允许提现
         String allowedDays = configService.getConfig("withdraw.allowedDays", "");
         if (allowedDays != null && !allowedDays.trim().isEmpty()) {
-            int todayDayOfWeek = java.time.LocalDate.now().getDayOfWeek().getValue();
-            String[] days = allowedDays.split(",");
-            boolean canWithdraw = false;
-            for (String day : days) {
-                try {
-                    if (Integer.parseInt(day.trim()) == todayDayOfWeek) {
-                        canWithdraw = true;
-                        break;
-                    }
-                } catch (NumberFormatException ignored) {
-                }
-            }
-            if (!canWithdraw) {
-                String[] dayNames = { "", "周一", "周二", "周三", "周四", "周五", "周六", "周日" };
-                StringBuilder sb = new StringBuilder("提现日为每周");
-                for (int i = 0; i < days.length; i++) {
-                    try {
-                        int d = Integer.parseInt(days[i].trim());
-                        if (d >= 1 && d <= 7) {
-                            if (i > 0)
-                                sb.append("、");
-                            sb.append(dayNames[d]);
-                        }
-                    } catch (NumberFormatException ignored) {
-                    }
-                }
-                sb.append("，请在指定日期申请提现");
-                return Result.error(sb.toString());
+            int today = java.time.LocalDate.now().getDayOfWeek().getValue();
+            java.util.List<Integer> configuredDays = java.util.Arrays.stream(allowedDays.split(","))
+                    .map(String::trim)
+                    .filter(day -> day.matches("[1-7]"))
+                    .map(Integer::parseInt)
+                    .distinct()
+                    .sorted()
+                    .toList();
+            if (!configuredDays.isEmpty() && !configuredDays.contains(today)) {
+                String[] names = { "", "周一", "周二", "周三", "周四", "周五", "周六", "周日" };
+                String dayText = configuredDays.stream()
+                        .map(day -> names[day])
+                        .collect(java.util.stream.Collectors.joining("、"));
+                return Result.error("今日暂不可申请，允许提现日为" + dayText);
             }
         }
 

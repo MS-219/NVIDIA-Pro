@@ -6,7 +6,7 @@ Page({
     data: {
         navBarTop: 0,
         hashratePerYuan: 100, // 算力兑换比例
-        minWithdraw: 10,       // 最低提现金额
+        minWithdraw: 0.01,     // 仅保留人民币最小计价单位，不设累计门槛
         withdrawFee: 1,        // 线上打款提现手续费
         walletInfo: {
             available: '0.00',
@@ -31,9 +31,10 @@ Page({
         realNameDisabled: false,
         previewAmount: '0.00',
         submitting: false,
-        // 提现日期限制
+        // 提现日期由后台配置
         canWithdraw: true,
-        withdrawMessage: '',
+        withdrawMessage: '每天均可申请提现',
+        allowedDaysText: '每天',
         // 佣金保
         bosskgEnabled: false,
         contracted: false,
@@ -118,7 +119,7 @@ Page({
         });
     },
 
-    // 检查今天是否可以提现
+    // 获取后台配置的提现日期规则。
     checkWithdrawStatus() {
         request({
             url: '/api/settings/withdraw-status',
@@ -127,8 +128,9 @@ Page({
             if (res.code === 200) {
                 const data = res.data;
                 this.setData({
-                    canWithdraw: data.canWithdraw,
-                    withdrawMessage: data.message || ''
+                    canWithdraw: data.canWithdraw !== false,
+                    withdrawMessage: data.message || '',
+                    allowedDaysText: data.allowedDaysText || '每天'
                 });
             }
         });
@@ -143,9 +145,12 @@ Page({
             if (res.code === 200) {
                 const config = res.data;
                 const hashratePerYuan = parseInt(config.hashratePerYuan || 100, 10) || 100;
+                const configuredMinWithdraw = Number(config.minWithdraw);
                 this.setData({
                     hashratePerYuan,
-                    minWithdraw: config.minWithdraw || 10,
+                    minWithdraw: Number.isFinite(configuredMinWithdraw)
+                        ? Math.max(0.01, configuredMinWithdraw)
+                        : 0.01,
                     withdrawFee: config.withdrawFee || 1
                 });
                 this.refreshHashrateDisplay(hashratePerYuan);
@@ -373,6 +378,10 @@ Page({
     },
 
     submitWithdraw() {
+        if (!this.data.canWithdraw) {
+            wx.showToast({ title: this.data.withdrawMessage || '今日暂不可申请提现', icon: 'none' });
+            return;
+        }
         if (!this.data.walletReady) {
             wx.showToast({ title: '余额刷新中，请稍后', icon: 'none' });
             return;
@@ -382,9 +391,10 @@ Page({
         const amount = parseFloat(form.amount) || 0;
         const available = parseFloat(walletInfo.available) || 0;
 
-        // 表单验证
-        if (amount < 10) {
-            wx.showToast({ title: '最低提现金额为10元', icon: 'none' });
+        // 表单验证：不设置累计门槛，仅校验人民币最小计价单位。
+        const minWithdraw = Math.max(0.01, Number(this.data.minWithdraw) || 0.01);
+        if (amount < minWithdraw) {
+            wx.showToast({ title: `提现金额最低为${minWithdraw}元`, icon: 'none' });
             return;
         }
 

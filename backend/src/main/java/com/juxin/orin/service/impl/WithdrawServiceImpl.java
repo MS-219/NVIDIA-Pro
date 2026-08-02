@@ -20,6 +20,8 @@ import java.util.Map;
 @Service
 public class WithdrawServiceImpl extends ServiceImpl<WithdrawMapper, Withdraw> implements IWithdrawService {
 
+    private static final BigDecimal MIN_WITHDRAW_AMOUNT = new BigDecimal("0.01");
+
     @Autowired
     private WithdrawMapper withdrawMapper;
 
@@ -42,14 +44,9 @@ public class WithdrawServiceImpl extends ServiceImpl<WithdrawMapper, Withdraw> i
     @Transactional
     public String applyWithdraw(Long userId, BigDecimal amount, Integer type, String account, String realName,
             String qrCode) {
-        // 从系统配置读取最低提现金额。手续费由最终打款方式决定：线上扣，线下不扣。
-        String minWithdrawStr = configService.getConfig("earnings.minWithdraw", "10");
-
-        BigDecimal minWithdraw = new BigDecimal(minWithdrawStr);
-
-        // 校验最低提现金额
-        if (amount.compareTo(minWithdraw) < 0) {
-            return "最低提现金额为 " + minWithdraw + " 元";
+        // 不设置累计提现门槛，仅要求达到人民币最小计价单位。
+        if (amount == null || amount.compareTo(MIN_WITHDRAW_AMOUNT) < 0) {
+            return "提现金额最低为 0.01 元";
         }
 
         // 获取用户并校验余额

@@ -63,9 +63,10 @@
               <span class="unit">小时 / 天</span>
               <div class="hint">累计离线超过该时长，当天收益为 0</div>
             </el-form-item>
-            <el-form-item label="最小提现额度">
-              <el-input-number v-model="earningsSettings.minWithdraw" :min="1" :precision="0" />
+            <el-form-item label="提现起付金额">
+              <el-input-number v-model="earningsSettings.minWithdraw" :min="0.01" :max="0.01" :precision="2" disabled />
               <span class="unit">元</span>
+              <div class="hint">仅为人民币最小计价单位，不设置累计提现门槛</div>
             </el-form-item>
             <el-form-item label="提现手续费">
               <el-input-number v-model="earningsSettings.withdrawFee" :min="0" :max="100" :precision="1" :step="0.5" />
@@ -116,24 +117,23 @@
         </el-card>
       </el-col>
 
-      <!-- 提现日期限制设置 -->
+      <!-- 提现开放规则 -->
       <el-col :span="12">
         <el-card class="setting-card">
           <template #header>
-            <span class="card-title"><el-icon><Calendar /></el-icon> 提现日期限制</span>
+            <span class="card-title"><el-icon><Calendar /></el-icon> 提现开放规则</span>
           </template>
           <el-form label-width="120px">
             <el-form-item label="允许提现日">
               <el-checkbox-group v-model="withdrawAllowedDays">
-                <el-checkbox :value="1">周一</el-checkbox>
-                <el-checkbox :value="2">周二</el-checkbox>
-                <el-checkbox :value="3">周三</el-checkbox>
-                <el-checkbox :value="4">周四</el-checkbox>
-                <el-checkbox :value="5">周五</el-checkbox>
-                <el-checkbox :value="6">周六</el-checkbox>
-                <el-checkbox :value="7">周日</el-checkbox>
+                <el-checkbox v-for="day in withdrawDayOptions" :key="day.value" :value="day.value">
+                  {{ day.label }}
+                </el-checkbox>
               </el-checkbox-group>
-              <div class="hint">不选择任何日期则表示不限制，每天都可提现</div>
+              <div class="hint">不勾选表示每天开放；也可勾选周一至周日明确设置为每天开放</div>
+            </el-form-item>
+            <el-form-item label="固定规则">
+              <div>0.01 元起 · 完成实名签约 · 本人收款账户 · 1-3 个工作日处理</div>
             </el-form-item>
             <el-form-item>
               <el-button type="primary" @click="saveWithdrawDays">保存提现日期设置</el-button>
@@ -256,7 +256,7 @@ const earningsSettings = reactive({
   dailyMinRate: 2.4,
   dailyMaxRate: 2.4,
   maxDailyOfflineHours: 24,
-  minWithdraw: 10,
+  minWithdraw: 0.01,
   withdrawFee: 1,
   hashratePerYuan: 100  // 多少聚芯算力值=1元
 })
@@ -286,8 +286,16 @@ const securitySettings = reactive({
   confirmPassword: ''
 })
 
-// 提现日期限制 (1=周一, 7=周日)
 const withdrawAllowedDays = ref([])
+const withdrawDayOptions = [
+  { value: 1, label: '周一' },
+  { value: 2, label: '周二' },
+  { value: 3, label: '周三' },
+  { value: 4, label: '周四' },
+  { value: 5, label: '周五' },
+  { value: 6, label: '周六' },
+  { value: 7, label: '周日' }
+]
 
 // 加载设置
 const loadSettings = async () => {
@@ -322,13 +330,11 @@ const loadSettings = async () => {
       if (data.banners) {
         banners.splice(0, banners.length, ...data.banners)
       }
-      // 提现日期限制
-      if (data.withdrawAllowedDays) {
-        // 将 "1,4" 格式转换为 [1, 4] 数组
-        withdrawAllowedDays.value = data.withdrawAllowedDays.split(',').filter(d => d.trim()).map(d => parseInt(d.trim()))
-      } else {
-        withdrawAllowedDays.value = []
-      }
+      withdrawAllowedDays.value = (data.withdrawAllowedDays || '')
+        .split(',')
+        .filter(day => day.trim())
+        .map(day => Number(day.trim()))
+        .filter(day => day >= 1 && day <= 7)
     }
   } catch (e) {
     console.error('加载设置失败:', e)
@@ -426,6 +432,22 @@ const validateEarningsSettings = () => {
   return ''
 }
 
+const saveWithdrawDays = async () => {
+  try {
+    const allowedDays = [...withdrawAllowedDays.value]
+      .sort((a, b) => a - b)
+      .join(',')
+    const res = await axios.post('/api/settings/withdraw-days', { allowedDays })
+    if (res.data.code === 200) {
+      ElMessage.success('提现日期设置已保存')
+    } else {
+      ElMessage.error(res.data.msg || '保存失败')
+    }
+  } catch (e) {
+    ElMessage.error('网络请求失败')
+  }
+}
+
 const saveSystemSettings = async () => {
   try {
     const res = await axios.post('/api/settings/system', systemSettings)
@@ -501,22 +523,6 @@ const changePassword = async () => {
     }
   } catch (e) {
     ElMessage.error(e.response?.data?.msg || '网络请求失败')
-  }
-}
-
-// 保存提现日期限制设置
-const saveWithdrawDays = async () => {
-  try {
-    // 将数组 [1, 4] 转换为 "1,4" 格式
-    const allowedDays = withdrawAllowedDays.value.sort((a, b) => a - b).join(',')
-    const res = await axios.post('/api/settings/withdraw-days', { allowedDays })
-    if (res.data.code === 200) {
-      ElMessage.success('提现日期限制设置已保存')
-    } else {
-      ElMessage.error(res.data.msg || '保存失败')
-    }
-  } catch (e) {
-    ElMessage.error('网络请求失败')
   }
 }
 
