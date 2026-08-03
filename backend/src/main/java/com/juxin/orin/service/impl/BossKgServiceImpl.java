@@ -164,7 +164,7 @@ public class BossKgServiceImpl implements IBossKgService {
     @Override
     @Transactional
     public String getH5ContractUrl(Long userId, String realName, String idCard, String mobile,
-            String cardNo, Integer paymentType) {
+            String cardNo, Integer paymentType, String idCardFront, String idCardBack) {
         log.info("提取H5签约链接 - userId:{}, realName:{}, idCard:{}", userId, realName, maskIdCard(idCard));
 
         try {
@@ -175,6 +175,20 @@ public class BossKgServiceImpl implements IBossKgService {
             reqData.set("idCard", idCard);
             reqData.set("mobile", mobile);
             reqData.set("paymentType", paymentType != null ? paymentType : 0);
+            String frontPicHex = convertImageToHex(idCardFront);
+            String backPicHex = convertImageToHex(idCardBack);
+            if (StrUtil.isBlank(frontPicHex) || StrUtil.isBlank(backPicHex)) {
+                throw new RuntimeException("IDENTITY_IMAGE_INVALID:身份证照片读取失败，请重新上传");
+            }
+            if (StrUtil.isBlank(bossKgConfig.getMiniAppId())) {
+                throw new RuntimeException("MINI_APP_ID_MISSING:佣金保小程序 AppID 未配置");
+            }
+            reqData.set("idCardFrontPic", frontPicHex);
+            reqData.set("idCardBackPic", backPicHex);
+            reqData.set("appid", bossKgConfig.getMiniAppId());
+            reqData.set("redirectBtnName", "返回提现页面");
+            reqData.set("redirectUrl", "/pages/withdraw/withdraw");
+            reqData.set("redirectType", "RE_LAUNCH");
 
             // 签约成功回调地址
             if (StrUtil.isNotBlank(bossKgConfig.getContractNotifyUrl())) {
@@ -183,7 +197,7 @@ public class BossKgServiceImpl implements IBossKgService {
 
             // 发送请求
             JSONObject response = sendRequest(FUN_CODE_SIGN_H5, reqData);
-            log.info("签约接口返回: {}", response);
+            log.info("签约接口返回 - resCode:{}, resMsg:{}", response.getStr("resCode"), response.getStr("resMsg"));
             if (response == null) {
                 return null;
             }
@@ -387,8 +401,17 @@ public class BossKgServiceImpl implements IBossKgService {
 
         try {
             // 生成批次号和订单号
-            String batchId = generateBatchId();
-            String orderId = "W" + withdraw.getId() + "_" + System.currentTimeMillis();
+            String batchId = StrUtil.isNotBlank(withdraw.getBossKgBatchId())
+                    ? withdraw.getBossKgBatchId()
+                    : generateBatchId();
+            String orderId = generateMerchantOrderId(withdraw.getId(), batchId);
+
+            // 先持久化批次号。发生网络超时时仍可使用原批次主动查询，避免重复打款。
+            withdraw.setBossKgBatchId(batchId);
+            withdraw.setBossKgState(1);
+            if (withdrawMapper.updateById(withdraw) != 1) {
+                return "保存佣金保付款批次失败，请刷新后重试";
+            }
 
             // 金额转换(元->分) - 使用扣除手续费后的实际到账金额
             long amountFen = withdraw.getActualAmount().multiply(new BigDecimal("100")).longValue();
@@ -448,6 +471,7 @@ public class BossKgServiceImpl implements IBossKgService {
                             withdrawMapper.updateById(withdraw);
                             return null; // 成功
                         } else {
+                            clearRejectedPaymentReservation(withdraw);
                             return itemResMsg;
                         }
                     }
@@ -459,8 +483,10 @@ public class BossKgServiceImpl implements IBossKgService {
                 return null;
 
             } else if ("6019".equals(resCode)) {
+                clearRejectedPaymentReservation(withdraw);
                 return "商户余额不足,请联系管理员充值";
             } else if ("6021".equals(resCode)) {
+                clearRejectedPaymentReservation(withdraw);
                 return "用户未签约,请先完成签约";
             } else if ("6100".equals(resCode)) {
                 // 微信新模式,需要用户手动确认
@@ -469,6 +495,7 @@ public class BossKgServiceImpl implements IBossKgService {
                 withdrawMapper.updateById(withdraw);
                 return "需要在微信中确认收款";
             } else {
+                clearRejectedPaymentReservation(withdraw);
                 return resMsg;
             }
 
@@ -486,7 +513,7 @@ public class BossKgServiceImpl implements IBossKgService {
         try {
             JSONObject queryItem = new JSONObject();
             if (StrUtil.isNotBlank(orderId)) {
-                queryItem.set("merOrderId", orderId);
+                queryItem.set("orderNo", orderId);
             }
 
             JSONArray queryItems = new JSONArray();
@@ -524,6 +551,7 @@ public class BossKgServiceImpl implements IBossKgService {
             }
 
             result.put("success", false);
+            result.put("resCode", response.getStr("resCode"));
             result.put("message", response.getStr("resMsg"));
             return result;
 
@@ -568,10 +596,15 @@ public class BossKgServiceImpl implements IBossKgService {
     @Override
     @Transactional
     public String handleContractNotify(String requestBody) {
-        log.info("处理签约回调 - body:{}", requestBody);
+        log.info("处理签约回调");
 
         try {
             JSONObject request = JSONUtil.parseObj(requestBody);
+
+            if (!bossKgConfig.getMerId().equals(request.getStr("merId"))) {
+                log.warn("签约回调商户号不匹配");
+                return "FAIL";
+            }
 
             // 验签
             if (!verifySign(request)) {
@@ -624,10 +657,15 @@ public class BossKgServiceImpl implements IBossKgService {
     @Override
     @Transactional
     public String handlePaymentNotify(String requestBody) {
-        log.info("处理付款回调 - body:{}", requestBody);
+        log.info("处理付款回调");
 
         try {
             JSONObject request = JSONUtil.parseObj(requestBody);
+
+            if (!bossKgConfig.getMerId().equals(request.getStr("merId"))) {
+                log.warn("付款回调商户号不匹配");
+                return "FAIL";
+            }
 
             // 验签
             if (!verifySign(request)) {
@@ -663,6 +701,12 @@ public class BossKgServiceImpl implements IBossKgService {
             // 更新提现记录
             Withdraw withdraw = withdrawMapper.selectById(withdrawId);
             if (withdraw != null) {
+                boolean repeatedTerminalCallback = state != null
+                        && state.equals(withdraw.getBossKgState())
+                        && StrUtil.isNotBlank(orderNo)
+                        && orderNo.equals(withdraw.getBossKgOrderNo())
+                        && (state == 3 || state == 4 || state == 7);
+
                 withdraw.setBossKgOrderNo(orderNo);
                 withdraw.setBossKgState(state);
 
@@ -687,8 +731,10 @@ public class BossKgServiceImpl implements IBossKgService {
                     // 付款失败 - 设为失败状态，停止自动重试
                     withdraw.setStatus(4); // 标记为失败
                     withdraw.setBossKgFailed(true);
-                    withdraw.setPaymentFailCount(
-                            (withdraw.getPaymentFailCount() != null ? withdraw.getPaymentFailCount() : 0) + 1);
+                    if (!repeatedTerminalCallback) {
+                        withdraw.setPaymentFailCount(
+                                (withdraw.getPaymentFailCount() != null ? withdraw.getPaymentFailCount() : 0) + 1);
+                    }
                     withdraw.setRejectReason(resMsg);
                     // 保留佣金保信息作为记录，但清空 batchId 以便可以重新打款
                     withdraw.setBossKgBatchId(null);
@@ -714,15 +760,15 @@ public class BossKgServiceImpl implements IBossKgService {
         try {
             // 生成请求ID
             String reqId = UUID.randomUUID().toString().replace("-", "");
+            String requestReqId = reqId.length() > 30 ? reqId.substring(0, 30) : reqId;
 
             // 加密请求数据
             String reqDataJson = reqData.toString();
-            log.debug("请求明文: {}", reqDataJson);
             String encryptedReqData = DESUtil.encrypt(reqDataJson, bossKgConfig.getDesKey());
 
             // 构建请求体
             JSONObject request = new JSONObject();
-            request.set("reqId", reqId.length() > 30 ? reqId.substring(0, 30) : reqId);
+            request.set("reqId", requestReqId);
             request.set("funCode", funCode);
             request.set("merId", bossKgConfig.getMerId());
             request.set("version", bossKgConfig.getVersion());
@@ -730,7 +776,6 @@ public class BossKgServiceImpl implements IBossKgService {
 
             // 签名 (根据文档 3.3 节，仅对 Base64 编码后的密文进行签名)
             String signData = encryptedReqData;
-            log.info("待签名数据: {}", signData);
             String sign = RSAUtil.sign(signData, bossKgConfig.getMerchantPrivateKey());
             request.set("sign", sign);
 
@@ -746,7 +791,16 @@ public class BossKgServiceImpl implements IBossKgService {
             if (httpResponse.isOk()) {
                 String responseBody = httpResponse.body();
                 log.debug("响应: {}", responseBody);
-                return JSONUtil.parseObj(responseBody);
+                JSONObject response = JSONUtil.parseObj(responseBody);
+                if (!matchesRequest(response, requestReqId, funCode)) {
+                    log.error("佣金保响应与请求不匹配 - funCode:{}, reqId:{}", funCode, requestReqId);
+                    return null;
+                }
+                if (StrUtil.isNotBlank(response.getStr("resData")) && !verifySign(response)) {
+                    log.error("佣金保同步响应验签失败 - funCode:{}, reqId:{}", funCode, requestReqId);
+                    return null;
+                }
+                return response;
             } else {
                 log.error("请求失败 - status:{}", httpResponse.getStatus());
                 return null;
@@ -767,7 +821,6 @@ public class BossKgServiceImpl implements IBossKgService {
                 return null;
             }
             String decrypted = DESUtil.decrypt(encryptedResData, bossKgConfig.getDesKey());
-            log.info("解密后明文: {}", decrypted);
             if (StrUtil.isNotBlank(decrypted) && !decrypted.trim().startsWith("{")) {
                 // 如果不是 JSON 格式，构造一个包含原字符串的 JSONObject 返回，兼容现有逻辑
                 JSONObject wrap = new JSONObject();
@@ -787,14 +840,22 @@ public class BossKgServiceImpl implements IBossKgService {
     private boolean verifySign(JSONObject response) {
         try {
             String sign = response.getStr("sign");
-            String signData = response.getStr("reqId") + response.getStr("funCode")
-                    + response.getStr("merId") + response.getStr("version")
-                    + response.getStr("resData");
-            return RSAUtil.verify(signData, sign, bossKgConfig.getPlatformPublicKey());
+            String resData = response.getStr("resData");
+            if (StrUtil.isBlank(sign) || StrUtil.isBlank(resData)) {
+                return false;
+            }
+            return RSAUtil.verify(resData, sign, bossKgConfig.getPlatformPublicKey());
         } catch (Exception e) {
             log.error("验签异常", e);
             return false;
         }
+    }
+
+    private boolean matchesRequest(JSONObject response, String reqId, String funCode) {
+        return reqId.equals(response.getStr("reqId"))
+                && funCode.equals(response.getStr("funCode"))
+                && bossKgConfig.getMerId().equals(response.getStr("merId"))
+                && bossKgConfig.getVersion().equals(response.getStr("version"));
     }
 
     /**
@@ -843,6 +904,17 @@ public class BossKgServiceImpl implements IBossKgService {
         String timestamp = LocalDateTime.now().format(formatter);
         String random = String.format("%08d", (int) (Math.random() * 100000000));
         return timestamp + random;
+    }
+
+    private String generateMerchantOrderId(Long withdrawId, String batchId) {
+        String suffix = batchId.length() > 10 ? batchId.substring(batchId.length() - 10) : batchId;
+        String orderId = "W" + withdrawId + "_" + suffix;
+        return orderId.length() > 32 ? orderId.substring(0, 32) : orderId;
+    }
+
+    private void clearRejectedPaymentReservation(Withdraw withdraw) {
+        withdraw.setBossKgBatchId(null);
+        withdrawMapper.updateById(withdraw);
     }
 
     /**

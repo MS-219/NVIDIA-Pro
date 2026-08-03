@@ -104,6 +104,27 @@
 
         <view class="card">
             <view class="card-header">
+                <view class="card-mark identity-mark"><view></view></view>
+                <view>
+                    <text class="card-kicker">IDENTITY DOCUMENT</text>
+                    <text class="card-title">身份证照片</text>
+                </view>
+            </view>
+            <view class="photo-grid">
+                <view class="photo-upload" bindtap="uploadPhoto" data-side="front">
+                    <image wx:if="{{form.idCardFront}}" src="{{form.idCardFront}}" mode="aspectFill"></image>
+                    <view wx:else class="photo-placeholder"><text class="photo-plus">+</text><text>上传人像面</text></view>
+                </view>
+                <view class="photo-upload" bindtap="uploadPhoto" data-side="back">
+                    <image wx:if="{{form.idCardBack}}" src="{{form.idCardBack}}" mode="aspectFill"></image>
+                    <view wx:else class="photo-placeholder"><text class="photo-plus">+</text><text>上传国徽面</text></view>
+                </view>
+            </view>
+            <text class="photo-tip">图片仅用于佣金保实名签约，请确保完整、清晰且小于 1MB</text>
+        </view>
+
+        <view class="card">
+            <view class="card-header">
                 <view class="card-mark bank-mark"><view></view></view>
                 <view>
                     <text class="card-kicker">SETTLEMENT</text>

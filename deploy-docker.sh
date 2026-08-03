@@ -63,6 +63,7 @@ initialize_env() {
     printf 'ORIN_BOSSKG_PUBLIC_KEY=\n'
     printf 'ORIN_BOSSKG_CONTRACT_NOTIFY_URL=%s/api/bosskg/notify/contract\n' "$public_base_url"
     printf 'ORIN_BOSSKG_PAYMENT_NOTIFY_URL=%s/api/bosskg/notify/payment\n' "$public_base_url"
+    printf 'ORIN_BOSSKG_MINI_APP_ID=%s\n' "${ORIN_WECHAT_APP_ID:-wxd70a6d4437a87a1f}"
   } > .env
   chmod 600 .env
 

@@ -69,6 +69,11 @@ public class BossKgConfig {
     private String paymentNotifyUrl;
 
     /**
+     * 发起小程序自主签约时使用的小程序 AppID
+     */
+    private String miniAppId;
+
+    /**
      * API版本号
      */
     private String version = "V1.0";

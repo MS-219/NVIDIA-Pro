@@ -303,6 +303,9 @@ public class WithdrawServiceImpl extends ServiceImpl<WithdrawMapper, Withdraw> i
         }
 
         applyOnlinePayoutAmount(withdraw);
+        if (withdraw.getActualAmount() == null || withdraw.getActualAmount().compareTo(new BigDecimal("10.00")) < 0) {
+            return "佣金保单笔实际打款金额最低为 10 元，可改用线下打款";
+        }
         Integer originalStatus = withdraw.getStatus();
         boolean reserved = reserveBossKgPayment(withdraw, auditorId);
         if (!reserved) {
@@ -456,7 +459,7 @@ public class WithdrawServiceImpl extends ServiceImpl<WithdrawMapper, Withdraw> i
         // 查询佣金保付款状态
         java.util.Map<String, Object> result = bossKgService.queryPaymentStatus(
                 withdraw.getBossKgBatchId(),
-                null);
+                withdraw.getBossKgOrderNo());
 
         if (result == null || !(Boolean) result.get("success")) {
             return false;

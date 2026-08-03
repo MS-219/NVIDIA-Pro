@@ -1,0 +1,8 @@
+{
+  "navigationStyle": "default",
+  "navigationBarTextStyle": "black",
+  "navigationBarTitleText": "加载中...",
+  "backgroundColorTop": "black",
+  "navigationBarBackgroundColor": "#f4f4f4",
+  "usingComponents": {}
+}

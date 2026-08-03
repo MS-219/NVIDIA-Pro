@@ -7,6 +7,8 @@
     "pages/complete-profile/complete-profile",
     "pages/withdraw/withdraw",
     "pages/bosskg-contract/bosskg-contract",
+    "pages/auth_web_view/index",
+    "pages/auth_web_view/jump",
     "pages/withdraw-record/withdraw-record",
     "pages/withdraw-list/withdraw-list",
     "pages/earnings-detail/earnings-detail",

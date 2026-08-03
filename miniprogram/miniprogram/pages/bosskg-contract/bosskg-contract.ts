@@ -13,6 +13,8 @@ Page({
             mobile: '',
             cardNo: '',
             paymentType: 0, // 0-银行卡 1-支付宝
+            idCardFront: '',
+            idCardBack: '',
         },
         agreed: false,
         submitting: false,
@@ -81,6 +83,8 @@ Page({
                     'form.mobile': user.phone || '',
                     'form.cardNo': user.bankCardNo || user.alipayAccount || '',
                     'form.paymentType': user.bankCardNo ? 0 : (user.alipayAccount ? 1 : 0),
+                    'form.idCardFront': user.idCardFront || '',
+                    'form.idCardBack': user.idCardBack || '',
                 });
                 this.validateForm();
             }
@@ -112,6 +116,8 @@ Page({
             form.idCard.length === 18 &&
             form.mobile.length === 11 &&
             form.cardNo &&
+            form.idCardFront &&
+            form.idCardBack &&
             agreed
         );
         this.setData({ canSubmit });
@@ -123,6 +129,11 @@ Page({
             count: 1,
             sizeType: ['compressed'],
             success: (res) => {
+                const fileSize = res.tempFiles && res.tempFiles[0] ? res.tempFiles[0].size : 0;
+                if (fileSize > 1024 * 1024) {
+                    wx.showToast({ title: '图片需小于 1MB', icon: 'none' });
+                    return;
+                }
                 wx.showLoading({ title: '上传中...' });
                 const token = wx.getStorageSync('token');
                 wx.uploadFile({
@@ -135,7 +146,13 @@ Page({
                         if (result.code === 200) {
                             const field = side === 'front' ? 'idCardFront' : 'idCardBack';
                             this.setData({ [`form.${field}`]: result.data.url });
+                            this.validateForm();
+                        } else {
+                            wx.showToast({ title: result.msg || '上传失败', icon: 'none' });
                         }
+                    },
+                    fail: () => {
+                        wx.showToast({ title: '上传失败，请重试', icon: 'none' });
                     },
                     complete: () => wx.hideLoading()
                 });
@@ -157,7 +174,7 @@ Page({
                 const url = res.data;
                 // 跳转到H5页面进行人脸识别
                 wx.navigateTo({
-                    url: `/pages/webview/webview?url=${encodeURIComponent(url)}`
+                    url: `/pages/auth_web_view/index?url=${encodeURIComponent(url)}`
                 });
             } else {
                 const errMsg = res.msg || '获取签约链接失败';

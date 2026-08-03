@@ -217,12 +217,18 @@ public class BossKgContractController {
             return Result.error("手机号为空");
         if (StrUtil.isBlank(contractRequest.getCardNo()))
             return Result.error("收款账号为空");
+        if (StrUtil.isBlank(contractRequest.getIdCardFront()))
+            return Result.error("请上传身份证人像面");
+        if (StrUtil.isBlank(contractRequest.getIdCardBack()))
+            return Result.error("请上传身份证国徽面");
 
         // 更新用户信息
         AppUser user = appUserMapper.selectById(userId);
         if (user != null) {
             user.setBankHolderName(contractRequest.getRealName());
             user.setIdCard(contractRequest.getIdCard());
+            user.setIdCardFront(contractRequest.getIdCardFront());
+            user.setIdCardBack(contractRequest.getIdCardBack());
             Integer pt = contractRequest.getPaymentType() != null ? contractRequest.getPaymentType() : 0;
             if (pt == 0)
                 user.setBankCardNo(contractRequest.getCardNo());
@@ -239,7 +245,9 @@ public class BossKgContractController {
                     contractRequest.getIdCard(),
                     contractRequest.getMobile(),
                     contractRequest.getCardNo(),
-                    contractRequest.getPaymentType());
+                    contractRequest.getPaymentType(),
+                    contractRequest.getIdCardFront(),
+                    contractRequest.getIdCardBack());
 
             if (url == null) {
                 return Result.error("获取签约链接失败");

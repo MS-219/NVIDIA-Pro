@@ -110,7 +110,7 @@ public interface IBossKgService {
          * @return H5签约链接, 失败返回null
          */
         String getH5ContractUrl(Long userId, String realName, String idCard, String mobile,
-                        String cardNo, Integer paymentType);
+                        String cardNo, Integer paymentType, String idCardFront, String idCardBack);
 
         /**
          * 解约

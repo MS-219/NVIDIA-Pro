@@ -654,3 +654,48 @@ page {
 }
 
 @keyframes gate-spin { to { transform: rotate(360deg); } }
+
+.photo-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+
+.photo-upload {
+    height: 108px;
+    overflow: hidden;
+    background: #f4f7f1;
+    border: 1px dashed #b5c3ad;
+    border-radius: 8px;
+}
+
+.photo-upload image {
+    width: 100%;
+    height: 100%;
+}
+
+.photo-placeholder {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: #697365;
+    font-size: 12px;
+}
+
+.photo-plus {
+    margin-bottom: 5px;
+    color: #76b900;
+    font-size: 28px;
+    line-height: 28px;
+}
+
+.photo-tip {
+    display: block;
+    margin-top: 10px;
+    color: #8b9388;
+    font-size: 11px;
+    line-height: 18px;
+}

@@ -53,6 +53,7 @@ services:
       ORIN_BOSSKG_PUBLIC_KEY: ${ORIN_BOSSKG_PUBLIC_KEY:-}
       ORIN_BOSSKG_CONTRACT_NOTIFY_URL: ${ORIN_BOSSKG_CONTRACT_NOTIFY_URL:-https://nvidia.juxinsuanli.cn/api/bosskg/notify/contract}
       ORIN_BOSSKG_PAYMENT_NOTIFY_URL: ${ORIN_BOSSKG_PAYMENT_NOTIFY_URL:-https://nvidia.juxinsuanli.cn/api/bosskg/notify/payment}
+      ORIN_BOSSKG_MINI_APP_ID: ${ORIN_BOSSKG_MINI_APP_ID:-}
       ORIN_AGENT_ASSET_PATH: /agent-assets
       ORIN_PLATFORM_VERSION: ${IMAGE_TAG:-latest}
     ports:

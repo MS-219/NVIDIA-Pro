@@ -56,6 +56,7 @@ bosskg:
   platform-public-key: ${ORIN_BOSSKG_PUBLIC_KEY:}
   contract-notify-url: ${ORIN_BOSSKG_CONTRACT_NOTIFY_URL:https://nvidia.juxinsuanli.cn/api/bosskg/notify/contract}
   payment-notify-url: ${ORIN_BOSSKG_PAYMENT_NOTIFY_URL:https://nvidia.juxinsuanli.cn/api/bosskg/notify/payment}
+  mini-app-id: ${ORIN_BOSSKG_MINI_APP_ID:${ORIN_WECHAT_APP_ID:}}
   version: V1.0
   connect-timeout: 10000
   read-timeout: 60000
