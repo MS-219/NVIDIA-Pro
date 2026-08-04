@@ -66,6 +66,12 @@ if ! dpkg-query --admindir="$ROOTFS/var/lib/dpkg" -W -f='${Status}\n' \
   iputils-ping 2>/dev/null | grep -qx 'install ok installed'; then
   die "iputils-ping is not installed in rootfs; run install-jetpack-runtime.sh first"
 fi
+for required_package in curl wget openssh-client; do
+  if ! dpkg-query --admindir="$ROOTFS/var/lib/dpkg" -W -f='${Status}\n' \
+    "$required_package" 2>/dev/null | grep -qx 'install ok installed'; then
+    die "$required_package is not installed in rootfs; run install-jetpack-runtime.sh first"
+  fi
+done
 if [[ ! -x "$ROOTFS/usr/bin/setsid" ]]; then
   die "setsid is not installed in rootfs; install util-linux first"
 fi

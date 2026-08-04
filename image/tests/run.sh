@@ -59,9 +59,9 @@ grep -q 'python3-websocket is not installed in rootfs' \
   "$IMAGE_DIR/build/inject-rootfs.sh"
 grep -q 'iputils-ping is not installed in rootfs' \
   "$IMAGE_DIR/build/inject-rootfs.sh"
-grep -q 'curl is not installed in rootfs' "$IMAGE_DIR/build/inject-rootfs.sh"
-grep -q 'wget is not installed in rootfs' "$IMAGE_DIR/build/inject-rootfs.sh"
-grep -q 'openssh-client is not installed in rootfs' \
+grep -q 'for required_package in curl wget openssh-client' \
+  "$IMAGE_DIR/build/inject-rootfs.sh"
+grep -q 'required_package is not installed in rootfs' \
   "$IMAGE_DIR/build/inject-rootfs.sh"
 grep -q 'bootloader/system.img.raw' "$IMAGE_DIR/build/flash-nvme.sh"
 grep -q 'rootfs contains device-specific state' "$IMAGE_DIR/build/flash-nvme.sh"

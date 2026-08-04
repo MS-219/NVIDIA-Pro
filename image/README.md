@@ -50,6 +50,7 @@ maintenance shell rather than a root shell.
 - Configuration: `/etc/juxin-orin`
 - Performance: backend-managed `15W`, `25W`, or `MAXN_SUPER` mode with the `cool` fan profile
 - Containers: Docker with NVIDIA Container Toolkit
+- Maintenance tools: `curl`, `wget`, OpenSSH client/server, `sudo`, `iproute2`, `procps`, `util-linux`, CA certificates and Python 3
 - Services: `juxin-orin-firstboot.service`, `juxin-orin-performance.service`, `juxin-orin-display.service`, `juxin-orin-agent.service`
 - Network for first enrollment: wired DHCP
 
@@ -133,7 +134,7 @@ The script performs these steps:
 4. applies NVIDIA BSP binaries;
 5. upgrades L4T packages to R36.4.7 and installs the JetPack 6.2.1 runtime;
 6. installs Docker and configures NVIDIA Container Toolkit;
-7. installs the CJK framebuffer renderer and its fonts;
+7. installs the CJK framebuffer renderer, fonts and remote maintenance/download tools;
 8. injects the agent, backend-managed power/cooling policy, wired DHCP and maintenance SSH key;
 9. clears machine-id, SSH host keys, device identity, display state and device token.
 
