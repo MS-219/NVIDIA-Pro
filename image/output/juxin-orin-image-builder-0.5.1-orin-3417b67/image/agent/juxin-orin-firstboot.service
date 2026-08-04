@@ -1,0 +1,14 @@
+[Unit]
+Description=Juxin Orin first-boot identity provisioning
+After=local-fs.target
+Before=network-online.target ssh.service juxin-orin-agent.service juxin-orin-display.service
+ConditionPathExists=!/var/lib/juxin-orin/provisioned
+
+[Service]
+Type=oneshot
+ExecStart=/usr/lib/juxin-orin/orin-firstboot.sh
+RemainAfterExit=yes
+UMask=0077
+
+[Install]
+WantedBy=multi-user.target

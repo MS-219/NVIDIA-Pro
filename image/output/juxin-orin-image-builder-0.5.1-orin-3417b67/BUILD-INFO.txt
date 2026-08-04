@@ -1,0 +1,11 @@
+PRODUCT=Juxin Orin Image Builder
+PACKAGE_VERSION=0.5.1-orin
+SOURCE_COMMIT=3417b670887095689ccdfd0c4a1f3c7e066d2f9f
+SOURCE_BRANCH=main
+TARGET_BOARD=Jetson Orin Nano Super 8GB
+TARGET_STORAGE=NVMe 256GB
+L4T_VERSION=36.4.7
+JETPACK_RUNTIME=6.2.1
+HOST_REQUIREMENT=Ubuntu 22.04 x86_64
+BACKEND_URL=https://nvidia.juxinsuanli.cn
+MAINTENANCE_TOOLS=curl,wget,openssh-client,openssh-server,sudo,python3,util-linux,iproute2,procps
