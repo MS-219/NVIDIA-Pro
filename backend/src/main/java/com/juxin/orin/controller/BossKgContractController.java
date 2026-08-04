@@ -85,9 +85,10 @@ public class BossKgContractController {
 
         UserContract contract = bossKgService.getUserContract(userId);
 
-        // 仅签约中的记录需要主动同步。未签约用户必须立即返回待签约，
-        // 避免首次进入页面时被第三方接口阻塞。
-        if (contract != null && contract.getStatus() == UserContract.STATUS_PROCESSING) {
+        // H5 签约链接创建后本地状态是待签约，用户从 H5 返回时也必须主动查询。
+        // 没有本地记录的首次访问仍立即返回，避免第三方接口阻塞普通用户。
+        if (contract != null && (contract.getStatus() == UserContract.STATUS_PENDING
+                || contract.getStatus() == UserContract.STATUS_PROCESSING)) {
             String n = contract.getRealName();
             String i = contract.getIdCard();
             String m = contract.getMobile();
@@ -273,17 +274,34 @@ public class BossKgContractController {
             return Result.error("佣金保服务未启用");
         }
 
-        // 获取本地签约记录
+        // 优先使用本地签约记录；旧小程序已签约用户可能还没有新系统记录，
+        // 此时使用账户中已保存的实名三要素从佣金保导入状态。
         UserContract contract = bossKgService.getUserContract(userId);
-        if (contract == null) {
-            return Result.error("未找到签约记录");
+        String realName;
+        String idCard;
+        String mobile;
+        if (contract != null) {
+            realName = contract.getRealName();
+            idCard = contract.getIdCard();
+            mobile = contract.getMobile();
+        } else {
+            AppUser user = appUserMapper.selectById(userId);
+            if (user == null) {
+                return Result.error("用户不存在");
+            }
+            realName = user.getBankHolderName();
+            idCard = user.getIdCard();
+            mobile = user.getPhone();
+            if (!StrUtil.isAllNotBlank(realName, idCard, mobile)) {
+                return Result.error("请先完善实名姓名、身份证号和手机号");
+            }
         }
 
         // 查询佣金保平台
         Map<String, Object> queryResult = bossKgService.queryContractStatus(
-                contract.getRealName(),
-                contract.getIdCard(),
-                contract.getMobile());
+                realName,
+                idCard,
+                mobile);
 
         return Result.success(queryResult);
     }

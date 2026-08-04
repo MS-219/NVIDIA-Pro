@@ -194,7 +194,31 @@ Page({
     },
 
     resetForm() {
-        this.setData({ showForm: true });
+        if (this.data.statusLoading) return;
+
+        this.setData({ statusLoading: true, statusError: '' });
+        request({
+            url: '/api/bosskg/contract/refresh',
+            method: 'POST'
+        }).then(res => {
+            const data = res.data || {};
+            if (res.code === 200 && data.success && data.state === 1) {
+                this.setData({
+                    contractStatus: 1,
+                    failReason: '',
+                    showForm: false
+                });
+                wx.showToast({ title: '已同步签约状态', icon: 'success' });
+                return;
+            }
+
+            this.setData({ showForm: true });
+        }).catch(() => {
+            // 无法导入已有签约时仍允许用户进入正常签约流程。
+            this.setData({ showForm: true });
+        }).finally(() => {
+            this.setData({ statusLoading: false });
+        });
     },
 
     showProtocol() {

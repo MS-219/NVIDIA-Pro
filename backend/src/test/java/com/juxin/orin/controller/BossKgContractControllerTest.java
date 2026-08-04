@@ -1,6 +1,7 @@
 package com.juxin.orin.controller;
 
 import com.juxin.orin.common.Result;
+import com.juxin.orin.entity.AppUser;
 import com.juxin.orin.entity.UserContract;
 import com.juxin.orin.mapper.AppUserMapper;
 import com.juxin.orin.mapper.UserContractMapper;
@@ -54,6 +55,51 @@ class BossKgContractControllerTest {
                 org.mockito.ArgumentMatchers.anyString(),
                 org.mockito.ArgumentMatchers.anyString(),
                 org.mockito.ArgumentMatchers.anyString());
+    }
+
+    @Test
+    void pendingContractIsRefreshedFromBossKg() {
+        UserContract pending = contract(UserContract.STATUS_PENDING);
+        UserContract signed = contract(UserContract.STATUS_SUCCESS);
+        when(bossKgService.isEnabled()).thenReturn(true);
+        when(bossKgService.getUserContract(42L)).thenReturn(pending, signed);
+
+        Result<Map<String, Object>> response = controller.getContractStatus(authenticatedRequest(42L));
+
+        assertEquals(200, response.getCode());
+        assertEquals(true, response.getData().get("contracted"));
+        assertEquals(UserContract.STATUS_SUCCESS, response.getData().get("status"));
+        verify(bossKgService).queryContractStatus("张三", "110101199001011234", "13800138000");
+    }
+
+    @Test
+    void refreshImportsExistingBossKgContractWithoutLocalRecord() {
+        AppUser user = new AppUser();
+        user.setId(42L);
+        user.setBankHolderName("张三");
+        user.setIdCard("110101199001011234");
+        user.setPhone("13800138000");
+        when(bossKgService.isEnabled()).thenReturn(true);
+        when(bossKgService.getUserContract(42L)).thenReturn(null);
+        when(appUserMapper.selectById(42L)).thenReturn(user);
+        when(bossKgService.queryContractStatus("张三", "110101199001011234", "13800138000"))
+                .thenReturn(Map.of("success", true, "state", 1));
+
+        Result<Map<String, Object>> response = controller.refreshContractStatus(authenticatedRequest(42L));
+
+        assertEquals(200, response.getCode());
+        assertEquals(true, response.getData().get("success"));
+        assertEquals(1, response.getData().get("state"));
+    }
+
+    private UserContract contract(int status) {
+        UserContract contract = new UserContract();
+        contract.setUserId(42L);
+        contract.setStatus(status);
+        contract.setRealName("张三");
+        contract.setIdCard("110101199001011234");
+        contract.setMobile("13800138000");
+        return contract;
     }
 
     private MockHttpServletRequest authenticatedRequest(Long userId) {
