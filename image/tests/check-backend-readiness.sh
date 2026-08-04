@@ -40,7 +40,7 @@ with open(sys.argv[2], encoding="utf-8") as handle:
 data = capabilities.get("data") or {}
 required = {
     "protocolVersion": "2",
-    "minimumAgentVersion": "0.5.1-orin",
+    "minimumAgentVersion": "0.5.0-orin",
     "directEnrollment": True,
     "imageLicenseRequired": False,
     "deviceTokenAuthentication": True,
@@ -69,4 +69,4 @@ for asset in \
   fi
 done
 
-echo "backend readiness: PASS ($BASE_URL, protocol 2, agent 0.5.1-orin)"
+echo "backend readiness: PASS ($BASE_URL, protocol 2, agent 0.5.0-orin)"

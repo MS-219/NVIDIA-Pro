@@ -21,7 +21,7 @@ mkdir -p \
 
 cat >"$TEMP_ROOT/etc/juxin-orin/image.env" <<'EOF'
 ORIN_API_BASE_URL=https://nvidia.juxinsuanli.cn
-ORIN_AGENT_VERSION=0.5.1-orin
+ORIN_AGENT_VERSION=0.5.0-orin
 ORIN_IMAGE_VERSION=orin-l4t-36.4.7-test
 ORIN_HEARTBEAT_INTERVAL=45
 ORIN_RECONNECT_INTERVAL=7

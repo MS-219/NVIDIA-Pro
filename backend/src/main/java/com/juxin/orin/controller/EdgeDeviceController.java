@@ -34,7 +34,7 @@ import java.util.Map;
 public class EdgeDeviceController {
 
     private static final String EDGE_PROTOCOL_VERSION = "2";
-    private static final String MINIMUM_AGENT_VERSION = "0.5.1-orin";
+    private static final String MINIMUM_AGENT_VERSION = "0.5.0-orin";
     private static final String HEARTBEAT_INTERVAL_KEY = "device.heartbeatInterval";
     private static final String TASK_POLL_INTERVAL_KEY = "device.taskPollInterval";
     private static final String OFFLINE_THRESHOLD_KEY = "device.offlineThreshold";

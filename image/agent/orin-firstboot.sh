@@ -154,7 +154,7 @@ main() {
   install -d -m 0755 "$ETC_DIR" "$STATE_DIR"
 
   api_url="$(read_value ORIN_API_BASE_URL https://nvidia.juxinsuanli.cn)"
-  agent_version="$(read_value ORIN_AGENT_VERSION 0.5.1-orin)"
+  agent_version="$(read_value ORIN_AGENT_VERSION 0.5.0-orin)"
   image_version="$(read_value ORIN_IMAGE_VERSION orin-l4t-36.4.7-v1)"
   interval="$(read_value ORIN_HEARTBEAT_INTERVAL 60)"
   reconnect_interval="$(read_value ORIN_RECONNECT_INTERVAL 5)"
