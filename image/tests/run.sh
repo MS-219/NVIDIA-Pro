@@ -22,6 +22,10 @@ grep -q '^SCRIPT_DIR=' "$IMAGE_DIR/build/install-jetpack-runtime.sh"
 
 grep -q 'L4T_VERSION="36.4.7-20250918154033"' \
   "$IMAGE_DIR/build/install-jetpack-runtime.sh"
+grep -q 'AGENT_VERSION="0.5.1-orin"' "$IMAGE_DIR/build/inject-rootfs.sh"
+grep -q 'AGENT_VERSION="0.5.1-orin"' "$IMAGE_DIR/build/prepare-image.sh"
+grep -q 'ORIN_AGENT_VERSION:-0.5.1-orin' "$IMAGE_DIR/agent/install-agent.sh"
+grep -q 'ORIN_AGENT_VERSION 0.5.1-orin' "$IMAGE_DIR/agent/orin-firstboot.sh"
 grep -q '"$board_config" external' \
   "$IMAGE_DIR/build/flash-nvme.sh"
 grep -q -- '--read-info "$probe_board_config" internal' \
