@@ -46,10 +46,13 @@ Page({
             method: 'GET'
         }).then(res => {
             if (res.code === 200) {
-                const status = (res.data.contracted ? 1 : res.data.status) as number;
+                const data = res.data || {};
+                const status = data.contracted
+                    ? 1
+                    : (typeof data.status === 'number' ? data.status : 0);
                 this.setData({
                     contractStatus: status,
-                    failReason: res.data.failReason
+                    failReason: data.failReason || ''
                 });
             } else {
                 this.setData({ statusError: res.msg || '签约状态同步失败' });

@@ -85,19 +85,12 @@ public class BossKgContractController {
 
         UserContract contract = bossKgService.getUserContract(userId);
 
-        // 如果本地是“签约中”状态，尝试主动同步一次最新的线上状态
-        if (contract == null || contract.getStatus() != UserContract.STATUS_SUCCESS) {
-            String n = (contract != null) ? contract.getRealName() : null;
-            String i = (contract != null) ? contract.getIdCard() : null;
-            String m = (contract != null) ? contract.getMobile() : null;
-            if (n == null) {
-                AppUser u = appUserMapper.selectById(userId);
-                if (u != null) {
-                    n = u.getBankHolderName();
-                    i = u.getIdCard();
-                    m = u.getPhone();
-                }
-            }
+        // 仅签约中的记录需要主动同步。未签约用户必须立即返回待签约，
+        // 避免首次进入页面时被第三方接口阻塞。
+        if (contract != null && contract.getStatus() == UserContract.STATUS_PROCESSING) {
+            String n = contract.getRealName();
+            String i = contract.getIdCard();
+            String m = contract.getMobile();
             if (StrUtil.isAllNotBlank(n, i, m)) {
                 try {
                     bossKgService.queryContractStatus(n, i, m);
@@ -110,8 +103,9 @@ public class BossKgContractController {
 
         result.put("enabled", true);
         result.put("contracted", contract != null && contract.getStatus() == UserContract.STATUS_SUCCESS);
-        result.put("status", contract != null ? contract.getStatus() : null);
-        result.put("statusText", getStatusText(contract != null ? contract.getStatus() : null));
+        int status = contract != null ? contract.getStatus() : UserContract.STATUS_PENDING;
+        result.put("status", status);
+        result.put("statusText", getStatusText(status));
         result.put("failReason", contract != null ? contract.getFailReason() : null);
 
         return Result.success(result);
