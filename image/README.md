@@ -156,7 +156,7 @@ read-only gate:
 ```
 
 The gate requires the application and database to be healthy, edge protocol
-version `2`, minimum Agent version `0.5.0-orin`, and byte-for-byte matches for
+version `2`, minimum Agent version `0.5.1-orin`, and byte-for-byte matches for
 the five public Agent/display upgrade files. It does not enroll a device, claim
 a task, or write any production data.
 

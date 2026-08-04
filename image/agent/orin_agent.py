@@ -26,7 +26,7 @@ from typing import Any
 
 
 API_BASE = os.getenv("ORIN_API_BASE_URL", "https://nvidia.juxinsuanli.cn").rstrip("/")
-AGENT_VERSION = os.getenv("ORIN_AGENT_VERSION", "0.5.0-orin")
+AGENT_VERSION = os.getenv("ORIN_AGENT_VERSION", "0.5.1-orin")
 IMAGE_VERSION = os.getenv("ORIN_IMAGE_VERSION", "orin-l4t-36.4.7-v1")
 STATE_DIR = Path(os.getenv("ORIN_STATE_DIR", "/var/lib/juxin-orin"))
 SN_FILE = Path(os.getenv("ORIN_DEVICE_SN_FILE", str(STATE_DIR / "device-sn")))

@@ -53,7 +53,7 @@ class OrinDisplayTest(unittest.TestCase):
             "connected": True,
             "sn": VALID_SN,
             "bindCode": "",
-            "agentVersion": "0.5.0-orin",
+            "agentVersion": "0.5.1-orin",
             "runtimeConfig": {},
             "updatedAt": 1000,
             "telemetry": {},
