@@ -47,11 +47,21 @@ grep -q 'fonts-noto-cjk' "$IMAGE_DIR/build/install-jetpack-runtime.sh"
 grep -q 'python3-pil' "$IMAGE_DIR/build/install-jetpack-runtime.sh"
 grep -q 'python3-websocket' "$IMAGE_DIR/build/install-jetpack-runtime.sh"
 grep -q 'iputils-ping' "$IMAGE_DIR/build/install-jetpack-runtime.sh"
+for package in \
+  ca-certificates curl wget openssh-client openssh-server sudo \
+  python3 util-linux iproute2 procps; do
+  grep -qE "^[[:space:]]+${package}([[:space:]\\]|$)" \
+    "$IMAGE_DIR/build/install-jetpack-runtime.sh"
+done
 grep -q 'required_packages+=(util-linux)' "$IMAGE_DIR/agent/install-agent.sh"
 grep -q 'setsid is not installed in rootfs' "$IMAGE_DIR/build/inject-rootfs.sh"
 grep -q 'python3-websocket is not installed in rootfs' \
   "$IMAGE_DIR/build/inject-rootfs.sh"
 grep -q 'iputils-ping is not installed in rootfs' \
+  "$IMAGE_DIR/build/inject-rootfs.sh"
+grep -q 'curl is not installed in rootfs' "$IMAGE_DIR/build/inject-rootfs.sh"
+grep -q 'wget is not installed in rootfs' "$IMAGE_DIR/build/inject-rootfs.sh"
+grep -q 'openssh-client is not installed in rootfs' \
   "$IMAGE_DIR/build/inject-rootfs.sh"
 grep -q 'bootloader/system.img.raw' "$IMAGE_DIR/build/flash-nvme.sh"
 grep -q 'rootfs contains device-specific state' "$IMAGE_DIR/build/flash-nvme.sh"
