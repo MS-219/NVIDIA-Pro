@@ -1369,19 +1369,19 @@ const drawQrCard = async (record) => {
   context.stroke()
   context.drawImage(qrImage, 190, 270, 700, 700)
 
-  context.fillStyle = '#10120f'
+  context.fillStyle = '#000000'
   context.textAlign = 'center'
   context.font = '800 44px "PingFang SC", "Microsoft YaHei", sans-serif'
   context.fillText('微信扫码绑定设备', 540, 1138)
-  context.fillStyle = '#6b7367'
+  context.fillStyle = '#000000'
   context.font = '500 26px "PingFang SC", "Microsoft YaHei", sans-serif'
   context.fillText('打开聚芯 Orin 小程序，进入设备页面扫码', 540, 1186)
 
   const bindCode = String(record.bindCode || '-').trim()
-  context.fillStyle = '#76b900'
+  context.fillStyle = '#000000'
   context.font = '900 46px ui-monospace, SFMono-Regular, Menlo, monospace'
   context.fillText(bindCode, 540, 1266)
-  context.fillStyle = '#7d8579'
+  context.fillStyle = '#000000'
   context.font = '500 24px ui-monospace, SFMono-Regular, Menlo, monospace'
   context.fillText(`SN: ${record.sn || '-'}`, 540, 1312)
 
