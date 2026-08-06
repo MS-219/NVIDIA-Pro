@@ -1,33 +1,33 @@
 :root {
-  color: #1f2937;
-  background: #f4f6f2;
+  color: #172119;
+  background: #f5f7f4;
   color-scheme: light;
-  font-family: Inter, "PingFang SC", "Microsoft YaHei", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-family: "Avenir Next", "SF Pro Text", "PingFang SC", "Microsoft YaHei", sans-serif;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
 
-  --orin-canvas: #f4f6f2;
+  --orin-canvas: #f5f7f4;
   --orin-sidebar: #ffffff;
   --orin-surface: #ffffff;
   --orin-surface-raised: #ffffff;
-  --orin-surface-soft: #f7f9f5;
-  --orin-surface-hover: #eef4e8;
-  --orin-border: #d7ddd2;
-  --orin-border-soft: #e7ebe4;
-  --orin-border-strong: #bcc5b6;
-  --orin-text: #1f2937;
-  --orin-text-soft: #475569;
-  --orin-muted: #6b7280;
-  --orin-dim: #94a3b8;
-  --orin-green: #5f9800;
-  --orin-green-bright: #6eaa08;
-  --orin-green-dark: #477400;
-  --orin-green-soft: rgba(95, 152, 0, 0.1);
+  --orin-surface-soft: #f8faf7;
+  --orin-surface-hover: #f0f6eb;
+  --orin-border: #dfe5dd;
+  --orin-border-soft: #ebefea;
+  --orin-border-strong: #bdc8ba;
+  --orin-text: #172119;
+  --orin-text-soft: #465249;
+  --orin-muted: #748078;
+  --orin-dim: #9ba59e;
+  --orin-green: #669f08;
+  --orin-green-bright: #76b900;
+  --orin-green-dark: #4f7f05;
+  --orin-green-soft: rgba(118, 185, 0, 0.1);
   --orin-cyan: #187f7b;
   --orin-amber: #a66f12;
   --orin-danger: #c2414b;
   --orin-blue: #356fad;
-  --orin-shadow: 0 10px 28px rgba(31, 41, 55, 0.08);
+  --orin-shadow: 0 18px 46px rgba(38, 57, 43, 0.08);
 
   --el-color-primary: #5f9800;
   --el-color-primary-light-3: #84b347;
@@ -1141,4 +1141,166 @@ select {
   .el-card__header {
     padding: 13px 14px;
   }
+}
+
+/* 2026 visual refresh: shared admin surfaces */
+.page-container,
+.overview-page,
+.monitor-page,
+.task-page,
+.automation-page,
+.scheduling-page,
+.operations-page,
+.upgrades-page,
+.settings-page,
+.user-list-page,
+.team-list-page,
+.notice-list-page,
+.feedback-page,
+.withdraw-list-page,
+.payment-apply-list,
+.earnings-page,
+.reward-list-page {
+  max-width: 1560px;
+}
+
+.panel,
+.table-container,
+.filter-bar,
+.el-card {
+  border-color: rgba(64, 82, 69, 0.11) !important;
+  border-radius: 14px !important;
+  box-shadow: 0 12px 34px rgba(38, 57, 43, 0.055) !important;
+}
+
+.el-card {
+  overflow: hidden;
+  transition: border-color 200ms ease, box-shadow 200ms ease, transform 200ms ease;
+}
+
+.el-card:hover {
+  border-color: rgba(93, 126, 70, 0.2);
+  box-shadow: 0 18px 44px rgba(38, 57, 43, 0.075) !important;
+}
+
+.el-card__header {
+  padding: 18px 20px;
+  border-bottom-color: var(--orin-border-soft);
+}
+
+.el-card__body { padding: 20px; }
+
+.el-button {
+  min-height: 34px;
+  border-radius: 8px;
+  font-weight: 650;
+  transition: color 180ms ease, background 180ms ease, border-color 180ms ease, box-shadow 180ms ease, transform 180ms ease;
+}
+
+.el-button:hover { transform: translateY(-1px); }
+.el-button:active { transform: translateY(1px) scale(0.985); }
+.el-button:focus-visible { outline: 2px solid rgba(118, 185, 0, 0.48); outline-offset: 2px; }
+
+.el-button--primary {
+  --el-button-bg-color: #669f08;
+  --el-button-border-color: #669f08;
+  --el-button-hover-bg-color: #76b900;
+  --el-button-hover-border-color: #76b900;
+  --el-button-active-bg-color: #568a05;
+  --el-button-active-border-color: #568a05;
+  box-shadow: 0 8px 18px rgba(90, 139, 13, 0.16);
+}
+
+.el-input__wrapper,
+.el-select__wrapper,
+.el-textarea__inner,
+.el-date-editor.el-input__wrapper,
+.el-date-editor--daterange {
+  min-height: 38px;
+  border-radius: 9px !important;
+  background: #fbfcfa !important;
+  transition: box-shadow 180ms ease, background 180ms ease;
+}
+
+.el-input__wrapper:hover,
+.el-select__wrapper:hover,
+.el-textarea__inner:hover { background: #ffffff !important; }
+
+.el-table {
+  overflow: hidden;
+  border-radius: 10px;
+}
+
+.el-table th.el-table__cell {
+  height: 46px;
+  color: #68756c !important;
+  background: #f6f8f5 !important;
+  font-size: 11px;
+  letter-spacing: 0.02em;
+}
+
+.el-table td.el-table__cell {
+  height: 54px;
+  font-size: 12px;
+}
+
+.el-table__body tr > td.el-table__cell { transition: background 160ms ease; }
+
+.el-table__body tr:hover > td.el-table__cell,
+.el-table__row:hover,
+.el-table__row.hover-row > td.el-table__cell { background: #f2f7ee !important; }
+
+.el-dialog,
+.el-message-box,
+.el-drawer,
+.el-notification {
+  border-color: rgba(64, 82, 69, 0.13);
+  border-radius: 16px;
+  box-shadow: 0 28px 80px rgba(29, 47, 34, 0.18);
+}
+
+.el-dialog__header,
+.el-message-box__header { padding: 20px 22px 16px; }
+.el-dialog__body { padding: 20px 22px; }
+.el-dialog__footer { padding: 14px 22px 20px; }
+
+.el-tag {
+  min-height: 24px;
+  padding-inline: 8px;
+  border-radius: 6px;
+  font-weight: 600;
+}
+
+.el-pagination { gap: 4px; }
+.el-pagination button,
+.el-pager li { border-radius: 7px !important; }
+
+.el-dropdown-menu,
+.el-select-dropdown,
+.el-picker-panel,
+.el-popover,
+.el-cascader__dropdown {
+  border-radius: 12px !important;
+  box-shadow: 0 18px 44px rgba(37, 55, 42, 0.13) !important;
+}
+
+.el-dropdown-menu__item,
+.el-select-dropdown__item { border-radius: 7px; }
+
+.el-empty { padding-block: 28px; }
+.el-empty__description p { color: #89938c; }
+
+.el-loading-mask {
+  background-color: rgba(247, 249, 246, 0.72);
+  backdrop-filter: blur(3px);
+}
+
+@media (max-width: 720px) {
+  .panel,
+  .table-container,
+  .filter-bar,
+  .el-card { border-radius: 12px !important; }
+
+  .el-card__body { padding: 15px; }
+  .el-card__header { padding: 14px 15px; }
 }

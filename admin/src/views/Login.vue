@@ -1,107 +1,109 @@
 <template>
   <main class="login-page">
-    <div class="page-grid" aria-hidden="true"></div>
-    <div class="scan-line" aria-hidden="true"></div>
+    <div class="ambient ambient-one" aria-hidden="true"></div>
+    <div class="ambient ambient-two" aria-hidden="true"></div>
+
     <header class="login-header">
       <div class="brand-lockup">
-        <span class="brand-mark"><el-icon><Cpu /></el-icon></span>
-        <div><strong>聚芯Orin</strong><span>聚芯边缘算力平台</span></div>
+        <span class="brand-mark"><img src="/favicon.svg" alt="聚芯 Orin" /></span>
+        <div class="brand-copy">
+          <strong>聚芯Orin</strong>
+          <span>边缘算力管理平台</span>
+        </div>
       </div>
-      <div class="header-status">
-        <span class="status-pulse"></span>
-        <span>独立生产环境</span>
-        <span class="status-code">SECURE / ARM64</span>
-      </div>
+      <div class="header-state"><span></span>管理服务正常</div>
     </header>
 
-    <section class="login-content">
-      <div class="system-brief">
-        <div class="brief-meta">
-          <span class="eyebrow">JETSON ORIN / CONTROL PLANE</span>
-          <span class="meta-code">NODE-FLEET 01</span>
+    <section class="login-layout">
+      <div class="visual-column">
+        <div class="hero-copy">
+          <span class="eyebrow"><i></i> JUXIN ORIN CONTROL</span>
+          <h1>让每一台边缘设备<br /><em>清晰、稳定、可控</em></h1>
+          <p>统一管理设备、用户、收益与任务调度，实时掌握聚芯 Orin 节点的运行状态。</p>
         </div>
 
-        <div class="brief-copy">
-          <h1>统一调度每一台<br /><span>边缘算力节点</span></h1>
-          <p>面向 ARM64 Orin 集群的独立任务调度、运行监控与版本控制台。</p>
-        </div>
+        <div class="compute-map" aria-label="聚芯 Orin 节点管理架构示意">
+          <div class="map-glow" aria-hidden="true"></div>
+          <div class="map-grid" aria-hidden="true"></div>
 
-        <div class="fleet-schematic" aria-label="聚芯 Orin 边缘节点控制架构">
-          <div class="schematic-corner corner-tl"></div>
-          <div class="schematic-corner corner-tr"></div>
-          <div class="schematic-corner corner-bl"></div>
-          <div class="schematic-corner corner-br"></div>
-          <span class="schematic-number">CONTROL FABRIC / 01</span>
-          <div class="architecture-flow">
-            <div class="flow-module">
-              <span class="module-index">01</span>
-              <div><strong>设备接入</strong><small>DEVICE INGEST</small></div>
-            </div>
-            <span class="flow-link"><i></i></span>
-            <div class="flow-module core-module">
-              <img src="/nvidia-mark.svg" alt="NVIDIA" />
-              <div><strong>JETSON ORIN</strong><small>CONTROL CORE</small></div>
-            </div>
-            <span class="flow-link"><i></i></span>
-            <div class="flow-module">
-              <span class="module-index">03</span>
-              <div><strong>任务调度</strong><small>JOB SCHEDULER</small></div>
-            </div>
+          <div class="core-node">
+            <span class="core-logo"><img src="/nvidia-mark.svg" alt="NVIDIA" /></span>
+            <div><small>核心平台</small><strong>JETSON ORIN</strong></div>
+            <span class="core-state">运行中</span>
           </div>
-          <div class="service-bus">
-            <span>运行监控</span>
-            <span>版本控制</span>
-            <span>收益结算</span>
-            <span>设备管理</span>
-          </div>
+
+          <div class="satellite node-device"><el-icon><Monitor /></el-icon><span>设备管理</span><small>节点状态与绑定</small></div>
+          <div class="satellite node-user"><el-icon><UserFilled /></el-icon><span>用户运营</span><small>账户与团队</small></div>
+          <div class="satellite node-income"><el-icon><Coin /></el-icon><span>收益结算</span><small>每日收益与分润</small></div>
+          <div class="satellite node-task"><el-icon><Connection /></el-icon><span>任务调度</span><small>推理任务与策略</small></div>
+
+          <span class="connector connector-a" aria-hidden="true"></span>
+          <span class="connector connector-b" aria-hidden="true"></span>
+          <span class="connector connector-c" aria-hidden="true"></span>
+          <span class="connector connector-d" aria-hidden="true"></span>
         </div>
 
-        <dl class="runtime-facts">
-          <div><dt>平台架构</dt><dd>ARM64</dd><small>JETSON ORIN</small></div>
-          <div><dt>系统基线</dt><dd>L4T 36.4.x</dd><small>CUDA READY</small></div>
-          <div><dt>链路状态</dt><dd><span class="online-dot"></span>READY</dd><small>CONTROL PLANE</small></div>
-        </dl>
+        <div class="platform-facts">
+          <div><strong>ARM64</strong><span>平台架构</span></div>
+          <div><strong>CUDA READY</strong><span>推理环境</span></div>
+          <div><strong>实时同步</strong><span>设备状态</span></div>
+        </div>
       </div>
 
-      <div class="login-panel">
-        <div class="panel-topline"><span>ACCESS TERMINAL</span><span>AUTH / 01</span></div>
-        <div class="panel-heading">
+      <aside class="login-card">
+        <div class="card-heading">
+          <span class="card-icon"><el-icon><Lock /></el-icon></span>
           <div>
-            <span class="panel-kicker">CONTROL PLANE LOGIN</span>
-            <h2>管理员登录</h2>
-            <p>使用 Orin 平台专属账号进入控制台</p>
+            <span class="card-kicker">管理员入口</span>
+            <h2>欢迎回来</h2>
+            <p>登录聚芯 Orin 管理控制台</p>
           </div>
-          <span class="panel-status"><span></span>READY</span>
         </div>
 
-        <el-form ref="formRef" :model="form" :rules="rules" class="login-form" @submit.prevent>
-          <label class="field-label">账号</label>
-          <el-form-item prop="username">
-            <el-input v-model="form.username" :prefix-icon="User" placeholder="请输入管理员账号" size="large" autocomplete="username" />
+        <el-form ref="formRef" :model="form" :rules="rules" class="login-form" label-position="top" @submit.prevent>
+          <el-form-item label="管理员账号" prop="username">
+            <el-input
+              v-model="form.username"
+              :prefix-icon="User"
+              placeholder="请输入管理员账号"
+              size="large"
+              autocomplete="username"
+            />
           </el-form-item>
 
-          <label class="field-label">密码</label>
-          <el-form-item prop="password">
-            <el-input v-model="form.password" :prefix-icon="Lock" type="password" placeholder="请输入登录密码" size="large" show-password autocomplete="current-password" @keyup.enter="handleLogin" />
+          <el-form-item label="登录密码" prop="password">
+            <el-input
+              v-model="form.password"
+              :prefix-icon="Lock"
+              type="password"
+              placeholder="请输入登录密码"
+              size="large"
+              show-password
+              autocomplete="current-password"
+              @keyup.enter="handleLogin"
+            />
           </el-form-item>
 
           <div class="form-options">
             <el-checkbox v-model="rememberMe">记住账号</el-checkbox>
-            <span>权限由独立后台统一管理</span>
+            <span><i></i>安全连接</span>
           </div>
 
           <el-button class="login-button" type="primary" size="large" :loading="loading" @click="handleLogin">
-            进入控制台 <el-icon v-if="!loading"><Right /></el-icon>
+            进入管理后台 <el-icon v-if="!loading"><Right /></el-icon>
           </el-button>
         </el-form>
 
-        <div class="security-note"><el-icon><Lock /></el-icon><span>本系统与原聚芯平台账号及数据完全隔离</span><strong>256-BIT</strong></div>
-      </div>
+        <div class="security-note">
+          <el-icon><CircleCheck /></el-icon>
+          <span>账号和数据由独立生产环境保护</span>
+        </div>
+      </aside>
     </section>
 
     <footer class="login-footer">
-      <span>JUXIN ORIN INFRASTRUCTURE</span>
-      <span>EDGE COMPUTE / PRIVATE CONTROL</span>
+      <span>© 2026 聚芯Orin</span>
+      <span>边缘算力 · 独立部署 · 安全管理</span>
     </footer>
   </main>
 </template>
@@ -109,7 +111,7 @@
 <script setup>
 import { onMounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { Cpu, Lock, Right, User } from '@element-plus/icons-vue'
+import { CircleCheck, Coin, Connection, Lock, Monitor, Right, User, UserFilled } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import request from '../utils/request'
 
@@ -141,11 +143,11 @@ const handleLogin = async () => {
     localStorage.setItem('orin_admin_token', payload.data.token)
     if (rememberMe.value) localStorage.setItem('orin_admin_remember_user', form.username)
     else localStorage.removeItem('orin_admin_remember_user')
-    ElMessage.success('已进入 Orin 控制台')
+    ElMessage.success('已进入聚芯 Orin 管理后台')
     router.push('/')
   } catch (error) {
     console.error(error)
-    ElMessage.error('无法连接独立后台服务')
+    ElMessage.error('无法连接后台服务，请稍后重试')
   } finally {
     loading.value = false
   }
@@ -163,679 +165,192 @@ onMounted(() => {
 <style scoped>
 .login-page {
   position: relative;
-  overflow: hidden;
-  min-height: 100vh;
-  color: #1f2937;
-  background: #f5f7f3;
+  min-height: 100dvh;
+  overflow: hidden auto;
+  color: #172119;
+  background:
+    radial-gradient(circle at 14% 12%, rgba(118, 185, 0, 0.1), transparent 28%),
+    linear-gradient(145deg, #f7faf5 0%, #ffffff 44%, #f4f7f2 100%);
 }
 
-.page-grid {
+.login-page::before {
   position: absolute;
   inset: 0;
-  opacity: 0.5;
+  content: '';
+  pointer-events: none;
   background-image:
-    linear-gradient(#dfe5da 1px, transparent 1px),
-    linear-gradient(90deg, #dfe5da 1px, transparent 1px);
-  background-size: 52px 52px;
+    linear-gradient(rgba(35, 55, 41, 0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(35, 55, 41, 0.035) 1px, transparent 1px);
+  background-size: 56px 56px;
+  mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.72), transparent 78%);
+}
+
+.ambient {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(6px);
   pointer-events: none;
 }
 
-.scan-line {
-  position: absolute;
-  left: 0;
-  right: 0;
-  z-index: 1;
-  height: 1px;
-  background: #76b900;
-  box-shadow: 0 0 12px rgba(118, 185, 0, 0.35);
-  opacity: 0;
-  pointer-events: none;
-  animation: page-scan 8s linear infinite;
+.ambient-one { top: -190px; left: -130px; width: 460px; height: 460px; border: 1px solid rgba(118, 185, 0, 0.18); }
+.ambient-two { right: -180px; bottom: -230px; width: 560px; height: 560px; background: rgba(118, 185, 0, 0.045); }
+
+.login-header,
+.login-footer,
+.login-layout {
+  position: relative;
+  z-index: 2;
+  width: min(1440px, calc(100% - 64px));
+  margin: 0 auto;
 }
 
 .login-header {
+  height: 92px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  position: relative;
-  z-index: 3;
-  height: 76px;
-  padding: 0 clamp(24px, 5vw, 72px);
-  background: #ffffff;
-  border-bottom: 1px solid #e1e6dd;
 }
 
-.login-header::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  right: 0;
-  left: 0;
-  height: 4px;
-  background: #76b900;
-}
+.brand-lockup { display: flex; align-items: center; gap: 13px; }
+.brand-mark { width: 44px; height: 44px; overflow: hidden; border-radius: 12px; box-shadow: 0 10px 24px rgba(75, 112, 26, 0.18); }
+.brand-mark img { width: 100%; height: 100%; display: block; }
+.brand-copy { display: flex; flex-direction: column; }
+.brand-copy strong { font-size: 17px; font-weight: 700; letter-spacing: -0.02em; }
+.brand-copy span { margin-top: 2px; color: #748078; font-size: 11px; }
+.header-state { display: flex; align-items: center; gap: 9px; color: #68736b; font-size: 12px; font-weight: 600; }
+.header-state span { width: 8px; height: 8px; border-radius: 50%; background: #76b900; box-shadow: 0 0 0 5px rgba(118, 185, 0, 0.11); }
 
-.brand-lockup {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.brand-mark {
-  display: grid;
-  width: 40px;
-  height: 40px;
-  color: #10120f;
-  background: #76b900;
-  border: 1px solid #68a400;
-  border-radius: 4px;
-  font-size: 22px;
-  place-items: center;
-}
-
-.brand-lockup div {
-  display: flex;
-  flex-direction: column;
-}
-
-.brand-lockup strong {
-  color: #18211c;
-  font-size: 14px;
-}
-
-.brand-lockup span:last-child {
-  margin-top: 2px;
-  color: #6b7280;
-  font-size: 10px;
-}
-
-.header-status {
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  color: #59635b;
-  font-size: 11px;
-}
-
-.status-pulse,
-.online-dot,
-.panel-status span {
-  display: inline-block;
-  width: 7px;
-  height: 7px;
-  background: #76b900;
-  border-radius: 50%;
-  box-shadow: 0 0 0 4px rgba(118, 185, 0, 0.12);
-}
-
-.status-code {
-  padding-left: 10px;
-  color: #788078;
-  border-left: 1px solid #d9dfd5;
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 10px;
-}
-
-.login-content {
+.login-layout {
+  min-height: calc(100dvh - 156px);
+  padding: 34px 0 56px;
   display: grid;
   align-items: center;
+  grid-template-columns: minmax(0, 1.25fr) minmax(380px, 460px);
+  gap: clamp(64px, 8vw, 140px);
+}
+
+.visual-column { min-width: 0; }
+.hero-copy { max-width: 700px; }
+.eyebrow { display: inline-flex; align-items: center; gap: 9px; color: #5d8f0c; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11px; font-weight: 700; letter-spacing: 0.12em; }
+.eyebrow i { width: 28px; height: 1px; background: #76b900; }
+.hero-copy h1 { margin: 22px 0 18px; color: #162019; font-size: clamp(42px, 4.7vw, 70px); line-height: 1.08; letter-spacing: -0.055em; text-wrap: balance; }
+.hero-copy h1 em { color: #5b9000; font-style: normal; }
+.hero-copy p { max-width: 590px; margin: 0; color: #657168; font-size: 16px; line-height: 1.8; text-wrap: pretty; }
+
+.compute-map {
   position: relative;
-  z-index: 2;
-  min-height: calc(100vh - 112px);
-  padding: 28px clamp(24px, 7vw, 112px) 58px;
-  grid-template-columns: minmax(600px, 1fr) minmax(370px, 430px);
-  gap: clamp(46px, 7vw, 116px);
-}
-
-.system-brief {
-  display: grid;
-  width: 100%;
-  max-width: 820px;
-  grid-template-columns: minmax(330px, 1.05fr) minmax(250px, 0.95fr);
-  grid-template-rows: auto auto auto;
-  column-gap: clamp(20px, 3vw, 48px);
-}
-
-.brief-meta {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  grid-column: 1 / -1;
-  padding: 0 0 14px;
-  border-bottom: 1px solid #cfd7cc;
-}
-
-.eyebrow,
-.meta-code,
-.panel-kicker,
-.panel-topline,
-.stage-label,
-.runtime-facts small,
-.login-footer {
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-}
-
-.eyebrow {
-  color: #578d00;
-  font-size: 11px;
-  font-weight: 800;
-}
-
-.meta-code {
-  color: #808a80;
-  font-size: 9px;
-}
-
-.brief-copy {
-  grid-column: 1 / -1;
-  grid-row: 2;
-  padding: 26px 0 22px;
-}
-
-.brief-copy h1 {
-  margin: 0;
-  color: #1c2732;
-  font-size: clamp(38px, 3.5vw, 58px);
-  line-height: 1.14;
-  letter-spacing: 0;
-}
-
-.brief-copy h1 span {
-  display: inline-block;
-  margin-right: 10px;
-  color: #5d9600;
-}
-
-.brief-copy p {
-  max-width: 620px;
-  margin: 18px 0 0;
-  color: #64748b;
-  font-size: 14px;
-  line-height: 1.8;
-}
-
-.fleet-schematic {
-  position: relative;
-  min-height: 228px;
+  width: min(720px, 100%);
+  height: 280px;
+  margin-top: 38px;
   overflow: hidden;
+  border: 1px solid rgba(74, 92, 78, 0.12);
+  border-radius: 24px;
   background: rgba(255, 255, 255, 0.72);
-  border: 1px solid #cfd7cc;
-  border-radius: 5px;
-  grid-column: 1 / -1;
-  grid-row: 3;
+  box-shadow: 0 30px 80px rgba(41, 60, 45, 0.09), inset 0 1px rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(18px);
 }
 
-.fleet-schematic::before,
-.fleet-schematic::after {
-  content: '';
-  position: absolute;
-  background: #e5ebe2;
+.map-grid { position: absolute; inset: 0; opacity: 0.38; background-image: radial-gradient(circle, rgba(64, 83, 68, 0.22) 1px, transparent 1px); background-size: 20px 20px; mask-image: radial-gradient(circle at center, #000, transparent 78%); }
+.map-glow { position: absolute; top: 50%; left: 50%; width: 300px; height: 300px; transform: translate(-50%, -50%); border-radius: 50%; background: radial-gradient(circle, rgba(118, 185, 0, 0.17), transparent 67%); }
+
+.core-node,
+.satellite { position: absolute; z-index: 2; display: flex; align-items: center; background: rgba(255, 255, 255, 0.94); border: 1px solid rgba(68, 84, 72, 0.14); box-shadow: 0 12px 32px rgba(43, 61, 47, 0.08); }
+.core-node { top: 50%; left: 50%; width: 250px; min-height: 82px; padding: 14px 16px; gap: 13px; transform: translate(-50%, -50%); border-radius: 16px; }
+.core-logo { width: 46px; height: 46px; display: grid; flex: 0 0 auto; place-items: center; border-radius: 12px; background: #111711; }
+.core-logo img { width: 28px; max-height: 28px; filter: brightness(0) invert(1); }
+.core-node div { min-width: 0; display: flex; flex: 1; flex-direction: column; }
+.core-node small { color: #839087; font-size: 10px; }
+.core-node strong { margin-top: 3px; color: #1c281f; font-size: 13px; letter-spacing: 0.04em; }
+.core-state { padding: 5px 7px; color: #507e0b; border-radius: 6px; background: rgba(118, 185, 0, 0.1); font-size: 9px; font-weight: 700; }
+
+.satellite { width: 152px; min-height: 58px; padding: 10px 12px; display: grid; grid-template-columns: 30px 1fr; grid-template-rows: auto auto; column-gap: 9px; border-radius: 13px; }
+.satellite .el-icon { grid-row: 1 / 3; color: #5f930a; font-size: 20px; }
+.satellite span { color: #263229; font-size: 11px; font-weight: 700; }
+.satellite small { color: #89928b; font-size: 9px; }
+.node-device { top: 28px; left: 28px; }
+.node-user { right: 28px; top: 28px; }
+.node-income { bottom: 28px; left: 28px; }
+.node-task { right: 28px; bottom: 28px; }
+
+.connector { position: absolute; z-index: 1; width: 112px; height: 1px; background: linear-gradient(90deg, rgba(118, 185, 0, 0.1), rgba(118, 185, 0, 0.66)); transform-origin: center; }
+.connector::after { position: absolute; right: 0; top: -2px; width: 5px; height: 5px; content: ''; border-radius: 50%; background: #76b900; box-shadow: 0 0 0 4px rgba(118, 185, 0, 0.1); }
+.connector-a { top: 91px; left: 173px; transform: rotate(19deg); }
+.connector-b { top: 91px; right: 173px; transform: rotate(161deg); }
+.connector-c { bottom: 91px; left: 173px; transform: rotate(-19deg); }
+.connector-d { right: 173px; bottom: 91px; transform: rotate(199deg); }
+
+.platform-facts { width: min(720px, 100%); margin-top: 18px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.platform-facts div { padding: 13px 16px; display: flex; align-items: baseline; justify-content: space-between; gap: 10px; border-bottom: 1px solid #dfe5df; }
+.platform-facts strong { color: #27342b; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11px; }
+.platform-facts span { color: #8a958d; font-size: 10px; }
+
+.login-card {
+  padding: 38px;
+  border: 1px solid rgba(66, 83, 71, 0.13);
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 32px 90px rgba(34, 53, 39, 0.13), inset 0 1px rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(24px);
 }
 
-.fleet-schematic::before {
-  top: 50%;
-  right: 24px;
-  left: 24px;
-  height: 1px;
+.card-heading { display: flex; align-items: flex-start; gap: 14px; }
+.card-icon { width: 46px; height: 46px; display: grid; flex: 0 0 auto; place-items: center; color: #4f7f05; border-radius: 13px; background: rgba(118, 185, 0, 0.11); font-size: 19px; }
+.card-heading > div { min-width: 0; }
+.card-kicker { color: #6d786f; font-size: 11px; font-weight: 600; }
+.card-heading h2 { margin: 4px 0 5px; color: #18231b; font-size: 30px; line-height: 1.2; letter-spacing: -0.04em; }
+.card-heading p { margin: 0; color: #89918b; font-size: 12px; }
+.login-form { margin-top: 30px; }
+.login-form :deep(.el-form-item) { margin-bottom: 22px; }
+.login-form :deep(.el-form-item__label) { padding-bottom: 8px; color: #4c584f; font-size: 12px; font-weight: 600; line-height: 1.2; }
+.login-form :deep(.el-input__wrapper) { min-height: 50px; padding: 0 15px; border-radius: 11px !important; background: #f8faf7 !important; box-shadow: 0 0 0 1px #dfe5dd inset !important; transition: box-shadow 180ms ease, background 180ms ease; }
+.login-form :deep(.el-input__wrapper:hover) { background: #ffffff !important; box-shadow: 0 0 0 1px #b9c6b6 inset !important; }
+.login-form :deep(.el-input__wrapper.is-focus) { background: #ffffff !important; box-shadow: 0 0 0 1px #76b900 inset, 0 0 0 4px rgba(118, 185, 0, 0.1) !important; }
+.login-form :deep(.el-input__prefix) { color: #7d8a80; }
+.form-options { margin: -2px 0 20px; display: flex; align-items: center; justify-content: space-between; }
+.form-options > span { display: flex; align-items: center; gap: 7px; color: #8a958d; font-size: 10px; }
+.form-options > span i { width: 6px; height: 6px; border-radius: 50%; background: #76b900; }
+.login-button { width: 100%; min-height: 50px; border-radius: 11px; font-weight: 700; box-shadow: 0 14px 28px rgba(88, 137, 12, 0.2); transition: transform 180ms ease, box-shadow 180ms ease; }
+.login-button:hover { transform: translateY(-1px); box-shadow: 0 18px 34px rgba(88, 137, 12, 0.25); }
+.login-button:active { transform: translateY(1px) scale(0.995); }
+.login-button .el-icon { margin-left: 7px; }
+.security-note { margin-top: 22px; padding-top: 18px; display: flex; align-items: center; justify-content: center; gap: 8px; color: #89928b; border-top: 1px solid #edf0eb; font-size: 10px; }
+.security-note .el-icon { color: #639b0a; }
+
+.login-footer { min-height: 64px; display: flex; align-items: center; justify-content: space-between; color: #8a938c; border-top: 1px solid rgba(91, 107, 95, 0.1); font-size: 10px; }
+
+@media (max-width: 1120px) {
+  .login-layout { grid-template-columns: minmax(0, 1fr) minmax(360px, 420px); gap: 42px; }
+  .compute-map { height: 250px; }
+  .satellite { width: 136px; }
+  .node-device, .node-income { left: 18px; }
+  .node-user, .node-task { right: 18px; }
+  .connector { display: none; }
 }
 
-.fleet-schematic::after {
-  top: 24px;
-  bottom: 24px;
-  left: 50%;
-  width: 1px;
-}
-
-.schematic-corner {
-  position: absolute;
-  z-index: 4;
-  width: 18px;
-  height: 18px;
-  border-color: #76b900;
-}
-
-.corner-tl { top: 12px; left: 12px; border-top: 2px solid; border-left: 2px solid; }
-.corner-tr { top: 12px; right: 12px; border-top: 2px solid; border-right: 2px solid; }
-.corner-bl { bottom: 12px; left: 12px; border-bottom: 2px solid; border-left: 2px solid; }
-.corner-br { right: 12px; bottom: 12px; border-right: 2px solid; border-bottom: 2px solid; }
-
-.schematic-number {
-  position: absolute;
-  top: 15px;
-  right: 24px;
-  z-index: 3;
-  color: #899389;
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 8px;
-}
-
-.architecture-flow {
-  position: absolute;
-  top: 68px;
-  right: 36px;
-  left: 36px;
-  z-index: 2;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-}
-
-.flow-module {
-  display: flex;
-  align-items: center;
-  min-width: 146px;
-  min-height: 58px;
-  padding: 10px 12px;
-  background: #f9fbf8;
-  border: 1px solid #cbd5c8;
-  border-radius: 4px;
-}
-
-.core-module {
-  min-width: 192px;
-  background: #18211c;
-  border-color: #18211c;
-  box-shadow: 0 8px 18px rgba(24, 33, 28, 0.16);
-}
-
-.module-index {
-  display: grid;
-  width: 26px;
-  height: 26px;
-  margin-right: 10px;
-  color: #578d00;
-  border: 1px solid #b9c8b3;
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 9px;
-  place-items: center;
-}
-
-.flow-module strong,
-.flow-module small {
-  display: block;
-}
-
-.flow-module strong {
-  color: #263329;
-  font-size: 12px;
-}
-
-.flow-module small {
-  margin-top: 5px;
-  color: #879287;
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 8px;
-}
-
-.core-module img {
-  width: 32px;
-  height: 32px;
-  margin-right: 10px;
-}
-
-.core-module strong { color: #ffffff; }
-.core-module small { color: #a9ba9f; }
-
-.flow-link {
-  position: relative;
-  width: 48px;
-  height: 1px;
-  flex: 0 0 48px;
-  background: #76b900;
-}
-
-.flow-link::after {
-  content: '';
-  position: absolute;
-  top: -3px;
-  right: -1px;
-  width: 7px;
-  height: 7px;
-  border-top: 1px solid #76b900;
-  border-right: 1px solid #76b900;
-  transform: rotate(45deg);
-}
-
-.service-bus {
-  position: absolute;
-  right: 42px;
-  bottom: 25px;
-  left: 42px;
-  z-index: 2;
-  display: flex;
-  justify-content: space-between;
-  color: #6f7c6f;
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 8px;
-}
-
-.service-bus span::before {
-  content: '';
-  display: inline-block;
-  width: 5px;
-  height: 5px;
-  margin: 0 6px 1px 0;
-  background: #76b900;
-  border-radius: 50%;
-}
-
-.runtime-facts {
-  display: grid;
-  margin: 18px 0 0;
-  border-top: 1px solid #cfd7cc;
-  border-bottom: 1px solid #cfd7cc;
-  grid-column: 1 / -1;
-  grid-template-columns: repeat(3, 1fr);
-}
-
-.runtime-facts div {
-  padding: 14px 16px 14px 0;
-}
-
-.runtime-facts div + div {
-  padding-left: 18px;
-  border-left: 1px solid #d7ddd2;
-}
-
-.runtime-facts dt {
-  margin-bottom: 6px;
-  color: #6b7280;
-  font-size: 10px;
-}
-
-.runtime-facts dd {
-  margin: 0;
-  color: #1f2937;
-  font-size: 13px;
-  font-weight: 800;
-}
-
-.runtime-facts small {
-  display: block;
-  margin-top: 5px;
-  color: #929991;
-  font-size: 8px;
-}
-
-.online-dot {
-  margin-right: 7px;
-  box-shadow: none;
-}
-
-.login-panel {
-  position: relative;
-  padding: 0 32px 28px;
-  color: #1d201b;
-  background: #ffffff;
-  border: 1px solid #cfd7cc;
-  border-top: 3px solid #76b900;
-  border-radius: 6px;
-  box-shadow: 0 24px 60px rgba(31, 41, 55, 0.13);
-}
-
-.login-panel::after {
-  content: '';
-  position: absolute;
-  right: -1px;
-  bottom: -1px;
-  width: 34px;
-  height: 34px;
-  border-right: 2px solid #76b900;
-  border-bottom: 2px solid #76b900;
-  pointer-events: none;
-}
-
-.panel-topline {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin: 0 -32px;
-  padding: 10px 16px;
-  color: #6e766d;
-  background: #f5f7f3;
-  border-bottom: 1px solid #e1e6dd;
-  font-size: 8px;
-}
-
-.panel-heading {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 18px;
-  margin: 28px 0 30px;
-}
-
-.panel-kicker {
-  display: block;
-  margin-bottom: 7px;
-  color: #619800;
-  font-size: 9px;
-  font-weight: 800;
-}
-
-.panel-heading h2 {
-  margin: 0;
-  color: #18211c;
-  font-size: 24px;
-}
-
-.panel-heading p {
-  margin: 7px 0 0;
-  color: #848a7f;
-  font-size: 11px;
-}
-
-.panel-status {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  padding: 6px 8px;
-  color: #578d00;
-  background: #f2f7eb;
-  border: 1px solid #d5e2c8;
-  border-radius: 3px;
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 8px;
-  font-weight: 800;
-}
-
-.panel-status span {
-  width: 6px;
-  height: 6px;
-  box-shadow: none;
-}
-
-.field-label {
-  display: block;
-  margin: 0 0 7px;
-  color: #51564d;
-  font-size: 11px;
-  font-weight: 700;
-}
-
-.login-form :deep(.el-input__wrapper) {
-  min-height: 48px;
-  border-radius: 3px;
-  box-shadow: 0 0 0 1px #d8dcd3 inset;
-}
-
-.login-form :deep(.el-input__wrapper.is-focus) {
-  box-shadow: 0 0 0 1px #76a900 inset, 0 0 0 3px rgba(118, 185, 0, 0.12);
-}
-
-.form-options {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin: 4px 0 22px;
-  color: #969b92;
-  font-size: 10px;
-}
-
-.login-button {
-  width: 100%;
-  height: 48px;
-  overflow: hidden;
-  border-color: #5f9500;
-  border-radius: 3px;
-  background: #5f9500;
-  font-weight: 800;
-}
-
-.login-button:hover {
-  box-shadow: 0 8px 18px rgba(95, 149, 0, 0.2);
-}
-
-.login-button .el-icon {
-  margin-left: 7px;
-}
-
-.security-note {
-  display: grid;
-  align-items: center;
-  margin-top: 24px;
-  padding-top: 18px;
-  color: #8b9087;
-  border-top: 1px solid #dfe2db;
-  font-size: 10px;
-  grid-template-columns: auto 1fr auto;
-  gap: 7px;
-}
-
-.security-note strong {
-  color: #65705f;
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 8px;
-}
-
-.login-footer {
-  position: absolute;
-  right: clamp(24px, 5vw, 72px);
-  bottom: 16px;
-  left: clamp(24px, 5vw, 72px);
-  z-index: 2;
-  display: flex;
-  justify-content: space-between;
-  color: #899188;
-  font-size: 8px;
-}
-
-@keyframes page-scan {
-  0% { top: 76px; opacity: 0; }
-  8% { opacity: 0.35; }
-  60% { opacity: 0.15; }
-  100% { top: 100%; opacity: 0; }
-}
-
-@media (max-width: 1180px) {
-  .login-content {
-    grid-template-columns: minmax(480px, 1fr) minmax(350px, 410px);
-    gap: 38px;
-    padding-right: 44px;
-    padding-left: 44px;
-  }
-
-  .system-brief {
-    grid-template-columns: minmax(280px, 1fr) minmax(190px, 0.8fr);
-  }
-
-  .flow-module {
-    min-width: 122px;
-  }
-
-  .core-module {
-    min-width: 164px;
-  }
-
-  .flow-link {
-    width: 24px;
-    flex-basis: 24px;
-  }
-
-  .brief-copy h1 {
-    font-size: 38px;
-  }
-}
-
-@media (max-width: 920px) {
-  .system-brief {
-    display: none;
-  }
-
-  .login-content {
-    justify-content: center;
-    padding: 32px 18px 54px;
-    grid-template-columns: minmax(0, 430px);
-  }
-
-  .login-panel {
-    width: 100%;
-  }
-
-  .status-code {
-    display: none;
-  }
+@media (max-width: 860px) {
+  .login-page { overflow-y: auto; }
+  .login-header, .login-footer, .login-layout { width: min(100% - 32px, 620px); }
+  .login-layout { padding-top: 28px; grid-template-columns: 1fr; gap: 32px; }
+  .hero-copy { text-align: center; }
+  .eyebrow { justify-content: center; }
+  .hero-copy p { margin-inline: auto; }
+  .compute-map, .platform-facts { display: none; }
+  .login-card { width: min(100%, 460px); margin: 0 auto; }
 }
 
 @media (max-width: 520px) {
-  .login-header {
-    height: 68px;
-    padding: 0 18px;
-  }
-
-  .header-status > span:not(.status-pulse) {
-    display: none;
-  }
-
-  .login-content {
-    min-height: calc(100vh - 68px);
-    padding: 22px 14px 48px;
-  }
-
-  .login-panel {
-    padding: 0 20px 22px;
-  }
-
-  .panel-topline {
-    margin: 0 -20px;
-  }
-
-  .panel-heading {
-    margin: 24px 0 26px;
-  }
-
-  .panel-status {
-    display: none;
-  }
-
-  .form-options {
-    align-items: flex-start;
-    flex-direction: column;
-    gap: 8px;
-  }
-
-  .security-note {
-    grid-template-columns: auto 1fr;
-  }
-
-  .security-note strong {
-    display: none;
-  }
-
-  .login-footer {
-    right: 18px;
-    left: 18px;
-  }
-
-  .login-footer span:last-child {
-    display: none;
-  }
+  .login-header { height: 78px; }
+  .header-state { display: none; }
+  .login-layout { min-height: auto; padding: 34px 0 48px; }
+  .hero-copy h1 { margin-top: 16px; font-size: 38px; }
+  .hero-copy p { font-size: 14px; }
+  .login-card { padding: 28px 22px; border-radius: 20px; }
+  .card-heading h2 { font-size: 26px; }
+  .login-footer { min-height: 58px; justify-content: center; }
+  .login-footer span:last-child { display: none; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .scan-line {
-    animation: none;
-  }
+  .login-button { transition: none; }
 }
 </style>

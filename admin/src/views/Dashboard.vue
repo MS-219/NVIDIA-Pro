@@ -14,8 +14,8 @@
       <div class="platform-state">
         <span class="state-dot"></span>
         <div>
-          <strong>调度服务运行中</strong>
-          <span>ARM64 · L4T 36.4.x</span>
+          <strong>平台服务正常</strong>
+          <span>设备与结算数据已同步</span>
         </div>
       </div>
 
@@ -109,8 +109,8 @@
       </el-menu>
 
       <div class="sidebar-foot">
-        <span>独立环境</span>
-        <strong>ORIN-PROD</strong>
+        <span>生产环境</span>
+        <strong><i></i> 在线</strong>
       </div>
     </aside>
 
@@ -127,14 +127,14 @@
             @click="mobileMenuOpen = true"
           />
           <div>
-            <span class="page-kicker">ORIN CONTROL PLANE</span>
+            <span class="page-kicker">聚芯 ORIN 管理控制台</span>
             <h1>{{ route.meta.title || '运行总览' }}</h1>
           </div>
         </div>
         <div class="topbar-right">
           <div class="sync-state">
             <el-icon><CircleCheck /></el-icon>
-            <span>PRODUCTION · SYNCED</span>
+            <span>生产环境 · 数据已同步</span>
           </div>
           <el-divider direction="vertical" />
           <el-dropdown @command="handleCommand">
@@ -428,5 +428,155 @@ const handleCommand = (command) => {
   .sync-state, .account-copy, .topbar-right .el-divider { display: none; }
   .topbar { height: 66px; padding: 0 16px; }
   .page-body { padding: 16px; }
+}
+
+/* Premium light workspace */
+.app-shell {
+  background:
+    radial-gradient(circle at 28% 0%, rgba(118, 185, 0, 0.055), transparent 28%),
+    var(--orin-canvas);
+}
+
+.sidebar {
+  width: 268px;
+  flex-basis: 268px;
+  border-right-color: rgba(55, 76, 60, 0.1);
+  box-shadow: 16px 0 52px rgba(34, 54, 39, 0.055);
+}
+
+.brand {
+  height: 82px;
+  padding-inline: 20px;
+}
+
+.brand-mark {
+  width: 42px;
+  height: 42px;
+  border: 0;
+  border-radius: 12px;
+  box-shadow: 0 10px 24px rgba(75, 112, 26, 0.16);
+}
+
+.brand-copy strong {
+  font-size: 17px;
+  letter-spacing: -0.025em;
+}
+
+.brand-copy span { margin-top: 2px; font-size: 10px; }
+
+.platform-state {
+  margin: 16px 14px 12px;
+  padding: 12px 13px;
+  border-color: rgba(84, 107, 89, 0.1);
+  border-radius: 12px;
+  background: linear-gradient(135deg, rgba(118, 185, 0, 0.09), rgba(118, 185, 0, 0.025));
+}
+
+.platform-state strong { color: #314036; font-size: 11px; }
+.platform-state span:last-child { font-family: inherit; font-size: 9px; }
+
+.nav-menu :deep(.el-menu-item) {
+  height: 44px;
+  margin: 3px 12px;
+  padding: 0 13px !important;
+  border-radius: 10px;
+  font-size: 13px;
+  transition: color 180ms ease, background 180ms ease, transform 180ms ease;
+}
+
+.nav-menu :deep(.el-menu-item:hover) { transform: translateX(2px); }
+.nav-menu :deep(.el-menu-item .el-icon) { font-size: 17px; }
+
+.nav-menu :deep(.el-menu-item.is-active) {
+  color: #477500 !important;
+  background: linear-gradient(90deg, rgba(118, 185, 0, 0.14), rgba(118, 185, 0, 0.055));
+  box-shadow: inset 3px 0 #76b900;
+  font-weight: 650;
+}
+
+.nav-label {
+  padding: 19px 25px 7px;
+  color: #9aa49d;
+  font-family: inherit;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+}
+
+.sidebar-foot {
+  height: 62px;
+  padding-inline: 20px;
+  background: #fbfcfa;
+}
+
+.sidebar-foot strong { display: flex; align-items: center; gap: 7px; color: #5b6a5f; font-family: inherit; }
+.sidebar-foot strong i { width: 6px; height: 6px; border-radius: 50%; background: #76b900; box-shadow: 0 0 0 4px rgba(118, 185, 0, 0.1); }
+
+.topbar {
+  height: 82px;
+  padding: 0 28px;
+  border-bottom-color: rgba(55, 76, 60, 0.1);
+  background: rgba(255, 255, 255, 0.84);
+  box-shadow: 0 10px 34px rgba(44, 62, 48, 0.035);
+  backdrop-filter: blur(18px);
+}
+
+.page-kicker {
+  color: #7d8a80;
+  font-family: inherit;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+}
+
+.topbar-left h1 {
+  margin-top: 4px;
+  color: #18241c;
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+}
+
+.sync-state {
+  padding: 8px 11px;
+  gap: 7px;
+  color: #657269;
+  border: 1px solid #e6ebe3;
+  border-radius: 9px;
+  background: #fafcf9;
+  font-family: inherit;
+  font-size: 10px;
+}
+
+.account-button {
+  padding: 5px 7px 5px 5px;
+  border-radius: 11px;
+  transition: background 180ms ease;
+}
+
+.account-button:hover { background: #f2f6ef; }
+
+.avatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  color: #ffffff;
+  background: linear-gradient(145deg, #74b600, #568c00);
+  box-shadow: 0 8px 18px rgba(78, 122, 10, 0.18);
+}
+
+.page-body {
+  padding: 26px 28px 40px;
+  background-image:
+    radial-gradient(circle at 92% 4%, rgba(118, 185, 0, 0.045), transparent 20%),
+    linear-gradient(rgba(59, 82, 65, 0.018) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(59, 82, 65, 0.018) 1px, transparent 1px);
+  background-size: auto, 40px 40px, 40px 40px;
+}
+
+@media (max-width: 900px) {
+  .sidebar { width: min(286px, 86vw); }
+  .topbar { height: 70px; padding: 0 16px; }
+  .page-body { padding: 18px 16px 28px; }
 }
 </style>

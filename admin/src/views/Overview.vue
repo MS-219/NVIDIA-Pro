@@ -2,9 +2,9 @@
   <div class="overview-page" v-loading="loading">
     <section class="summary-strip">
       <div class="summary-copy">
-        <span class="section-kicker">CLUSTER SNAPSHOT</span>
-        <h2>Orin 边缘集群</h2>
-        <p>独立运行环境 · 最近刷新 {{ lastUpdated }}</p>
+        <span class="section-kicker">实时运营概览</span>
+        <h2>聚芯 Orin 数据中心</h2>
+        <p><i class="live-dot"></i>生产环境运行正常 · 最近刷新 {{ lastUpdated }}</p>
       </div>
       <div class="baseline-tags">
         <span>ARM64</span><span>L4T 36.4.x</span><span>CUDA 12.6</span><span>8GB Unified</span>
@@ -26,7 +26,7 @@
     <section class="content-grid">
       <article class="panel throughput-panel">
         <header class="panel-header">
-          <div><span class="section-kicker">DATA TREND</span><h3>数据趋势分析</h3></div>
+          <div><span class="section-kicker">近 14 日变化</span><h3>数据趋势分析</h3></div>
           <el-tag type="success" effect="plain">近 14 日</el-tag>
         </header>
         <div ref="trendChartRef" class="trend-chart"></div>
@@ -34,7 +34,7 @@
 
       <article class="panel health-panel">
         <header class="panel-header">
-          <div><span class="section-kicker">NODE HEALTH</span><h3>节点在线状态</h3></div>
+          <div><span class="section-kicker">设备实时状态</span><h3>节点在线状态</h3></div>
         </header>
         <div ref="healthChartRef" class="health-chart"></div>
         <div class="health-legend">
@@ -47,7 +47,7 @@
     <section class="lower-grid">
       <article class="panel runtime-panel">
         <header class="panel-header">
-          <div><span class="section-kicker">RUNTIME BASELINE</span><h3>节点运行基线</h3></div>
+          <div><span class="section-kicker">标准运行环境</span><h3>节点运行基线</h3></div>
           <el-tag type="success" effect="plain">标准镜像</el-tag>
         </header>
         <div class="runtime-list">
@@ -61,7 +61,7 @@
 
       <article class="panel activity-panel">
         <header class="panel-header">
-          <div><span class="section-kicker">RECENT ACTIVITY</span><h3>最近推理任务</h3></div>
+          <div><span class="section-kicker">实时任务动态</span><h3>最近推理任务</h3></div>
           <router-link to="/device-tasks">查看全部</router-link>
         </header>
         <div v-if="taskLogs.length" class="activity-list">
@@ -105,7 +105,7 @@ const runtimeBaseline = [
   { label: '节点平台', value: 'Jetson Orin Nano Super', icon: markRaw(Cpu) },
   { label: '系统架构', value: 'ARM64 · 6 Core', icon: markRaw(SetUp) },
   { label: '推理运行时', value: 'CUDA / TensorRT', icon: markRaw(Coin) },
-  { label: '心跳窗口', value: '60 seconds', icon: markRaw(Timer) },
+  { label: '心跳窗口', value: '60 秒', icon: markRaw(Timer) },
 ]
 
 const formatDateToTime = (value) => value ? String(value).substring(11, 19) : '-'
@@ -367,5 +367,166 @@ onUnmounted(() => {
   .metric-grid { grid-template-columns: 1fr; }
   .metric-card { min-height: 112px; }
   .health-panel { min-width: 0; }
+}
+
+/* Premium operations overview */
+.overview-page { max-width: 1560px; }
+
+.summary-strip {
+  position: relative;
+  min-height: 96px;
+  padding: 19px 22px;
+  overflow: hidden;
+  border-color: rgba(64, 82, 69, 0.11);
+  border-radius: 16px;
+  background:
+    radial-gradient(circle at 78% 10%, rgba(118, 185, 0, 0.1), transparent 28%),
+    linear-gradient(135deg, #ffffff, #fbfdfa);
+  box-shadow: 0 16px 42px rgba(38, 57, 43, 0.06);
+}
+
+.summary-strip::after {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 4px;
+  content: '';
+  background: linear-gradient(#76b900, #568c00);
+}
+
+.summary-copy { min-width: 260px; }
+.section-kicker { color: #6d7b71; font-size: 9px; font-weight: 750; letter-spacing: 0.12em; }
+.summary-copy h2 { margin-top: 6px; color: #19251d; font-size: 21px; letter-spacing: -0.035em; }
+.summary-copy p { margin-top: 6px; display: flex; align-items: center; gap: 7px; color: #7e8981; font-size: 10px; }
+.live-dot { width: 6px; height: 6px; border-radius: 50%; background: #76b900; box-shadow: 0 0 0 4px rgba(118, 185, 0, 0.1); }
+
+.baseline-tags { gap: 9px; }
+.baseline-tags span {
+  padding: 7px 10px;
+  color: #536057;
+  border-color: #e4e9e2;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.75);
+  font-size: 9px;
+  font-weight: 650;
+}
+
+.metric-grid { margin-top: 18px; gap: 16px; }
+.metric-card {
+  position: relative;
+  min-height: 150px;
+  padding: 20px 21px;
+  overflow: hidden;
+  border: 1px solid rgba(64, 82, 69, 0.11);
+  border-top-width: 1px;
+  border-radius: 15px;
+  background: #ffffff;
+  box-shadow: 0 14px 38px rgba(38, 57, 43, 0.055);
+  transition: transform 200ms ease, border-color 200ms ease, box-shadow 200ms ease;
+}
+
+.metric-card::before {
+  position: absolute;
+  top: -36px;
+  right: -32px;
+  width: 116px;
+  height: 116px;
+  content: '';
+  border-radius: 50%;
+  background: rgba(118, 185, 0, 0.05);
+}
+
+.metric-card:hover {
+  transform: translateY(-3px);
+  border-color: rgba(91, 130, 63, 0.22);
+  box-shadow: 0 22px 52px rgba(38, 57, 43, 0.085);
+}
+
+.metric-card.green,
+.metric-card.graphite,
+.metric-card.amber,
+.metric-card.cyan { border-top-color: rgba(64, 82, 69, 0.11); }
+
+.metric-card.green::after,
+.metric-card.graphite::after,
+.metric-card.amber::after,
+.metric-card.cyan::after {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 3px;
+  content: '';
+}
+
+.metric-card.green::after { background: #76b900; }
+.metric-card.graphite::after { background: #5c6b61; }
+.metric-card.amber::after { background: #b57b1a; }
+.metric-card.cyan::after { background: #278a82; }
+
+.metric-head { position: relative; z-index: 1; align-items: center; font-size: 11px; font-weight: 600; }
+.metric-head .el-icon {
+  width: 35px;
+  height: 35px;
+  display: grid;
+  place-items: center;
+  color: #5a8d08;
+  border-radius: 10px;
+  background: rgba(118, 185, 0, 0.09);
+  font-size: 17px;
+}
+
+.metric-value { position: relative; z-index: 1; margin-top: 15px; }
+.metric-value strong { color: #172119; font-size: 32px; font-weight: 720; letter-spacing: -0.045em; font-variant-numeric: tabular-nums; }
+.metric-value span { font-size: 11px; }
+.metric-foot { position: relative; z-index: 1; font-size: 10px; }
+
+.content-grid,
+.lower-grid { margin-top: 16px; gap: 16px; }
+.content-grid { grid-template-columns: minmax(0, 2.15fr) minmax(300px, .8fr); }
+.lower-grid { grid-template-columns: minmax(320px, .82fr) minmax(0, 1.55fr); }
+
+.panel {
+  padding: 21px 22px;
+  border-color: rgba(64, 82, 69, 0.11);
+  border-radius: 15px;
+  box-shadow: 0 14px 38px rgba(38, 57, 43, 0.055);
+}
+
+.panel-header { min-height: 43px; }
+.panel-header h3 { margin-top: 5px; color: #1d2921; font-size: 15px; letter-spacing: -0.02em; }
+.panel-header a { color: #5e9308; font-size: 11px; font-weight: 650; }
+.panel-header a:hover { color: #76b900; }
+.trend-chart { height: 310px; }
+.health-chart { height: 230px; }
+
+.health-legend div {
+  padding: 10px 11px;
+  border-color: #e7ebe5;
+  border-radius: 9px;
+  background: #fafcf9;
+}
+
+.runtime-item { min-height: 51px; border-bottom-color: #edf0eb; }
+.runtime-item .el-icon { width: 28px; height: 28px; display: grid; place-items: center; border-radius: 8px; background: rgba(118, 185, 0, 0.085); }
+.runtime-item span { font-size: 11px; }
+.runtime-item strong { font-size: 11px; font-variant-numeric: tabular-nums; }
+.activity-row { min-height: 54px; border-bottom-color: #edf0eb; }
+.activity-main strong { font-size: 11px; }
+.activity-main span { margin-top: 3px; font-size: 10px; }
+
+@media (max-width: 1100px) {
+  .content-grid,
+  .lower-grid { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 620px) {
+  .summary-strip { padding: 18px; }
+  .summary-copy { min-width: 0; }
+  .summary-copy h2 { font-size: 19px; }
+  .metric-grid { gap: 12px; }
+  .metric-card { min-height: 132px; }
+  .panel { padding: 17px; }
 }
 </style>
