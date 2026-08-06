@@ -522,8 +522,36 @@
           <el-form-item label="位置">
             <el-input v-model="affiliateForm.location" maxlength="100" placeholder="例如：山东省枣庄市" />
           </el-form-item>
-          <el-form-item label="绑定用户 ID（可选）">
-            <el-input v-model="affiliateForm.userId" inputmode="numeric" placeholder="留空则创建后再绑定" />
+          <el-form-item label="绑定用户（可选）">
+            <el-select
+              v-model="affiliateForm.userId"
+              class="bind-user-select"
+              filterable
+              remote
+              reserve-keyword
+              allow-create
+              default-first-option
+              clearable
+              placeholder="输入用户昵称或 ID"
+              :remote-method="searchAffiliateUsers"
+              :loading="affiliateUserLoading"
+            >
+              <el-option
+                v-for="user in affiliateUserOptions"
+                :key="user.id"
+                :label="`${user.nickname || '用户'}（ID：${user.id}）`"
+                :value="user.id"
+              >
+                <div class="bind-user-option">
+                  <el-avatar :size="28" :src="user.avatarUrl || ''">
+                    {{ (user.nickname || '用户').charAt(0) }}
+                  </el-avatar>
+                  <span>{{ user.nickname || '用户' }}</span>
+                  <small>ID：{{ user.id }}</small>
+                </div>
+              </el-option>
+            </el-select>
+            <div class="bind-tip">输入昵称或用户 ID 后选择用户；也可以直接输入完整用户 ID。</div>
           </el-form-item>
         </div>
         <div class="affiliate-tip">挂靠设备创建后默认在线；填写用户 ID 会在创建时直接绑定并开始收益计算。</div>
@@ -611,6 +639,9 @@ const bindUserOptions = ref([])
 const bindForm = reactive({ deviceId: null, userId: null, sn: '' })
 const affiliateVisible = ref(false)
 const affiliateSaving = ref(false)
+const affiliateUserLoading = ref(false)
+const affiliateUserOptions = ref([])
+let affiliateUserSearchSequence = 0
 const affiliateForm = reactive({
   mode: 'batch',
   count: 1,
@@ -1233,6 +1264,9 @@ const confirmBind = async () => {
 }
 
 const openAffiliateDialog = () => {
+  affiliateUserSearchSequence += 1
+  affiliateUserOptions.value = []
+  affiliateUserLoading.value = false
   Object.assign(affiliateForm, {
     mode: 'batch',
     count: 1,
@@ -1243,6 +1277,40 @@ const openAffiliateDialog = () => {
     userId: ''
   })
   affiliateVisible.value = true
+}
+
+const searchAffiliateUsers = async (query) => {
+  const keyword = String(query || '').trim()
+  const searchSequence = ++affiliateUserSearchSequence
+  if (!keyword) {
+    affiliateUserOptions.value = []
+    affiliateUserLoading.value = false
+    return
+  }
+
+  affiliateUserLoading.value = true
+  try {
+    const res = await request.get('/api/user/list', {
+      params: { page: 1, size: 20, keyword },
+      silent: true
+    })
+    if (searchSequence !== affiliateUserSearchSequence) return
+    if (res.data.code === 200) {
+      affiliateUserOptions.value = res.data.data?.records || []
+    } else {
+      affiliateUserOptions.value = []
+      ElMessage.error(res.data.msg || '搜索用户失败')
+    }
+  } catch (error) {
+    if (searchSequence === affiliateUserSearchSequence) {
+      affiliateUserOptions.value = []
+      console.error('搜索挂靠设备绑定用户失败:', error)
+    }
+  } finally {
+    if (searchSequence === affiliateUserSearchSequence) {
+      affiliateUserLoading.value = false
+    }
+  }
 }
 
 const saveAffiliateDevices = async () => {
