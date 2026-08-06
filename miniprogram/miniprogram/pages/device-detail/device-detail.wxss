@@ -210,11 +210,12 @@ button {
 .node-hero {
   position: relative;
   height: 208px;
-  margin: 0 12px;
+  margin: 0 14px;
   overflow: hidden;
   background: #111510;
   border: 1px solid rgba(0, 0, 0, .18);
-  border-radius: 8px;
+  border-radius: 18px;
+  box-shadow: 0 18px 44px rgba(20, 28, 17, .16);
 }
 
 .node-hero::before {

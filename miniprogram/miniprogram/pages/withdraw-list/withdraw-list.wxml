@@ -8,7 +8,7 @@
 
     <view class="list-container" style="padding-top: {{navBarTop + 56}}px;">
         <view class="ledger-anchor">
-            <view><text>SETTLEMENT LEDGER</text><text>结算处理记录</text></view>
+            <view><text>结算记录</text><text>收益处理进度</text></view>
             <view><text>{{list.length}}</text><text>已载入</text></view>
         </view>
 
@@ -18,7 +18,7 @@
         </view>
 
         <view class="error-state" wx:elif="{{loadError && list.length === 0}}">
-            <view class="state-mark is-error"><view></view><text>LINK ERROR</text></view>
+            <view class="state-mark is-error"><view></view><text>连接异常</text></view>
             <text class="state-title">记录同步中断</text>
             <text class="state-desc">{{loadError}}</text>
             <button bindtap="retryLoad">重新加载</button>

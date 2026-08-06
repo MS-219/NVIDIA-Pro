@@ -7,7 +7,7 @@
     <view class="hero-card">
         <view class="hero-signal"><view class="bank-glyph"><view></view></view></view>
         <view class="hero-text">
-            <text class="hero-kicker">PAYMENT IDENTITY</text>
+            <text class="hero-kicker">收款账户</text>
             <text class="hero-name">{{currentInfo.realName || '未设置'}}</text>
             <text class="hero-card-no">{{currentInfo.bankCardNoMask || '暂无银行卡'}}</text>
         </view>
@@ -27,7 +27,7 @@
         <view class="section-header">
             <view class="section-mark card-mark"><view></view></view>
             <view>
-                <text class="section-kicker">PAYMENT CHANNEL</text>
+                <text class="section-kicker">收款渠道</text>
                 <text class="section-title">修改银行卡</text>
             </view>
         </view>
@@ -47,7 +47,7 @@
         <view class="section-header outside-header">
             <view class="section-mark shield-mark"><view></view></view>
             <view>
-                <text class="section-kicker">CONTRACT CONTROL</text>
+                <text class="section-kicker">签约状态</text>
                 <text class="section-title">签约管理</text>
             </view>
         </view>

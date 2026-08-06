@@ -6,7 +6,7 @@
 
     <view class="hashrate-info">
         <view class="balance-copy">
-            <view class="balance-kicker"><view></view><text>COMPUTE BALANCE</text></view>
+            <view class="balance-kicker"><view></view><text>可用节点权益</text></view>
             <text class="hashrate-label">可用节点权益</text>
             <view class="balance-value"><image src="/images/menu/earnings.png" mode="aspectFit"></image><text>{{loaded ? availableHashrate : '--'}}</text></view>
         </view>
@@ -16,14 +16,14 @@
     <view class="level-tip" wx:if="{{userLevel < 1 && loaded}}"><view class="tip-mark">L0</view><text>当前等级暂未开放设备兑换，升级后可提交订单</text></view>
     <view class="level-badge-bar" wx:if="{{userLevel >= 1}}"><text>账户等级</text><text>{{userLevelName}}</text></view>
 
-    <view class="section-heading"><view><text>可兑换设备</text><text>EDGE HARDWARE</text></view><text wx:if="{{products.length}}">{{products.length}} 项</text></view>
+    <view class="section-heading"><view><text>可兑换设备</text><text>聚芯 Orin 硬件</text></view><text wx:if="{{products.length}}">{{products.length}} 项</text></view>
 
     <view class="loading-state" wx:if="{{loading && !loaded}}">
         <view class="loading-card" wx:for="{{[1,2]}}" wx:key="*this"><view class="loading-media jx-skeleton"></view><view class="loading-line wide jx-skeleton"></view><view class="loading-line jx-skeleton"></view></view>
     </view>
 
     <view class="error-state" wx:elif="{{errorMessage && products.length === 0}}">
-        <view class="state-mark"><view></view><text>DATA LINK</text></view>
+        <view class="state-mark"><view></view><text>数据连接异常</text></view>
         <text class="state-title">设备目录同步中断</text><text class="state-desc">{{errorMessage}}</text>
         <button bindtap="retryFetch">重新加载</button>
     </view>

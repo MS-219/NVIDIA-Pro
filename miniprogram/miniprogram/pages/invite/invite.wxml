@@ -11,7 +11,7 @@
             <view class="console-identity">
                 <view class="anchor-icon"><image src="/images/menu/invite.png" mode="aspectFit"></image></view>
                 <view class="console-copy">
-                    <text class="console-kicker">TEAM NETWORK</text>
+                    <text class="console-kicker">团队邀请</text>
                     <text class="console-caption">邀请网络</text>
                 </view>
             </view>
@@ -43,7 +43,7 @@
     <view class="stats-card">
         <view class="section-heading">
             <text class="section-title">团队遥测</text>
-            <text class="section-code">LIVE TOTALS</text>
+            <text class="section-code">实时数据</text>
         </view>
         <view class="stats-row">
             <view class="stat-item">
@@ -82,7 +82,7 @@
     <view class="inviter-card">
         <view class="section-heading">
             <text class="section-title">我的邀请人</text>
-            <text class="section-code">UPLINK</text>
+            <text class="section-code">邀请入口</text>
         </view>
         <view class="inviter-bound" wx:if="{{hasInviter}}">
             <view class="inviter-avatar">
@@ -156,7 +156,7 @@
     <view class="rules-card">
         <view class="section-heading">
             <text class="section-title">邀请规则</text>
-            <text class="section-code">3 STEPS</text>
+            <text class="section-code">三步完成</text>
         </view>
         <view class="rule-item">
             <text class="rule-num">01</text>

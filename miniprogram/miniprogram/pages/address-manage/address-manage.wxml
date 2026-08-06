@@ -23,7 +23,7 @@
         </view>
 
         <view class="empty-state" wx:if="{{addresses.length === 0}}">
-            <view class="empty-icon">LOC</view>
+            <view class="empty-icon">地址</view>
             <text class="empty-text">暂无收货地址</text>
         </view>
 

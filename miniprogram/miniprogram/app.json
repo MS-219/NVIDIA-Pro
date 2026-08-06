@@ -32,7 +32,9 @@
   "window": {
     "navigationBarTextStyle": "black",
     "navigationBarTitleText": "聚芯 Orin",
-    "navigationBarBackgroundColor": "#ffffff"
+    "navigationBarBackgroundColor": "#ffffff",
+    "backgroundColor": "#f4f7f3",
+    "backgroundTextStyle": "dark"
   },
   "tabBar": {
     "custom": true,

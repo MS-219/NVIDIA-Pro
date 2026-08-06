@@ -85,3 +85,158 @@ page { background: #eef1ed; color: #1c211b; }.page-scroll { height: 100vh; }.hom
   0%, 100% { opacity: .45; }
   50% { opacity: 1; }
 }
+
+/* Premium mobile home */
+page,
+.home-page {
+  background:
+    radial-gradient(circle at 88% 3%, rgba(118, 185, 0, .08), transparent 22%),
+    #f4f7f3;
+}
+
+.home-nav {
+  padding-left: 20px;
+  background: rgba(255, 255, 255, .9);
+  border-bottom-color: rgba(52, 73, 57, .08);
+}
+
+.brand-logo { width: 150px; height: 31px; }
+.service-state { color: #718077; font-size: 10px; font-family: inherit; }
+.service-state view { box-shadow: 0 0 0 4px rgba(118, 185, 0, .1); }
+
+.hero-carousel {
+  height: 246px;
+  margin: 14px 14px 0;
+  border-color: rgba(58, 78, 63, .1);
+  border-radius: 19px;
+  background: #ffffff;
+  box-shadow: 0 20px 48px rgba(35, 55, 40, .1);
+}
+
+.hero-default-slide {
+  grid-template-columns: 59% 41%;
+  background:
+    radial-gradient(circle at 18% 10%, rgba(118, 185, 0, .14), transparent 36%),
+    linear-gradient(135deg, #ffffff, #f6faf3);
+}
+
+.hero-default-slide::before { width: 5px; }
+.hero-copy { padding: 27px 12px 0 22px; }
+.hero-protocol { color: #6e7b72; font-family: inherit; font-size: 9px; letter-spacing: .04em; }
+.hero-eyebrow { margin-top: 12px; color: #5b8f08; font-size: 11px; }
+.hero-title { margin-top: 8px; color: #162119; font-size: 23px; line-height: 30px; letter-spacing: -.04em; }
+.hero-title-second { margin-top: 0; color: #5d9306; }
+.hero-action { margin-top: 18px; gap: 7px; }
+.hero-action navigator {
+  min-height: 42px;
+  padding: 0 14px;
+  border-radius: 10px;
+  color: #ffffff;
+  background: linear-gradient(145deg, #74b500, #5b9200);
+  box-shadow: 0 9px 20px rgba(82, 129, 9, .2);
+}
+
+.hero-live {
+  min-height: 34px;
+  padding: 0 7px;
+  color: #6f7a72;
+  border-color: rgba(56, 76, 61, .1);
+  border-radius: 9px;
+  background: rgba(255, 255, 255, .72);
+  font-family: inherit;
+  font-size: 9px;
+}
+
+.hero-media {
+  border-left-color: rgba(82, 118, 58, .1);
+  background:
+    radial-gradient(circle at 50% 50%, rgba(118, 185, 0, .12), transparent 55%),
+    #eef3ea;
+}
+
+.hero-product { filter: drop-shadow(0 14px 22px rgba(28, 44, 32, .16)); }
+.media-grid { opacity: .5; }
+.media-status {
+  top: 12px;
+  left: 10px;
+  min-height: 25px;
+  padding: 0 7px;
+  color: #4e7d08;
+  border-color: rgba(118, 185, 0, .2);
+  border-radius: 7px;
+  background: rgba(255, 255, 255, .82);
+  font-family: inherit;
+  font-size: 8px;
+}
+
+.media-status.is-standby { color: #6f7b72; }
+.media-specs text {
+  height: 22px;
+  color: #556158;
+  border-color: rgba(67, 89, 72, .1);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, .78);
+}
+
+.hero-banner-image { background: #f3f6f1; }
+.hero-banner-caption { left: 14px; right: 62px; bottom: 14px; border-radius: 11px; }
+.hero-pagination { right: 17px; bottom: 20px; }
+
+.overview-card,
+.income-card,
+.news-list {
+  margin-left: 14px;
+  margin-right: 14px;
+  border: 1px solid rgba(58, 78, 63, .09);
+  border-radius: 17px;
+  background: rgba(255, 255, 255, .94);
+  box-shadow: 0 13px 34px rgba(35, 55, 40, .065);
+}
+
+.overview-card { margin-top: 14px; padding: 19px 17px 17px; }
+.overview-title > view:first-child > text:first-child { font-size: 16px; letter-spacing: -.02em; }
+.overview-title > view:first-child > text:last-child { margin-top: 4px; color: #8a958d; }
+.overview-badge { min-height: 31px; border-radius: 9px; }
+.overview-grid { margin-top: 17px; padding-top: 16px; }
+.overview-metric { padding-left: 14px; }
+.overview-metric > text:first-child { font-size: 25px; font-weight: 780; }
+.metric-label { margin-top: 7px; }
+.network-health { margin-top: 16px; padding-top: 14px; }
+.health-track { height: 6px; margin-top: 10px; border-radius: 4px; }
+.health-track view { border-radius: 4px; }
+
+.section-head { height: 62px; padding: 0 18px 11px; }
+.section-title text:first-child { font-size: 17px; letter-spacing: -.02em; }
+.section-title text:last-child { margin-top: 3px; font-family: inherit; font-size: 10px; font-weight: 500; }
+.section-head navigator { color: #5c8e0d; font-weight: 650; }
+
+.income-card { min-height: 144px; }
+.income-primary { padding: 20px; background: linear-gradient(145deg, #edf7df, #f7fbf3); }
+.income-label { font-size: 10px; }
+.income-label > view { width: 29px; height: 29px; border-radius: 9px; }
+.income-label image { width: 16px; height: 16px; }
+.income-value { margin-top: 10px; }
+.income-value text:last-child { font-size: 30px; letter-spacing: -.035em; }
+.income-note { margin-top: 9px; }
+.income-total { padding: 23px 16px; }
+.income-total > text:nth-child(2) { margin-top: 10px; font-size: 18px; }
+.income-line { margin-top: 18px; border-radius: 3px; }
+
+.news-head { height: 64px; }
+.news-list { overflow: hidden; }
+.news-row { min-height: 74px; padding: 0 14px; }
+.news-cover,
+.news-mark { width: 44px; height: 44px; margin-right: 12px; border-radius: 11px; }
+.news-row view text:first-child { font-size: 13px; }
+.news-row view text:last-child { margin-top: 6px; font-size: 10px; }
+.empty-news { padding: 34px; font-size: 12px; }
+.safe-space { height: calc(98px + env(safe-area-inset-bottom)); }
+
+@media (max-width: 350px) {
+  .hero-carousel,
+  .overview-card,
+  .income-card,
+  .news-list { margin-left: 10px; margin-right: 10px; }
+  .hero-title { font-size: 21px; line-height: 28px; }
+  .hero-live { display: none; }
+}

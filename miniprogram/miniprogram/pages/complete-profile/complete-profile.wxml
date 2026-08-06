@@ -7,7 +7,7 @@
     <form class="content" bindsubmit="onSave">
         <view class="identity-panel">
             <view class="identity-accent"></view>
-            <text class="identity-kicker">PROFILE SETUP</text>
+            <text class="identity-kicker">账户资料</text>
             <text class="identity-title">建立你的 Orin 身份</text>
             <text class="identity-desc">头像与昵称将作为您的账户标识</text>
         </view>

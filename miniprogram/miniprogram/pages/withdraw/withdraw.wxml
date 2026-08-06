@@ -9,10 +9,10 @@
     <view class="balance-card">
         <view class="telemetry-head">
             <view>
-                <text class="telemetry-kicker">SETTLEMENT TELEMETRY</text>
+                <text class="telemetry-kicker">收益结算</text>
                 <text class="balance-label">可回收聚芯 Orin 值</text>
             </view>
-            <view class="live-state"><view class="live-dot"></view><text>READY</text></view>
+            <view class="live-state"><view class="live-dot"></view><text>可操作</text></view>
         </view>
         <view class="balance-amount">
             <text class="currency">ORIN</text>
@@ -53,7 +53,7 @@
     <view class="form-card">
         <view class="form-heading">
             <view>
-                <text class="section-kicker">SETTLEMENT INPUT</text>
+                <text class="section-kicker">提现金额</text>
                 <text class="form-title">提现信息</text>
             </view>
             <view class="section-rule"></view>

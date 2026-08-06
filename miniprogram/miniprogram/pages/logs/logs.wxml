@@ -1,20 +1,20 @@
 <scroll-view class="scrollarea" scroll-y type="list">
   <view class="logs-page">
     <view class="telemetry-card">
-      <view class="telemetry-head"><text>LOCAL SESSION LOG</text><view><view></view><text>READY</text></view></view>
+      <view class="telemetry-head"><text>本机访问记录</text><view><view></view><text>正常</text></view></view>
       <text class="telemetry-title">本机访问记录</text>
       <view class="telemetry-metrics"><view><text>{{logs.length}}</text><text>记录数</text></view><view><text>{{logs.length ? logs[0].date : '--'}}</text><text>最近启动</text></view></view>
     </view>
 
-    <view class="section-head"><view><text>会话时间线</text><text>SESSION TIMELINE</text></view><text>{{logs.length}} 条</text></view>
+    <view class="section-head"><view><text>会话时间线</text><text>最近访问记录</text></view><text>{{logs.length}} 条</text></view>
     <view class="log-list" wx:if="{{logs.length}}">
       <view class="log-item" wx:for="{{logs}}" wx:key="timeStamp" wx:for-item="log">
         <view class="log-code">{{index + 1 < 10 ? '0' + (index + 1) : index + 1}}</view>
-        <view class="log-copy"><text>APPLICATION START</text><text>{{log.date}}</text></view>
+        <view class="log-copy"><text>打开小程序</text><text>{{log.date}}</text></view>
         <view class="log-status"><view></view><text>已记录</text></view>
       </view>
     </view>
-    <view class="empty-state" wx:else><view>LOG</view><text>暂无本机访问记录</text></view>
+    <view class="empty-state" wx:else><view>记录</view><text>暂无本机访问记录</text></view>
     <view class="safe-space"></view>
   </view>
 </scroll-view>

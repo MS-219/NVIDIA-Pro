@@ -10,7 +10,7 @@
     <view class="state-panel" wx:if="{{loading}}">
         <view class="state-spinner"></view>
         <text class="state-title">正在同步公告</text>
-        <text class="state-code">BULLETIN LINK / SYNCING</text>
+        <text class="state-code">正在同步公告内容</text>
     </view>
     <view class="state-panel is-error" wx:elif="{{errorMessage}}">
         <view class="state-error-mark">!</view>
@@ -21,7 +21,7 @@
 
     <view class="content-area" wx:elif="{{notice}}">
         <view class="notice-header">
-            <view class="notice-kicker"><text>PLATFORM BULLETIN</text><view><view></view><text>PUBLISHED</text></view></view>
+            <view class="notice-kicker"><text>平台公告</text><view><view></view><text>已发布</text></view></view>
             <text class="notice-title">{{notice.title}}</text>
             <text class="notice-time">{{notice.publishTime}}</text>
         </view>

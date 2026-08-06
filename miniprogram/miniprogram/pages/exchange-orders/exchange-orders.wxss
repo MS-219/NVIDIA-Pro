@@ -7,7 +7,7 @@ page { min-height: 100vh; background: #eef1ed; color: #1c211b; }
 .nav-title { font-size: 18px; font-weight: 700; text-align: center; }
 .nav-placeholder { width: 52px; }
 
-.order-anchor { position: relative; min-height: 112px; margin: 12px; padding: 18px; box-sizing: border-box; display: flex; align-items: center; justify-content: space-between; overflow: hidden; background: #121611; border: 1px solid rgba(118,185,0,.25); border-left: 4px solid #76b900; border-radius: 8px; color: #f7f9f5; }
+.order-anchor { position: relative; min-height: 118px; margin: 14px; padding: 21px; box-sizing: border-box; display: flex; align-items: center; justify-content: space-between; overflow: hidden; background: #121611; border: 1px solid rgba(118,185,0,.25); border-left: 4px solid #76b900; border-radius: 18px; color: #f7f9f5; box-shadow: 0 18px 44px rgba(20,28,17,.16); }
 .order-anchor > view:first-child > text { display: block; margin-top: 9px; font-size: 17px; font-weight: 700; }
 .anchor-kicker { display: flex; align-items: center; color: #9ba39a; font-family: "DIN Alternate", Menlo, monospace; font-size: 11px; font-weight: 700; }
 .anchor-kicker view { width: 16px; height: 2px; margin-right: 7px; background: #76b900; }
@@ -23,7 +23,7 @@ page { min-height: 100vh; background: #eef1ed; color: #1c211b; }
 .tab-scroll { min-height: 52px; margin-bottom: 12px; white-space: nowrap; background: #fff; border-top: 1px solid rgba(28,33,27,.07); border-bottom: 1px solid rgba(28,33,27,.07); }
 .tab-bar { display: flex; padding: 4px 12px; }
 .tab-item { flex: 0 0 auto; min-width: 72px; min-height: 44px; padding: 0 12px; box-sizing: border-box; display: flex; align-items: center; justify-content: center; color: #697166; font-size: 13px; border-radius: 6px !important; }
-.tab-active { background: #121611 !important; color: #f7f9f5 !important; font-weight: 700; }
+.tab-active { background: #ffffff !important; color: #4f7f06 !important; font-weight: 700; box-shadow: 0 5px 15px rgba(39,58,44,.08) !important; }
 .tab-active::after { display: none; }
 
 .order-list,.loading-state { padding: 0 12px; }

@@ -5,7 +5,7 @@
     </view>
     <view class="nav-heading">
       <text>设备详情</text>
-      <text>EDGE NODE CONSOLE</text>
+      <text>Orin 节点详情</text>
     </view>
   </view>
 
@@ -37,11 +37,11 @@
       <view class="node-hero">
         <view class="hero-grid"></view>
         <view class="hero-copy">
-          <view class="hero-kicker"><view></view><text>ORIN EDGE NODE</text></view>
+          <view class="hero-kicker"><view></view><text>聚芯 Orin 节点</text></view>
           <text class="hero-title">{{device.displayName}}</text>
           <view class="identity-line">
             <view class="identity-text">
-              <text>DEVICE ID</text>
+              <text>设备编号</text>
               <text>{{device.identity}}</text>
             </view>
             <button class="identity-action" bindtap="copyDeviceIdentity" disabled="{{!device.identityRaw}}">复制</button>
@@ -70,7 +70,7 @@
       </view>
 
       <view class="section-heading">
-        <view><text>实时遥测</text><text>TELEMETRY</text></view>
+        <view><text>实时遥测</text><text>温度、负载与功耗</text></view>
         <text>节点实时快照</text>
       </view>
       <view class="telemetry-board">
@@ -85,7 +85,7 @@
       </view>
 
       <view class="section-heading stack-heading">
-        <view><text>运行环境</text><text>SOFTWARE STACK</text></view>
+        <view><text>运行环境</text><text>系统与推理组件</text></view>
         <text>节点上报版本</text>
       </view>
       <view class="software-panel">
@@ -96,7 +96,7 @@
       </view>
 
       <view class="section-heading">
-        <view><text>节点档案</text><text>IDENTITY</text></view>
+        <view><text>节点档案</text><text>设备基础信息</text></view>
       </view>
       <view class="identity-panel">
         <view><text>节点编号</text><text selectable>{{device.businessIdText}}</text></view>
@@ -105,7 +105,7 @@
       </view>
 
       <view class="section-heading offline-heading">
-        <view><text>离线记录</text><text>OFFLINE HISTORY</text></view>
+        <view><text>离线记录</text><text>最近异常记录</text></view>
         <text>最近 20 次</text>
       </view>
       <view class="offline-panel" wx:if="{{offlineState === 'ready'}}">
@@ -131,7 +131,7 @@
       </view>
 
       <view class="section-heading chart-heading">
-        <view><text>收益趋势</text><text>7 DAY SETTLEMENT</text></view>
+        <view><text>收益趋势</text><text>近 7 日结算</text></view>
         <view class="chart-total"><text>7日累计</text><text>¥{{chartSummary.total}}</text></view>
       </view>
       <view class="earnings-panel">

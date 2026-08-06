@@ -9,7 +9,7 @@
     </view>
 
     <view class="page-error" wx:elif="{{errorMessage && !product}}">
-        <view class="state-mark"><view></view><text>PRODUCT LINK</text></view>
+        <view class="state-mark"><view></view><text>商品连接异常</text></view>
         <text class="state-title">设备详情同步中断</text><text class="state-desc">{{errorMessage}}</text>
         <button bindtap="retryDetail">重新加载</button>
     </view>
@@ -18,7 +18,7 @@
         <view class="product-hero"><image class="detail-image" src="{{product.imageUrl || '/images/product.png'}}" mode="aspectFit"></image><view class="product-index">ORIN HARDWARE / {{product.id}}</view></view>
 
         <view class="detail-card">
-            <view class="detail-kicker"><view></view><text>EXCHANGE QUOTE</text></view>
+            <view class="detail-kicker"><view></view><text>兑换报价</text></view>
             <text class="detail-name">{{product.name}}</text>
             <view class="detail-price-row"><image src="/images/menu/earnings.png" mode="aspectFit"></image><text class="detail-price-value">{{product.userHashratePrice}}</text><text class="detail-price-unit">节点权益</text></view>
             <view class="quote-meta"><text>约 ¥{{product.userPrice}}</text><text>可用 {{availableHashrate}}</text><text wx:if="{{product.stock !== null && product.stock !== undefined}}">库存 {{product.stock}}</text></view>
@@ -26,7 +26,7 @@
         </view>
 
         <view class="price-table-card" wx:if="{{currentPrice}}">
-            <view class="section-heading"><view><text>等级报价</text><text>MEMBER MATRIX</text></view><text>当前等级 L{{userLevel}}</text></view>
+            <view class="section-heading"><view><text>等级报价</text><text>不同等级所需权益</text></view><text>当前等级 L{{userLevel}}</text></view>
             <view class="price-table">
                 <view class="price-row price-row-active">
                     <text class="price-level-name">L{{currentPrice.level}} {{currentPrice.levelName}}</text>
@@ -36,7 +36,7 @@
         </view>
 
         <view class="address-card" bindtap="toggleAddressPicker" hover-class="tap-muted">
-            <view class="section-heading"><view><text>收货地址</text><text>DELIVERY</text></view><text class="address-arrow">›</text></view>
+            <view class="section-heading"><view><text>收货地址</text><text>设备配送地址</text></view><text class="address-arrow">›</text></view>
             <view class="address-state" wx:if="{{addressLoading}}"><view class="mini-spinner"></view><text>地址同步中</text></view>
             <view class="address-state is-error" wx:elif="{{addressError}}" catchtap="retryAddresses"><text>{{addressError}}</text><text>重试</text></view>
             <view class="address-content" wx:elif="{{selectedAddress}}"><view class="address-info"><text class="address-name">{{selectedAddress.receiverName}}</text><text class="address-phone">{{selectedAddress.phone}}</text></view><text class="address-detail">{{selectedAddress.province}}{{selectedAddress.city}}{{selectedAddress.district}}{{selectedAddress.detailAddress}}</text></view>
@@ -44,7 +44,7 @@
         </view>
 
         <view class="qty-card">
-            <view><text class="card-title">兑换数量</text><text class="card-subtitle">ORDER QUANTITY</text></view>
+            <view><text class="card-title">兑换数量</text><text class="card-subtitle">选择需要兑换的数量</text></view>
             <view class="qty-control"><view class="qty-btn" bindtap="decreaseQty" hover-class="tap-muted">−</view><text class="qty-value">{{quantity}}</text><view class="qty-btn" bindtap="increaseQty" hover-class="tap-muted">+</view></view>
         </view>
 

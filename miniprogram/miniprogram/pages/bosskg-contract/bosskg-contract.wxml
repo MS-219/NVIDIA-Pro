@@ -2,7 +2,7 @@
     <view class="status-gate" wx:if="{{!showForm && !statusError && (statusLoading || contractStatus === null)}}">
         <view class="gate-spinner"></view>
         <text class="gate-title">正在同步签约状态</text>
-        <text class="gate-code">IDENTITY LINK / SYNCING</text>
+        <text class="gate-code">正在同步签约状态</text>
     </view>
     <view class="status-gate is-error" wx:elif="{{statusError && !showForm}}">
         <view class="gate-error-mark">!</view>
@@ -13,49 +13,49 @@
     <view class="status-section" wx:elif="{{contractStatus !== null && !showForm}}">
         <block wx:if="{{contractStatus === 1}}">
             <view class="status-hero success-bg">
-                <view class="status-head"><text>CONTRACT STATUS</text><view class="status-signal"></view></view>
+                <view class="status-head"><text>签约状态</text><view class="status-signal"></view></view>
                 <view class="status-glyph success-glyph"></view>
                 <text class="status-title">签约成功</text>
                 <text class="status-subtitle">实名与收款信息已完成核验，提现通道已开放</text>
-                <text class="status-code">VERIFIED / ACTIVE</text>
+                <text class="status-code">已认证 · 生效中</text>
             </view>
         </block>
         <block wx:elif="{{contractStatus === 3}}">
             <view class="status-hero pending-bg">
-                <view class="status-head"><text>CONTRACT STATUS</text><view class="status-signal"></view></view>
+                <view class="status-head"><text>签约状态</text><view class="status-signal"></view></view>
                 <view class="status-glyph pending-glyph"><view></view></view>
                 <text class="status-title">审核中</text>
                 <text class="status-subtitle">申请已提交，通常在 1-5 分钟内完成审核</text>
-                <text class="status-code">VERIFYING / QUEUED</text>
+                <text class="status-code">认证中 · 请等待</text>
             </view>
         </block>
         <block wx:elif="{{contractStatus === 2}}">
             <view class="status-hero fail-bg">
-                <view class="status-head"><text>CONTRACT STATUS</text><view class="status-signal"></view></view>
+                <view class="status-head"><text>签约状态</text><view class="status-signal"></view></view>
                 <view class="status-glyph fail-glyph"></view>
                 <text class="status-title">审核失败</text>
                 <text class="status-subtitle">{{failReason || '经审核，您的身份信息不符合要求'}}</text>
-                <text class="status-code">REVIEW / REQUIRED</text>
+                <text class="status-code">需要重新处理</text>
             </view>
             <view class="action-area"><button class="action-btn" bindtap="resetForm">重新申请</button></view>
         </block>
         <block wx:elif="{{contractStatus === 5}}">
             <view class="status-hero cancel-bg">
-                <view class="status-head"><text>CONTRACT STATUS</text><view class="status-signal"></view></view>
+                <view class="status-head"><text>签约状态</text><view class="status-signal"></view></view>
                 <view class="status-glyph document-glyph"><view></view></view>
                 <text class="status-title">签约已解除</text>
                 <text class="status-subtitle">签约已失效，重新完成核验后可恢复提现</text>
-                <text class="status-code">INACTIVE / CLOSED</text>
+                <text class="status-code">未生效 · 已关闭</text>
             </view>
             <view class="action-area"><button class="action-btn" bindtap="resetForm">重新申请</button></view>
         </block>
         <block wx:else>
             <view class="status-hero default-bg">
-                <view class="status-head"><text>CONTRACT STATUS</text><view class="status-signal"></view></view>
+                <view class="status-head"><text>签约状态</text><view class="status-signal"></view></view>
                 <view class="status-glyph document-glyph"><view></view></view>
                 <text class="status-title">等待签约</text>
                 <text class="status-subtitle">提交身份与银行卡信息后进入人脸识别</text>
-                <text class="status-code">IDENTITY / PENDING</text>
+                <text class="status-code">等待身份认证</text>
             </view>
             <view class="action-area"><button class="action-btn" bindtap="resetForm">开始签约</button></view>
         </block>
@@ -63,12 +63,12 @@
 
     <view class="form-section" wx:else>
         <view class="form-telemetry">
-            <view class="status-head"><text>IDENTITY PIPELINE</text><view class="status-signal"></view></view>
+            <view class="status-head"><text>身份认证流程</text><view class="status-signal"></view></view>
             <text class="telemetry-title">实名签约</text>
             <text class="telemetry-subtitle">一次录入身份与结算信息，下一步进入人脸识别</text>
             <view class="telemetry-meta">
-                <text>CHANNEL · BANK</text>
-                <text>SECURE · TLS</text>
+                <text>银行卡结算</text>
+                <text>安全加密连接</text>
             </view>
         </view>
 
@@ -84,7 +84,7 @@
             <view class="card-header">
                 <view class="card-mark identity-mark"><view></view></view>
                 <view>
-                    <text class="card-kicker">IDENTITY</text>
+                    <text class="card-kicker">身份信息</text>
                     <text class="card-title">身份信息</text>
                 </view>
             </view>
@@ -106,7 +106,7 @@
             <view class="card-header">
                 <view class="card-mark identity-mark"><view></view></view>
                 <view>
-                    <text class="card-kicker">IDENTITY DOCUMENT</text>
+                    <text class="card-kicker">身份证件</text>
                     <text class="card-title">身份证照片</text>
                 </view>
             </view>
@@ -127,7 +127,7 @@
             <view class="card-header">
                 <view class="card-mark bank-mark"><view></view></view>
                 <view>
-                    <text class="card-kicker">SETTLEMENT</text>
+                    <text class="card-kicker">结算信息</text>
                     <text class="card-title">收款银行卡</text>
                 </view>
             </view>

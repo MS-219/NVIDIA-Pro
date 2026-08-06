@@ -700,3 +700,125 @@ page {
     right: 7px;
   }
 }
+
+/* Premium account center */
+page,
+.my-page {
+  background:
+    radial-gradient(circle at 88% 3%, rgba(118, 185, 0, .08), transparent 22%),
+    #f4f7f3;
+}
+
+.account-nav {
+  padding-left: 20px;
+  background: rgba(255, 255, 255, .9);
+  border-bottom-color: rgba(52, 73, 57, .08);
+}
+
+.nav-title { color: #18231b; font-size: 19px; letter-spacing: -.025em; }
+.nav-subtitle { margin-top: 2px; color: #7d8981; }
+
+.profile-card {
+  min-height: 138px;
+  margin: 14px 14px 0;
+  padding: 23px 42px 23px 20px;
+  border: 1px solid rgba(58, 78, 63, .1);
+  border-radius: 19px;
+  background:
+    radial-gradient(circle at 88% 12%, rgba(118, 185, 0, .16), transparent 36%),
+    linear-gradient(145deg, #ffffff, #f5f9f2);
+  box-shadow: 0 18px 44px rgba(35, 55, 40, .09);
+}
+
+.profile-accent { width: 5px; }
+.avatar-wrap,
+.avatar-trigger,
+.avatar-image,
+.avatar-fallback { width: 64px; height: 64px; }
+.avatar-wrap,
+.avatar-trigger { min-width: 64px; max-width: 64px; flex-basis: 64px; }
+.avatar-wrap { margin-right: 15px; }
+.avatar-trigger,
+.avatar-fallback {
+  color: #9cdb30;
+  border-color: rgba(118, 185, 0, .38);
+  border-radius: 18px;
+  background: #172019;
+  box-shadow: 0 10px 22px rgba(31, 48, 35, .16);
+}
+.avatar-image { border-radius: 18px; }
+.avatar-status { right: -1px; bottom: -1px; border-color: #ffffff; }
+.profile-name { color: #19251d; font-size: 18px; letter-spacing: -.02em; }
+.nick-input { color: #19251d; border-bottom-color: rgba(52, 73, 57, .16); }
+.account-id { color: #7b8880; }
+.phone-line { color: #6f7b73; }
+.bind-phone,
+.login-link { color: #5d9208; }
+.profile-arrow { color: #94a097; }
+.level-badge { border-radius: 7px; }
+.level-badge-0 { color: #657168; background: #edf1eb; border-color: #dfe5dd; }
+
+.complete-notice {
+  min-height: 50px;
+  margin: 11px 14px 0;
+  padding: 0 14px;
+  border-radius: 13px;
+  box-shadow: 0 8px 22px rgba(112, 76, 19, .045);
+}
+.notice-mark { border-radius: 7px; }
+
+.section-head { height: 62px; padding: 0 18px 11px; }
+.section-head-first { height: 66px; }
+.section-head > text { font-size: 17px; letter-spacing: -.02em; }
+
+.wallet-card {
+  margin: 0 14px;
+  border-color: rgba(58, 78, 63, .09);
+  border-radius: 18px;
+  box-shadow: 0 15px 38px rgba(35, 55, 40, .075);
+}
+.wallet-card::before { height: 4px; }
+.wallet-main { min-height: 118px; padding: 23px 20px 19px; }
+.wallet-label-row text:first-child { color: #6f7b73; }
+.wallet-number { color: #18231b; font-size: 37px; letter-spacing: -.04em; }
+.wallet-stats { min-height: 74px; background: #f8faf7; }
+.wallet-stat { padding: 15px 20px; }
+.wallet-stat text:last-child { margin-top: 6px; font-size: 16px; }
+.wallet-actions { min-height: 54px; padding: 9px; gap: 8px; background: #ffffff; }
+.wallet-actions button { height: 44px; line-height: 44px; border-radius: 11px; }
+.withdraw-primary { color: #ffffff; background: linear-gradient(145deg, #74b500, #5b9200); box-shadow: 0 8px 18px rgba(82, 129, 9, .16); }
+.withdraw-secondary { color: #56635a; border: 1px solid #e2e7e0; background: #f8faf7; }
+
+.service-section-head { height: 64px; }
+.menu-grid { margin: 0 14px; gap: 10px; }
+.menu-tile {
+  min-height: 88px;
+  padding: 14px 28px 14px 13px;
+  border-color: rgba(58, 78, 63, .09);
+  border-radius: 15px;
+  box-shadow: 0 10px 26px rgba(35, 55, 40, .05);
+}
+.menu-code { width: 42px; height: 42px; flex-basis: 42px; border-radius: 12px; }
+.menu-code image { width: 23px; height: 23px; }
+.menu-copy text:first-child { color: #263229; font-size: 13px; }
+.menu-copy text:last-child { margin-top: 4px; color: #879189; }
+.menu-arrow { color: #a3aca5; }
+
+.logout-section { margin: 22px 14px 0; }
+.logout-section button {
+  height: 48px;
+  color: #9b4d47;
+  border: 1px solid rgba(174, 79, 71, .14);
+  border-radius: 13px;
+  background: rgba(190, 79, 68, .07);
+}
+.safe-space { height: calc(100px + env(safe-area-inset-bottom)); }
+
+@media (max-width: 350px) {
+  .profile-card,
+  .complete-notice,
+  .wallet-card,
+  .menu-grid,
+  .logout-section { margin-left: 10px; margin-right: 10px; }
+  .profile-card { padding-left: 16px; }
+}

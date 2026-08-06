@@ -1,8 +1,8 @@
 /**app.wxss**/
 page {
-  --jx-canvas: #eef1ed;
+  --jx-canvas: #f4f7f3;
   --jx-surface: #ffffff;
-  --jx-surface-muted: #f5f7f3;
+  --jx-surface-muted: #f8faf7;
   --jx-carbon: #121611;
   --jx-ink: #1c211b;
   --jx-muted: #737b70;
@@ -13,9 +13,9 @@ page {
   --jx-cyan: #137570;
   --jx-amber: #a66b10;
   --jx-danger: #a7524a;
-  --jx-panel-radius: 8px;
-  --jx-control-radius: 6px;
-  --jx-control-height: 44px;
+  --jx-panel-radius: 16px;
+  --jx-control-radius: 11px;
+  --jx-control-height: 46px;
   font-family: 'PingFang SC', 'MiSans', 'HarmonyOS Sans SC', 'Microsoft Yahei', sans-serif;
   height: 100%;
   background: var(--jx-canvas);
@@ -39,6 +39,19 @@ button {
 
 button::after {
   border: 0;
+}
+
+button,
+navigator,
+.tap-target {
+  transition: opacity .18s ease, transform .18s ease;
+}
+
+button:active,
+navigator:active,
+.tap-target:active {
+  opacity: .78;
+  transform: scale(.985);
 }
 
 .jx-nav {

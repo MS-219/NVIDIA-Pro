@@ -16,7 +16,7 @@
     <view class="overview-card">
         <view class="console-head">
             <view class="console-copy">
-                <text class="console-kicker">ORIN EARNINGS LEDGER</text>
+                <text class="console-kicker">Orin 收益账本</text>
                 <text class="console-caption">边缘节点收益账本</text>
             </view>
             <view class="sync-state {{overviewLoading ? 'is-loading' : overviewError ? 'is-error' : ''}}">

@@ -1,6 +1,6 @@
 /* Shared polish layer for every secondary mini-program workflow. */
 page {
-  background: var(--jx-canvas, #eef1ed) !important;
+  background: var(--jx-canvas, #f4f7f3) !important;
   color: var(--jx-ink, #1c211b);
 }
 
@@ -25,7 +25,7 @@ page {
 .back-btn {
   min-width: 44px;
   min-height: 44px;
-  border-radius: 8px !important;
+  border-radius: 11px !important;
 }
 
 /* Glass surfaces */
@@ -65,8 +65,8 @@ page {
 .agreement-card {
   background: rgba(255, 255, 255, .94) !important;
   border: 1px solid rgba(28, 33, 27, .075) !important;
-  border-radius: 8px !important;
-  box-shadow: none !important;
+  border-radius: 15px !important;
+  box-shadow: 0 12px 30px rgba(35, 55, 40, .055) !important;
 }
 
 .card,
@@ -93,11 +93,11 @@ page {
 .bind-prompt {
   background: rgba(255, 255, 255, .94) !important;
   border: 1px solid rgba(28, 33, 27, .075) !important;
-  border-radius: 8px !important;
-  box-shadow: none !important;
+  border-radius: 15px !important;
+  box-shadow: 0 12px 30px rgba(35, 55, 40, .055) !important;
 }
 
-/* Feature headers stay branded without turning the whole page dark. */
+/* Branded feature headers remain the single high-contrast surface per page. */
 .balance-card,
 .hero-card,
 .status-card,
@@ -105,8 +105,8 @@ page {
 .hashrate-info {
   background: #151a14 !important;
   border: 1px solid rgba(118, 185, 0, .24) !important;
-  border-radius: 8px !important;
-  box-shadow: none !important;
+  border-radius: 16px !important;
+  box-shadow: 0 16px 38px rgba(22, 32, 24, .14) !important;
 }
 
 .balance-card::before,
@@ -154,7 +154,7 @@ page {
   box-sizing: border-box;
   background: rgba(255, 255, 255, .72) !important;
   border: 1px solid rgba(28, 33, 27, .1) !important;
-  border-radius: 8px !important;
+  border-radius: 11px !important;
   color: #252a24 !important;
   font-size: 13px !important;
   box-shadow: none !important;
@@ -170,7 +170,7 @@ page {
   box-sizing: border-box;
   background: rgba(255, 255, 255, .72) !important;
   border: 1px solid rgba(28, 33, 27, .1) !important;
-  border-radius: 8px !important;
+  border-radius: 11px !important;
   color: #252a24 !important;
   font-size: 13px !important;
   box-shadow: none !important;
@@ -184,7 +184,7 @@ page {
 .price-row,
 .popup-addr-item {
   min-height: 44px;
-  border-radius: 8px !important;
+  border-radius: 11px !important;
 }
 
 .type-option,
@@ -193,7 +193,7 @@ page {
 .sub-tab {
   min-height: 44px;
   box-sizing: border-box;
-  border-radius: 8px !important;
+  border-radius: 11px !important;
 }
 
 .type-item.active,
@@ -223,9 +223,9 @@ page .contract-btn {
   min-height: 44px;
   background: #76b900 !important;
   border: 0 !important;
-  border-radius: 8px !important;
+  border-radius: 11px !important;
   color: #0b0e0a !important;
-  box-shadow: none !important;
+  box-shadow: 0 9px 20px rgba(82, 129, 9, .16) !important;
   font-size: 13px !important;
   font-weight: 700 !important;
 }
@@ -252,7 +252,7 @@ page .popup-add {
   min-height: 44px;
   background: rgba(255, 255, 255, .7) !important;
   border: 1px solid rgba(28, 33, 27, .1) !important;
-  border-radius: 8px !important;
+  border-radius: 11px !important;
   color: #5f675d !important;
   font-size: 13px !important;
   box-shadow: none !important;
@@ -263,7 +263,7 @@ page .cancel-contract-btn {
   min-height: 44px;
   background: rgba(190, 79, 68, .1) !important;
   border: 1px solid rgba(190, 79, 68, .24) !important;
-  border-radius: 8px !important;
+  border-radius: 11px !important;
   color: #a14f47 !important;
   box-shadow: none !important;
 }
@@ -322,7 +322,7 @@ page .modal-btn:active {
 .image-item,
 .add-image,
 .device-icon {
-  border-radius: 8px !important;
+  border-radius: 13px !important;
 }
 
 .member-avatar,
@@ -377,7 +377,7 @@ page .modal-btn:active {
 
 .address-popup {
   background: rgba(247, 249, 246, .94) !important;
-  border-radius: 8px 8px 0 0 !important;
+  border-radius: 20px 20px 0 0 !important;
   backdrop-filter: blur(22px);
   -webkit-backdrop-filter: blur(22px);
 }
@@ -385,4 +385,189 @@ page .modal-btn:active {
 .empty-state,
 .loading-state {
   color: #7b8378 !important;
+}
+
+/* Premium secondary-page system */
+.container,
+.detail-page,
+.scrollarea {
+  background:
+    radial-gradient(circle at 92% 2%, rgba(118, 185, 0, .075), transparent 21%),
+    #f4f7f3 !important;
+}
+
+.custom-nav,
+.nav-bar,
+.detail-nav {
+  background: rgba(255, 255, 255, .91) !important;
+  border-bottom-color: rgba(52, 73, 57, .075) !important;
+  box-shadow: 0 7px 22px rgba(35, 55, 40, .035) !important;
+}
+
+.nav-title,
+.navbar-title,
+.nav-heading {
+  color: #18231b !important;
+  font-size: 18px !important;
+  font-weight: 720 !important;
+  letter-spacing: -.025em;
+}
+
+.section-heading,
+.section-head,
+.section-header,
+.card-header,
+.summary-header,
+.notice-header {
+  color: #1d2921;
+}
+
+.section-heading text:first-child,
+.section-head text:first-child,
+.section-header .section-title,
+.card-title,
+.summary-title,
+.notice-title {
+  color: #1d2921 !important;
+  font-weight: 700 !important;
+  letter-spacing: -.02em;
+}
+
+.section-heading text:nth-child(2),
+.section-code,
+.section-kicker,
+.console-kicker,
+.detail-kicker,
+.identity-kicker,
+.telemetry-kicker,
+.card-kicker,
+.anchor-kicker,
+.notice-kicker {
+  color: #718077 !important;
+  font-family: inherit !important;
+  letter-spacing: .04em !important;
+}
+
+.overview-card,
+.invite-card,
+.node-hero,
+.product-hero,
+.order-anchor,
+.ledger-anchor,
+.identity-panel,
+.status-gate {
+  border: 1px solid rgba(58, 78, 63, .1) !important;
+  border-radius: 18px !important;
+  box-shadow: 0 17px 42px rgba(35, 55, 40, .08) !important;
+}
+
+.product-card,
+.order-card,
+.addr-card,
+.record-item,
+.device-item,
+.member-card,
+.owner-card,
+.detail-card,
+.section-card,
+.form-card,
+.section,
+.faq-item,
+.contact-section,
+.content-area,
+.notice-content {
+  border-color: rgba(58, 78, 63, .09) !important;
+  border-radius: 16px !important;
+  background: rgba(255, 255, 255, .96) !important;
+  box-shadow: 0 12px 31px rgba(35, 55, 40, .06) !important;
+}
+
+.product-card:active,
+.order-card:active,
+.addr-card:active,
+.record-item:active,
+.device-item:active,
+.member-card:active,
+.faq-item:active {
+  opacity: .82;
+  transform: scale(.99);
+}
+
+.filter-tabs,
+.tab-bar,
+.sub-tabs-bar,
+.tab-scroll {
+  border-radius: 13px !important;
+}
+
+.filter-tab,
+.tab-item,
+.sub-tab {
+  min-height: 44px !important;
+  border-radius: 10px !important;
+}
+
+.filter-tab.active,
+.tab-active,
+.sub-tab.active {
+  color: #4f7f06 !important;
+  background: #ffffff !important;
+  box-shadow: 0 5px 15px rgba(39, 58, 44, .08) !important;
+}
+
+.state-mark,
+.error-mark,
+.gate-error-mark,
+.empty-icon,
+.status-glyph,
+.notice-mark,
+.tip-mark,
+.section-mark,
+.anchor-icon {
+  border-radius: 11px !important;
+}
+
+.page-error,
+.error-state,
+.empty-state,
+.loading-state,
+.page-loading,
+.status-gate {
+  color: #748078 !important;
+}
+
+.state-title,
+.error-title,
+.gate-title,
+.empty-text {
+  color: #1e2a22 !important;
+  font-size: 16px !important;
+  font-weight: 700 !important;
+}
+
+.state-desc,
+.error-message,
+.gate-desc {
+  color: #7d8981 !important;
+  font-size: 12px !important;
+  line-height: 1.7 !important;
+}
+
+.bottom-bar,
+.bottom-actions,
+.fixed-bottom,
+.action-footer {
+  background: rgba(255, 255, 255, .92) !important;
+  border-top-color: rgba(52, 73, 57, .08) !important;
+  box-shadow: 0 -10px 30px rgba(35, 55, 40, .07) !important;
+}
+
+.modal-content,
+.address-popup {
+  box-shadow: 0 -16px 48px rgba(27, 44, 32, .16) !important;
+}
+
+.jx-skeleton,
+.skeleton {
+  border-radius: 11px;
 }

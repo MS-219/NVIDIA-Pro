@@ -5,7 +5,7 @@
     </view>
 
     <view class="order-anchor">
-        <view><view class="anchor-kicker"><view></view><text>ORDER NETWORK</text></view><text>设备交付状态</text></view>
+        <view><view class="anchor-kicker"><view></view><text>兑换订单</text></view><text>设备交付状态</text></view>
         <view class="anchor-count"><text>{{orders.length}}</text><text>当前载入</text></view>
         <view class="anchor-sync {{loading ? 'is-loading' : errorMessage ? 'is-error' : ''}}"><view></view><text>{{loading ? '同步中' : errorMessage ? '异常' : '已同步'}}</text></view>
     </view>
@@ -19,7 +19,7 @@
     </view>
 
     <view class="error-state" wx:elif="{{errorMessage && orders.length === 0}}">
-        <view class="state-mark"><view></view><text>ORDER LINK</text></view><text class="state-title">订单同步中断</text><text class="state-desc">{{errorMessage}}</text><button bindtap="retryOrders">重新加载</button>
+        <view class="state-mark"><view></view><text>订单连接异常</text></view><text class="state-title">订单同步中断</text><text class="state-desc">{{errorMessage}}</text><button bindtap="retryOrders">重新加载</button>
     </view>
 
     <view class="order-list" wx:elif="{{orders.length}}">
