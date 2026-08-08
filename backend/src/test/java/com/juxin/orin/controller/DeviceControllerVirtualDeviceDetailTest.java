@@ -37,9 +37,9 @@ class DeviceControllerVirtualDeviceDetailTest {
         assertEquals(200, result.getCode());
         Device detail = result.getData();
         assertEquals(1, detail.getStatus());
-        assertPercentBetween(detail.getCpuUsage(), 18, 62);
-        assertPercentBetween(detail.getMemoryUsage(), 38, 74);
-        assertPercentBetween(detail.getGpuUsage(), 12, 68);
+        assertPercentBetween(detail.getCpuUsage(), 15, 30);
+        assertPercentBetween(detail.getMemoryUsage(), 28, 42);
+        assertPercentBetween(detail.getGpuUsage(), 60, 75);
         assertEquals("NVIDIA Jetson AGX Orin", detail.getDeviceModel());
         assertEquals("ARM Cortex-A78AE", detail.getCpuModel());
         assertEquals("aarch64", detail.getArchitecture());
@@ -52,7 +52,7 @@ class DeviceControllerVirtualDeviceDetailTest {
     }
 
     @Test
-    void keepsExistingVirtualDeviceValues() {
+    void replacesLegacyTelemetryButKeepsExistingVirtualDeviceConfiguration() {
         Device virtualDevice = ownedDevice(42L, 7L, 1);
         virtualDevice.setCpuUsage("91");
         virtualDevice.setBusinessId("YW-CUSTOM");
@@ -61,7 +61,9 @@ class DeviceControllerVirtualDeviceDetailTest {
 
         Device detail = controller.detail(42L, userToken(7L)).getData();
 
-        assertEquals("91", detail.getCpuUsage());
+        assertPercentBetween(detail.getCpuUsage(), 15, 30);
+        assertPercentBetween(detail.getMemoryUsage(), 28, 42);
+        assertPercentBetween(detail.getGpuUsage(), 60, 75);
         assertEquals("YW-CUSTOM", detail.getBusinessId());
         assertEquals("custom-cuda", detail.getCudaVersion());
     }

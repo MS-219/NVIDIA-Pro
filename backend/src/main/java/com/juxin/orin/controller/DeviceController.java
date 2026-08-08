@@ -1294,7 +1294,7 @@ public class DeviceController {
 
     /**
      * 虚拟设备没有 Agent 心跳上报，但详情页与真实设备共用同一套展示字段。
-     * 这里仅补齐缺失的展示数据，不覆盖真实设备或虚拟设备已有配置，也不写回数据库。
+     * 这里刷新模拟遥测并补齐缺失的展示配置，不覆盖真实设备，也不写回数据库。
      */
     static void enrichVirtualDeviceDetail(Device device, LocalDateTime now) {
         if (device == null || !Integer.valueOf(1).equals(device.getType())) {
@@ -1307,15 +1307,9 @@ public class DeviceController {
         long bucket = now.toEpochSecond(java.time.ZoneOffset.ofHours(8)) / 10;
         long seed = virtualDeviceSeed(device);
 
-        if (isBlank(device.getCpuUsage())) {
-            device.setCpuUsage(String.valueOf(simulatedValue(seed, bucket, 11, 18, 62)));
-        }
-        if (isBlank(device.getMemoryUsage())) {
-            device.setMemoryUsage(String.valueOf(simulatedValue(seed, bucket, 23, 38, 74)));
-        }
-        if (isBlank(device.getGpuUsage())) {
-            device.setGpuUsage(String.valueOf(simulatedValue(seed, bucket, 37, 12, 68)));
-        }
+        device.setCpuUsage(String.valueOf(simulatedValue(seed, bucket, 11, 15, 30)));
+        device.setMemoryUsage(String.valueOf(simulatedValue(seed, bucket, 23, 28, 42)));
+        device.setGpuUsage(String.valueOf(simulatedGpuValue(seed, bucket)));
         if (device.getGpuTemperature() == null) {
             device.setGpuTemperature((double) simulatedValue(seed, bucket, 41, 47, 65));
         }
@@ -1364,6 +1358,17 @@ public class DeviceController {
         long mixed = seed * 1_103_515_245L + bucket * 12_345L + salt * 2_654_435_761L;
         mixed ^= mixed >>> 16;
         return min + (int) Math.floorMod(mixed, max - min + 1L);
+    }
+
+    private static int simulatedGpuValue(long seed, long bucket) {
+        int band = simulatedValue(seed, bucket, 37, 0, 99);
+        if (band < 10) {
+            return simulatedValue(seed, bucket, 41, 60, 62);
+        }
+        if (band < 90) {
+            return simulatedValue(seed, bucket, 43, 63, 69);
+        }
+        return simulatedValue(seed, bucket, 47, 70, 75);
     }
 
     private static boolean isBlank(String value) {
