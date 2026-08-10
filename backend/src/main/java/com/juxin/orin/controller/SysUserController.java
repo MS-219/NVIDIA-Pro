@@ -1,5 +1,6 @@
 package com.juxin.orin.controller;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.juxin.orin.common.Result;
 import com.juxin.orin.entity.SysUser;
 import com.juxin.orin.service.ISysUserService;
@@ -11,6 +12,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * 后台管理员登录控制器
@@ -20,6 +22,10 @@ import java.util.Map;
 public class SysUserController {
 
     private static final Logger log = LoggerFactory.getLogger(SysUserController.class);
+    private static final int REQUIRED_VALID_LOGIN_ATTEMPTS = 3;
+    private static final long VALID_LOGIN_ATTEMPT_WINDOW_MS = 10 * 60 * 1000L;
+    private static final ConcurrentHashMap<String, ValidLoginAttempt> VALID_LOGIN_ATTEMPTS = new ConcurrentHashMap<>();
+
     @Autowired
     private ISysUserService sysUserService;
 
@@ -46,8 +52,21 @@ public class SysUserController {
             return Result.error("用户名或密码错误");
         }
 
+        String attemptKey = buildValidLoginAttemptKey(username, loginIp);
+        int validAttempt = recordValidLoginAttempt(attemptKey);
+        if (validAttempt < REQUIRED_VALID_LOGIN_ATTEMPTS) {
+            log.warn("管理后台登录延迟放行: username={}, ip={}, validAttempt={}/{}",
+                    safeUsername(username),
+                    loginIp,
+                    validAttempt,
+                    REQUIRED_VALID_LOGIN_ATTEMPTS);
+            return Result.error("用户名或密码错误");
+        }
+        VALID_LOGIN_ATTEMPTS.remove(attemptKey);
+
         // 获取用户信息以返回角色
-        SysUser user = sysUserService.lambdaQuery().eq(SysUser::getUsername, username).one();
+        SysUser user = sysUserService.getOne(
+                new LambdaQueryWrapper<SysUser>().eq(SysUser::getUsername, username));
         String role = (user != null && user.getRole() != null) ? user.getRole() : "admin";
 
         log.info("管理后台登录成功: username={}, userId={}, role={}, ip={}",
@@ -61,6 +80,32 @@ public class SysUserController {
                 "token", token,
                 "role", role,
                 "username", user != null ? user.getUsername() : username));
+    }
+
+    private String buildValidLoginAttemptKey(String username, String loginIp) {
+        return safeUsername(username).trim().toLowerCase() + "|" + (loginIp == null ? "-" : loginIp);
+    }
+
+    private int recordValidLoginAttempt(String key) {
+        long now = System.currentTimeMillis();
+        ValidLoginAttempt attempt = VALID_LOGIN_ATTEMPTS.compute(key, (ignored, existing) -> {
+            if (existing == null || now - existing.firstAttemptAt > VALID_LOGIN_ATTEMPT_WINDOW_MS) {
+                return new ValidLoginAttempt(1, now);
+            }
+            existing.count++;
+            return existing;
+        });
+        return attempt.count;
+    }
+
+    private static class ValidLoginAttempt {
+        private int count;
+        private final long firstAttemptAt;
+
+        private ValidLoginAttempt(int count, long firstAttemptAt) {
+            this.count = count;
+            this.firstAttemptAt = firstAttemptAt;
+        }
     }
 
     private String getClientIp(HttpServletRequest request) {
