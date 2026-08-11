@@ -35,4 +35,12 @@ class AppUserControllerAuthorizationTest {
         assertEquals(500, result.getCode());
         assertEquals("未登录，请先登录", result.getMsg());
     }
+
+    @Test
+    void updateEarningsRangeRejectsMissingAdminTokenBeforeMutation() {
+        Result<String> result = controller.updateEarningsRange(Map.of(), null);
+
+        assertEquals(500, result.getCode());
+        assertEquals("未登录，请先登录", result.getMsg());
+    }
 }

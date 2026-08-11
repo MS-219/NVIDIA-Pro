@@ -53,6 +53,8 @@ CREATE TABLE IF NOT EXISTS app_user (
     inviter_id BIGINT,
     level INT NOT NULL DEFAULT 0,
     level_manual TINYINT NOT NULL DEFAULT 0,
+    daily_earnings_min DECIMAL(16,2) NULL COMMENT '个人每天基础收益最低金额',
+    daily_earnings_max DECIMAL(16,2) NULL COMMENT '个人每天基础收益最高金额',
     wx_qr_code VARCHAR(500),
     ali_qr_code VARCHAR(500),
     bank_name VARCHAR(100),

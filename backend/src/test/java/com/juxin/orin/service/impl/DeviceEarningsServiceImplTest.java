@@ -1,6 +1,7 @@
 package com.juxin.orin.service.impl;
 
 import com.juxin.orin.entity.Device;
+import com.juxin.orin.entity.AppUser;
 import com.juxin.orin.mapper.DeviceEarningsMapper;
 import com.juxin.orin.service.IAppUserService;
 import com.juxin.orin.service.IDeviceOfflinePeriodService;
@@ -82,6 +83,40 @@ class DeviceEarningsServiceImplTest {
         assertTrue(first.compareTo(new BigDecimal("40.00")) >= 0);
         assertTrue(first.compareTo(new BigDecimal("50.00")) <= 0);
         assertEquals(first, repeated);
+    }
+
+    @Test
+    void userDailyRangeShouldOverrideGlobalRange() {
+        AppUser user = new AppUser();
+        user.setDailyEarningsMin(new BigDecimal("70"));
+        user.setDailyEarningsMax(new BigDecimal("80"));
+
+        BigDecimal earnings = service.calculateDailyBaseEarnings(
+                7L,
+                LocalDate.of(2026, 8, 11),
+                user);
+
+        assertTrue(earnings.compareTo(new BigDecimal("70.00")) >= 0);
+        assertTrue(earnings.compareTo(new BigDecimal("80.00")) <= 0);
+        verifyNoInteractions(configService);
+    }
+
+    @Test
+    void incompleteUserDailyRangeShouldFallBackToGlobalRange() {
+        AppUser user = new AppUser();
+        user.setDailyEarningsMin(new BigDecimal("70"));
+        when(configService.getConfig("earnings.hourlyRate", "2.4")).thenReturn("2.4");
+        when(configService.getConfig("earnings.dailyRate", "2.4")).thenReturn("2.4");
+        when(configService.getConfig("earnings.dailyMinRate", "2.4")).thenReturn("40");
+        when(configService.getConfig("earnings.dailyMaxRate", "2.4")).thenReturn("50");
+
+        BigDecimal earnings = service.calculateDailyBaseEarnings(
+                7L,
+                LocalDate.of(2026, 8, 11),
+                user);
+
+        assertTrue(earnings.compareTo(new BigDecimal("40.00")) >= 0);
+        assertTrue(earnings.compareTo(new BigDecimal("50.00")) <= 0);
     }
 
     @Test

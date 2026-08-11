@@ -353,6 +353,60 @@ public class AppUserController {
     }
 
     /**
+     * 设置单个用户的每日基础收益区间；关闭后恢复系统全局收益设置。
+     */
+    @PostMapping("/updateEarningsRange")
+    public Result<String> updateEarningsRange(
+            @RequestBody Map<String, Object> params,
+            @RequestHeader(value = "Authorization", required = false) String token) {
+        String authError = validateAdminToken(token);
+        if (authError != null) {
+            return Result.error(authError);
+        }
+
+        Long userId = getLongParam(params, "userId");
+        if (userId == null) {
+            return Result.error("用户ID不能为空");
+        }
+        if (appUserService.getById(userId) == null) {
+            return Result.error("用户不存在");
+        }
+
+        boolean enabled = Boolean.parseBoolean(String.valueOf(params.get("enabled")));
+        BigDecimal minAmount = null;
+        BigDecimal maxAmount = null;
+        if (enabled) {
+            try {
+                Object minValue = params.get("dailyEarningsMin");
+                Object maxValue = params.get("dailyEarningsMax");
+                if (minValue == null || maxValue == null) {
+                    return Result.error("请填写完整的个人收益区间");
+                }
+                minAmount = new BigDecimal(minValue.toString()).setScale(2, RoundingMode.HALF_UP);
+                maxAmount = new BigDecimal(maxValue.toString()).setScale(2, RoundingMode.HALF_UP);
+            } catch (NumberFormatException e) {
+                return Result.error("个人收益金额格式不正确");
+            }
+            if (minAmount.compareTo(BigDecimal.ZERO) < 0 || maxAmount.compareTo(BigDecimal.ZERO) < 0) {
+                return Result.error("个人收益金额不能小于0");
+            }
+            if (minAmount.compareTo(maxAmount) > 0) {
+                return Result.error("个人收益最低金额不能大于最高金额");
+            }
+        }
+
+        boolean success = appUserService.lambdaUpdate()
+                .eq(AppUser::getId, userId)
+                .set(AppUser::getDailyEarningsMin, minAmount)
+                .set(AppUser::getDailyEarningsMax, maxAmount)
+                .update();
+        if (!success) {
+            return Result.error("个人收益设置失败");
+        }
+        return Result.success(enabled ? "个人收益区间已生效" : "已恢复系统全局收益设置");
+    }
+
+    /**
      * 手动设置用户等级（后台管理员操作，优先级高于自动升级）
      */
     @PostMapping("/updateLevel")
@@ -1047,6 +1101,8 @@ public class AppUserController {
         result.put("inviterId", user.getInviterId());
         result.put("inviterNickname", inviterNickname);
         result.put("inviterAvatarUrl", inviterAvatarUrl);
+        result.put("dailyEarningsMin", user.getDailyEarningsMin());
+        result.put("dailyEarningsMax", user.getDailyEarningsMax());
         result.put("createTime", user.getCreateTime());
         result.put("deviceCount", devices.size());
         result.put("devices", deviceList);

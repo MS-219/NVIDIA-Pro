@@ -209,7 +209,7 @@ public class DeviceEarningsServiceImpl extends ServiceImpl<DeviceEarningsMapper,
             return BigDecimal.ZERO;
         }
 
-        BigDecimal baseEarnings = calculateDailyBaseEarnings(device.getId(), today);
+        BigDecimal baseEarnings = calculateDailyBaseEarnings(device.getId(), today, user);
         BigDecimal earnings = baseEarnings;
         BigDecimal rate = BigDecimal.ZERO;
 
@@ -477,8 +477,19 @@ public class DeviceEarningsServiceImpl extends ServiceImpl<DeviceEarningsMapper,
     }
 
     BigDecimal calculateDailyBaseEarnings(Long deviceId, LocalDate settlementDate) {
-        BigDecimal minRate = getDailyRangeRate("earnings.dailyMinRate");
-        BigDecimal maxRate = getDailyRangeRate("earnings.dailyMaxRate");
+        return calculateDailyBaseEarnings(deviceId, settlementDate, null);
+    }
+
+    BigDecimal calculateDailyBaseEarnings(Long deviceId, LocalDate settlementDate, AppUser user) {
+        boolean useUserRange = user != null
+                && user.getDailyEarningsMin() != null
+                && user.getDailyEarningsMax() != null;
+        BigDecimal minRate = useUserRange
+                ? user.getDailyEarningsMin().setScale(2, java.math.RoundingMode.HALF_UP)
+                : getDailyRangeRate("earnings.dailyMinRate");
+        BigDecimal maxRate = useUserRange
+                ? user.getDailyEarningsMax().setScale(2, java.math.RoundingMode.HALF_UP)
+                : getDailyRangeRate("earnings.dailyMaxRate");
         if (minRate.compareTo(BigDecimal.ZERO) < 0 || maxRate.compareTo(BigDecimal.ZERO) < 0) {
             throw new IllegalStateException("每天收益金额不能小于 0");
         }

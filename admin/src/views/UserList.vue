@@ -154,6 +154,19 @@
             </el-tooltip>
           </template>
         </el-table-column>
+        <el-table-column label="收益规则" width="150">
+          <template #default="{ row }">
+            <el-tag
+              v-if="row.dailyEarningsMin != null && row.dailyEarningsMax != null"
+              type="warning"
+              size="small"
+              effect="plain"
+            >
+              ¥{{ Number(row.dailyEarningsMin).toFixed(2) }} - {{ Number(row.dailyEarningsMax).toFixed(2) }}
+            </el-tag>
+            <el-tag v-else type="info" size="small" effect="plain">系统全局</el-tag>
+          </template>
+        </el-table-column>
         <el-table-column label="创作" width="80">
           <template #default="{ row }">
             <el-tag v-if="row.taskCount > 0" type="warning" effect="dark" round size="small">
@@ -509,6 +522,12 @@
             </el-descriptions-item>
             <el-descriptions-item label="备注" :span="2">{{ currentUser.remark || '-' }}</el-descriptions-item>
             <el-descriptions-item label="聚芯算力值"><el-icon><Lightning /></el-icon> {{ currentUser.quota ?? 0 }}</el-descriptions-item>
+            <el-descriptions-item label="收益规则">
+              <span v-if="currentUser.dailyEarningsMin != null && currentUser.dailyEarningsMax != null">
+                个人区间 ¥{{ Number(currentUser.dailyEarningsMin).toFixed(2) }} - {{ Number(currentUser.dailyEarningsMax).toFixed(2) }} / 天
+              </span>
+              <span v-else>系统全局设置</span>
+            </el-descriptions-item>
             <el-descriptions-item label="OpenID" :span="2">
               <code>{{ sensitiveVisible ? currentUser.openid : maskIdentifier(currentUser.openid) }}</code>
             </el-descriptions-item>
@@ -616,6 +635,37 @@
                   inactive-text="锁定指定等级"
                 />
               </div>
+            </el-form-item>
+          </div>
+
+          <div class="form-section">
+            <div class="section-badge earnings">个人收益</div>
+            <el-form-item label="单独设置">
+              <el-switch
+                v-model="editForm.customEarningsEnabled"
+                active-text="使用个人区间"
+                inactive-text="使用系统全局设置"
+              />
+            </el-form-item>
+            <el-form-item v-if="editForm.customEarningsEnabled" label="每天收益">
+              <div class="earnings-range-inputs">
+                <el-input-number
+                  v-model="editForm.dailyEarningsMin"
+                  :min="0"
+                  :precision="2"
+                  :step="0.1"
+                  controls-position="right"
+                />
+                <span>至</span>
+                <el-input-number
+                  v-model="editForm.dailyEarningsMax"
+                  :min="0"
+                  :precision="2"
+                  :step="0.1"
+                  controls-position="right"
+                />
+              </div>
+              <div class="form-tip warning"><el-icon><WarningFilled /></el-icon> 该区间替代系统基础收益，最终仍按用户等级费率计算</div>
             </el-form-item>
           </div>
 
@@ -781,6 +831,9 @@ const editForm = reactive({
   inviterId: null,
   level: 0,
   levelManual: false,
+  customEarningsEnabled: false,
+  dailyEarningsMin: 0,
+  dailyEarningsMax: 0,
   userType: 'personal',
   remark: ''
 })
@@ -1203,6 +1256,9 @@ const editUser = (row) => {
   editForm.inviterId = row.inviterId || null
   editForm.level = row.level || 0
   editForm.levelManual = row.levelManual || false
+  editForm.customEarningsEnabled = row.dailyEarningsMin != null && row.dailyEarningsMax != null
+  editForm.dailyEarningsMin = row.dailyEarningsMin != null ? Number(row.dailyEarningsMin) : 0
+  editForm.dailyEarningsMax = row.dailyEarningsMax != null ? Number(row.dailyEarningsMax) : 0
   editForm.userType = row.userType || 'personal'
   editForm.remark = row.remark || ''
 
@@ -1285,6 +1341,19 @@ const submitTransfer = async () => {
 }
 
 const saveUser = async () => {
+  if (editForm.customEarningsEnabled) {
+    const minAmount = Number(editForm.dailyEarningsMin)
+    const maxAmount = Number(editForm.dailyEarningsMax)
+    if (!Number.isFinite(minAmount) || !Number.isFinite(maxAmount) || minAmount < 0 || maxAmount < 0) {
+      ElMessage.warning('请填写正确的个人收益区间')
+      return
+    }
+    if (minAmount > maxAmount) {
+      ElMessage.warning('个人收益最低金额不能大于最高金额')
+      return
+    }
+  }
+
   saving.value = true
   try {
     // 1. 先保存基本信息（资产字段不在资料编辑中保存，避免覆盖余额）
@@ -1323,7 +1392,20 @@ const saveUser = async () => {
       ElMessage.warning('基本信息已保存，但等级更新失败: ' + levelRes.data.msg)
     }
 
-    // 4. 单独处理邀请人更新
+    // 4. 单独处理个人收益区间
+    const earningsRes = await axios.post('/api/user/updateEarningsRange', {
+      userId: editForm.id,
+      enabled: editForm.customEarningsEnabled,
+      dailyEarningsMin: editForm.dailyEarningsMin,
+      dailyEarningsMax: editForm.dailyEarningsMax
+    })
+
+    if (earningsRes.data.code !== 200) {
+      ElMessage.warning('其他信息已保存，但个人收益设置失败: ' + earningsRes.data.msg)
+      return
+    }
+
+    // 5. 单独处理邀请人更新
     const inviterRes = await axios.post('/api/user/updateInviter', {
       userId: editForm.id,
       inviterId: editForm.inviterId
@@ -2001,6 +2083,23 @@ code {
 .section-badge.invite {
   background: linear-gradient(135deg, #ec4899 0%, #db2777 100%);
   box-shadow: 0 2px 4px rgba(236, 72, 153, 0.3);
+}
+
+.section-badge.earnings {
+  color: #9a6700;
+  background: #fff7dc;
+}
+
+.earnings-range-inputs {
+  width: 100%;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+}
+
+.earnings-range-inputs :deep(.el-input-number) {
+  width: 100%;
 }
 
 .unit-text {

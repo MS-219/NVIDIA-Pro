@@ -47,6 +47,12 @@ public class AppUser {
     /** 等级是否由后台手动设置（手动设置优先级高于自动升级） */
     private Boolean levelManual;
 
+    /** 个人每天基础收益最低金额；为空时使用系统全局设置 */
+    private BigDecimal dailyEarningsMin;
+
+    /** 个人每天基础收益最高金额；为空时使用系统全局设置 */
+    private BigDecimal dailyEarningsMax;
+
     /** 微信收款码 */
     private String wxQrCode;
 
