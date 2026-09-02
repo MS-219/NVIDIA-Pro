@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#18261f" />
+    <meta name="description" content="聚芯节点，为边缘设备提供可观测、可管理的算力网络。" />
+    <title>聚芯节点｜边缘算力网络</title>
+    <link rel="icon" href="/assets/orin-icon.png" type="image/png" />
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <a class="brand" href="#top" aria-label="聚芯节点首页">
+        <span class="brand-mark"><img src="/assets/orin-icon.png" alt="" /></span>
+        <span class="brand-copy"><strong>聚芯节点</strong><small>EDGE COMPUTE NETWORK</small></span>
+      </a>
+      <button class="menu-toggle" type="button" aria-expanded="false" aria-controls="site-nav">菜单</button>
+      <nav class="site-nav" id="site-nav" aria-label="主导航">
+        <a href="#capabilities">节点能力</a>
+        <a href="#workflow">运行方式</a>
+        <a href="#app">APP</a>
+        <a class="nav-download" href="/downloads/juxin-node-latest.apk" download>下载 APP <span aria-hidden="true">↗</span></a>
+      </nav>
+    </header>
+
+    <main id="top">
+      <section class="hero section-shell">
+        <div class="hero-copy">
+          <p class="kicker"><span></span> EDGE COMPUTE / 01</p>
+          <h1>让算力<br /><em>靠近每一次需求。</em></h1>
+          <p class="hero-lede">聚芯节点把分散的边缘设备接入一个清晰、可观测的算力网络。设备在哪里，能力就在哪里发生。</p>
+          <div class="hero-actions">
+            <a class="button button-primary" href="#app">下载聚芯节点 <span aria-hidden="true">↓</span></a>
+            <a class="button button-quiet" href="#capabilities">了解节点能力 <span aria-hidden="true">→</span></a>
+          </div>
+          <div class="hero-meta" aria-label="产品特性">
+            <span><b class="status-dot"></b> 节点状态实时同步</span>
+            <span>手机号安全登录</span>
+            <span>独立服务与账本</span>
+          </div>
+        </div>
+
+        <div class="network-stage" aria-label="边缘节点网络示意图">
+          <div class="stage-topline"><span>ORIN NODE MAP</span><span class="live-label"><i></i> NETWORK READY</span></div>
+          <div class="network-grid">
+            <span class="grid-line line-a"></span><span class="grid-line line-b"></span><span class="grid-line line-c"></span>
+            <span class="grid-line line-d"></span><span class="grid-line line-e"></span>
+            <div class="node-card node-card-main"><span class="node-icon"><img src="/assets/orin-icon.png" alt="" /></span><span><b>聚芯节点</b><small>CONTROL CENTER</small></span><strong>01</strong></div>
+            <div class="node-card node-card-east"><span class="node-pulse"></span><span><b>边缘节点 A1</b><small>ONLINE · LOW LATENCY</small></span></div>
+            <div class="node-card node-card-west"><span class="node-pulse amber"></span><span><b>边缘节点 B4</b><small>SYNCING TELEMETRY</small></span></div>
+            <div class="node-card node-card-bottom"><span class="node-pulse coral"></span><span><b>边缘节点 C2</b><small>READY TO COMPUTE</small></span></div>
+            <span class="node-caption caption-top">算力调度</span><span class="node-caption caption-right">数据上报</span><span class="node-caption caption-bottom">设备协同</span>
+          </div>
+          <div class="stage-footer"><span>节点在线率</span><strong>实时可见</strong><span class="stage-separator"></span><span>数据延迟</span><strong>就近处理</strong></div>
+        </div>
+      </section>
+
+      <section class="signal-band">
+        <div class="section-shell signal-inner"><span>聚合设备能力</span><b>→</b><span>边缘执行任务</span><b>→</b><span>统一查看状态与收益</span></div>
+      </section>
+
+      <section class="content-section section-shell" id="capabilities">
+        <div class="section-heading"><div><p class="kicker"><span></span> CAPABILITIES / 02</p><h2>一套面向节点的<br />工作台。</h2></div><p>从绑定第一台设备开始，聚芯节点为边缘算力提供清楚的状态、稳定的连接和可持续的管理体验。</p></div>
+        <div class="capability-grid">
+          <article class="capability-card feature-dark"><div class="card-index">01</div><div class="feature-icon icon-crosshair">＋</div><h3>就近计算</h3><p>任务在靠近数据产生的地方执行，减少往返传输，让边缘设备的能力真正被使用。</p><a href="#workflow" class="text-link">查看运行方式 <span>→</span></a></article>
+          <article class="capability-card"><div class="card-index">02</div><div class="feature-icon icon-bars"><i></i><i></i><i></i></div><h3>状态可观测</h3><p>算力、温度、在线状态和最近上报时间集中呈现，设备运行情况一眼可见。</p><a href="#app" class="text-link">在 APP 中查看 <span>→</span></a></article>
+          <article class="capability-card"><div class="card-index">03</div><div class="feature-icon icon-shield">◇</div><h3>独立且可靠</h3><p>独立账户、服务和收益数据隔离管理，手机号验证登录，节点关系由平台安全维护。</p><a href="#app" class="text-link">下载聚芯节点 <span>→</span></a></article>
+        </div>
+      </section>
+
+      <section class="workflow-section" id="workflow">
+        <div class="section-shell">
+          <div class="section-heading workflow-heading"><div><p class="kicker"><span></span> WORKFLOW / 03</p><h2>从设备到网络，<br />每一步都可追踪。</h2></div><p>边缘算力不是黑盒。聚芯节点把设备接入、数据同步和用户查看串成一条清晰的路径。</p></div>
+          <div class="workflow-track">
+            <article class="workflow-step"><span class="step-number">01</span><div class="step-visual visual-bind"><span class="visual-ring"></span><span class="visual-core">⌁</span></div><h3>绑定节点</h3><p>使用运营侧预置的绑定码，将设备安全加入你的聚芯节点账户。</p></article>
+            <span class="track-arrow" aria-hidden="true">→</span>
+            <article class="workflow-step"><span class="step-number">02</span><div class="step-visual visual-sync"><span class="sync-bar"></span><span class="sync-bar"></span><span class="sync-bar"></span></div><h3>边缘上报</h3><p>节点持续同步在线状态、算力、温度与最近上报时间。</p></article>
+            <span class="track-arrow" aria-hidden="true">→</span>
+            <article class="workflow-step"><span class="step-number">03</span><div class="step-visual visual-view"><span class="view-screen"><i></i><i></i><i></i></span></div><h3>随时查看</h3><p>在 APP 内查看设备概览、收益快照和每个节点的运行详情。</p></article>
+          </div>
+        </div>
+      </section>
+
+      <section class="app-section section-shell" id="app">
+        <div class="app-panel">
+          <div class="app-copy"><p class="kicker"><span></span> JUXIN NODE APP / 04</p><h2>把节点网络<br /><em>带在身边。</em></h2><p>聚芯节点 APP 面向真实设备管理而设计。手机号短信登录，打开就能看到节点状态、算力和收益摘要。</p><div class="app-points"><span><b>01</b> 节点总览</span><span><b>02</b> 算力与温度</span><span><b>03</b> 收益快照</span></div></div>
+          <div class="download-card"><div class="download-icon"><img src="/assets/orin-icon.png" alt="聚芯节点" /></div><div><span class="download-label">ANDROID APP</span><h3>聚芯节点</h3><p>Preview build · Android APK</p></div><a class="button button-primary download-button" href="/downloads/juxin-node-latest.apk" download>立即下载 <span aria-hidden="true">↓</span></a><small class="download-note">安装包由聚芯节点官方服务提供</small></div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer"><div class="section-shell footer-inner"><a class="brand" href="#top"><span class="brand-mark"><img src="/assets/orin-icon.png" alt="" /></span><span class="brand-copy"><strong>聚芯节点</strong><small>EDGE COMPUTE NETWORK</small></span></a><p>让算力靠近每一次需求。</p><span class="footer-copy">© <span id="year"></span> 浙江联动聚芯智创科技</span></div></footer>
+    <script src="/main.js"></script>
+  </body>
+</html>

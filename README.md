@@ -11,6 +11,7 @@
 - `deploy/`: 独立部署配置。
 - `app/`: 全新 Expo/React Native APP（手机号 + 短信登录），与旧小程序运行时隔离。
 - `app-backend/`: 全新 APP 后端与数据库 schema，当前已接入阿里云短信适配器。
+- `website/`: 聚芯节点官方静态官网，展示边缘算力能力并提供 APP 下载入口。
 
 ## New APP (independent track)
 
