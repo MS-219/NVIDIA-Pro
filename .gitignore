@@ -13,6 +13,10 @@
 **/__pycache__/
 **/*.pyc
 
+# Local browser validation artifacts
+.playwright-cli/
+output/playwright/
+
 backend/uploads/
 backend/logs/
 miniprogram/project.private.config.json

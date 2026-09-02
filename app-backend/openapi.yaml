@@ -1,0 +1,339 @@
+openapi: 3.0.3
+info:
+  title: 聚芯节点 APP API
+  version: 0.1.0
+  description: Independent API for the new mobile application.
+servers:
+  - url: https://api.example.com
+paths:
+  /api/auth/sms/send:
+    post:
+      operationId: sendLoginCode
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PhoneRequest'
+      responses:
+        '200':
+          description: Code accepted by the SMS provider
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Envelope'
+        '429':
+          description: Rate limit reached
+  /api/auth/sms/login:
+    post:
+      operationId: loginWithSms
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: JWT issued
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Envelope'
+  /api/auth/me:
+    get:
+      operationId: getCurrentUser
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Current account
+        '401':
+          description: Invalid or expired token
+    patch:
+      operationId: updateCurrentUserProfile
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [nickname]
+              properties:
+                nickname:
+                  type: string
+                  maxLength: 40
+      responses:
+        '200':
+          description: Updated account profile
+        '400':
+          description: Invalid nickname
+        '401':
+          description: Invalid or expired token
+  /api/app/devices:
+    get:
+      operationId: listAppDevices
+      summary: List nodes bound to the current APP account
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Bound nodes
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeviceListEnvelope'
+        '401':
+          description: Invalid or expired token
+  /api/app/devices/bind:
+    post:
+      operationId: bindAppDevice
+      summary: Bind a pre-provisioned node by binding code
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BindDeviceRequest'
+      responses:
+        '200':
+          description: Node bound to the current account
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeviceEnvelope'
+        '400':
+          description: Invalid binding request
+        '401':
+          description: Invalid or expired token
+        '404':
+          description: Binding code is not provisioned
+        '409':
+          description: Node is already bound
+  /api/app/devices/{id}:
+    delete:
+      operationId: releaseAppDevice
+      summary: Release a node owned by the current account
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Node released
+        '401':
+          description: Invalid or expired token
+        '404':
+          description: Node not found for the current account
+  /api/app/dashboard/summary:
+    get:
+      operationId: getAppDashboardSummary
+      summary: Aggregate node and earning counters for the current account
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Dashboard summary
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DashboardEnvelope'
+        '401':
+          description: Invalid or expired token
+  /api/app/earnings:
+    get:
+      operationId: listAppEarnings
+      summary: Current earning snapshots for owned nodes
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Earning snapshots and aggregate counters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EarningsEnvelope'
+        '401':
+          description: Invalid or expired token
+  /api/health:
+    get:
+      operationId: health
+      responses:
+        '200':
+          description: Service health
+        '503':
+          description: Database unavailable
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    PhoneRequest:
+      type: object
+      required: [phone]
+      properties:
+        phone:
+          type: string
+          example: '13800138000'
+    LoginRequest:
+      type: object
+      required: [phone, code]
+      properties:
+        phone:
+          type: string
+        code:
+          type: string
+          pattern: '^\\d{6}$'
+        nickname:
+          type: string
+    Envelope:
+      type: object
+      properties:
+        code:
+          type: integer
+        message:
+          type: string
+        data:
+          description: Response payload; its shape depends on the operation.
+    BindDeviceRequest:
+      type: object
+      required: [code]
+      properties:
+        code:
+          type: string
+          minLength: 6
+          maxLength: 64
+          pattern: '^\s*[A-Za-z0-9][A-Za-z0-9-]{5,63}\s*$'
+          example: 'ORIN-A1B2C3'
+        name:
+          type: string
+          maxLength: 80
+          example: '客厅节点'
+    Device:
+      type: object
+      required: [id, code, name, status, hashrate, dailyEarnings, totalEarnings]
+      properties:
+        id:
+          type: integer
+          format: int64
+        code:
+          type: string
+        name:
+          type: string
+        status:
+          type: string
+          enum: [pending, online, offline]
+        hashrate:
+          type: number
+          format: double
+        temperature:
+          type: number
+          format: double
+          nullable: true
+        dailyEarnings:
+          type: number
+          format: double
+        totalEarnings:
+          type: number
+          format: double
+        lastReportedAt:
+          type: string
+          format: date-time
+          nullable: true
+        boundAt:
+          type: string
+          format: date-time
+          nullable: true
+    DeviceListEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/Envelope'
+        - type: object
+          properties:
+            data:
+              type: array
+              items:
+                $ref: '#/components/schemas/Device'
+    DeviceEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/Envelope'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/Device'
+    Dashboard:
+      type: object
+      required: [total, online, totalHashrate, todayEarnings, totalEarnings]
+      properties:
+        total:
+          type: integer
+          format: int64
+        online:
+          type: integer
+          format: int64
+        totalHashrate:
+          type: number
+          format: double
+        todayEarnings:
+          type: number
+          format: double
+        totalEarnings:
+          type: number
+          format: double
+    DashboardEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/Envelope'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/Dashboard'
+    EarningItem:
+      type: object
+      required: [deviceId, deviceName, todayEarnings, totalEarnings]
+      properties:
+        deviceId:
+          type: integer
+          format: int64
+        deviceName:
+          type: string
+        todayEarnings:
+          type: number
+          format: double
+        totalEarnings:
+          type: number
+          format: double
+        updatedAt:
+          type: string
+          format: date-time
+          nullable: true
+    Earnings:
+      type: object
+      required: [items, todayEarnings, totalEarnings]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/EarningItem'
+        todayEarnings:
+          type: number
+          format: double
+        totalEarnings:
+          type: number
+          format: double
+    EarningsEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/Envelope'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/Earnings'

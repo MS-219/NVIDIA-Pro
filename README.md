@@ -9,6 +9,34 @@
 - `admin/`: Orin GPU 节点运营控制台。
 - `miniprogram/`: 独立微信小程序源码，发布前必须配置新的 AppID 和 API 域名。
 - `deploy/`: 独立部署配置。
+- `app/`: 全新 Expo/React Native APP（手机号 + 短信登录），与旧小程序运行时隔离。
+- `app-backend/`: 全新 APP 后端与数据库 schema，当前已接入阿里云短信适配器。
+
+## New APP (independent track)
+
+The APP track intentionally has no OpenID, legacy user, balance, device, or database migration. The current vertical slice includes phone/SMS authentication, account profile editing, pre-provisioned node binding, node telemetry snapshots, and independent earning summaries:
+
+```bash
+cd app-backend
+mvn test
+```
+
+In a separate terminal, start the local APP backend without Docker/MySQL:
+
+```bash
+cd app-backend
+mvn spring-boot:run -Dspring-boot.run.profiles=local
+```
+
+In another terminal, start the Expo client:
+
+```bash
+cd ../app
+npm install
+EXPO_PUBLIC_API_BASE_URL=http://127.0.0.1:8091 npm start
+```
+
+Configure Alibaba Cloud SMS only on the server with `app-backend/.env.example`. The mobile bundle receives only the API base URL; AccessKey values must never be placed in `app/`.
 
 ## Docker deployment
 

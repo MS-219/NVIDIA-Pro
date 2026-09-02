@@ -1,0 +1,37 @@
+server:
+  port: ${APP_SERVER_PORT:8091}
+
+spring:
+  application:
+    name: juxin-orin-app-backend
+  datasource:
+    url: ${APP_DB_URL:jdbc:mysql://localhost:3306/orin_app?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true}
+    username: ${APP_DB_USERNAME:orin_app}
+    password: ${APP_DB_PASSWORD:}
+    hikari:
+      maximum-pool-size: ${APP_DB_MAX_POOL_SIZE:15}
+      minimum-idle: ${APP_DB_MIN_IDLE:2}
+  sql:
+    init:
+      mode: ${APP_SQL_INIT_MODE:always}
+      schema-locations: classpath:schema.sql
+
+app:
+  public-base-url: ${APP_PUBLIC_BASE_URL:https://api.example.com}
+  cors-allowed-origins: ${APP_CORS_ALLOWED_ORIGINS:}
+  jwt-secret: ${APP_JWT_SECRET:}
+  sms:
+    provider: ${APP_SMS_PROVIDER:mock}
+    pepper: ${APP_SMS_PEPPER:}
+    code-ttl-seconds: ${APP_SMS_CODE_TTL_SECONDS:300}
+    cooldown-seconds: ${APP_SMS_COOLDOWN_SECONDS:60}
+    max-attempts: ${APP_SMS_MAX_ATTEMPTS:5}
+    aliyun:
+      access-key-id: ${ALIBABA_CLOUD_ACCESS_KEY_ID:}
+      access-key-secret: ${ALIBABA_CLOUD_ACCESS_KEY_SECRET:}
+      endpoint: ${ALI_SMS_ENDPOINT:dysmsapi.aliyuncs.com}
+      sign-name: ${ALI_SMS_SIGN_NAME:}
+      template-code: ${ALI_SMS_TEMPLATE_CODE:}
+      code-parameter-name: ${ALI_SMS_CODE_PARAMETER_NAME:code}
+      connect-timeout-millis: ${ALI_SMS_CONNECT_TIMEOUT_MILLIS:5000}
+      read-timeout-millis: ${ALI_SMS_READ_TIMEOUT_MILLIS:10000}

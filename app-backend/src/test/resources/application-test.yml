@@ -1,0 +1,17 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:orin_app_test;MODE=MySQL;DB_CLOSE_DELAY=-1
+    username: sa
+    password:
+    driver-class-name: org.h2.Driver
+  sql:
+    init:
+      mode: always
+      schema-locations: classpath:schema-h2.sql
+
+app:
+  jwt-secret: 01234567890123456789012345678901
+  sms:
+    provider: mock
+    pepper: test-pepper-that-is-not-a-production-secret
+    cooldown-seconds: 1

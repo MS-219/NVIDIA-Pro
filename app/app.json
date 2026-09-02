@@ -1,0 +1,50 @@
+{
+  "expo": {
+    "name": "聚芯节点",
+    "slug": "juxin-orin-app",
+    "scheme": "juxinorin",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "cn.juxin.orin.app"
+    },
+    "android": {
+      "package": "cn.juxin.orin.app",
+      "adaptiveIcon": {
+        "backgroundColor": "#294b35",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 220,
+          "resizeMode": "contain",
+          "backgroundColor": "#294b35"
+        }
+      ],
+      "expo-secure-store",
+      "expo-font",
+      "expo-splash-screen"
+    ],
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "cbfbc2d8-8b6c-4acf-99bf-c8a82b74e6bb"
+      }
+    },
+    "owner": "pings219"
+  }
+}
