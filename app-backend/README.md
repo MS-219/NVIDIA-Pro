@@ -4,10 +4,22 @@ This service is intentionally separate from the legacy mini-program backend. It 
 
 ## Run locally
 
-1. Create a MySQL database named `orin_app` and set the `APP_DB_*` variables.
-2. Set `APP_JWT_SECRET` and `APP_SMS_PEPPER` to random values of at least 32 bytes.
-3. Use `APP_SMS_PROVIDER=mock` for local development, or configure the Alibaba Cloud SMS signature/template and use `aliyun`.
-4. Run `mvn spring-boot:run` from this directory.
+For Docker Compose, create a local `.env` from `.env.example` and replace every
+`replace-with-*` value before starting. The file is ignored by Git and must not
+be committed:
+
+```bash
+cp .env.example .env
+vi .env
+docker compose up -d --build
+```
+
+At minimum, Compose requires `APP_DB_PASSWORD`, `APP_MYSQL_ROOT_PASSWORD`,
+`APP_JWT_SECRET`, and `APP_SMS_PEPPER`. Production also requires the Alibaba
+Cloud variables and `APP_SMS_PROVIDER=aliyun`.
+
+For a direct Maven run, create a MySQL database named `orin_app` and set the
+`APP_DB_*` variables, then run `mvn spring-boot:run` from this directory.
 
 For a self-contained local smoke test (no MySQL or Alibaba credentials), run
 `mvn spring-boot:run -Dspring-boot.run.profiles=local`. This uses a local H2
