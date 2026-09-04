@@ -25,6 +25,34 @@ $stamp = Get-Date -Format 'yyyyMMdd-HHmmss'
 $outDir = Join-Path (Get-Location) "rk3588-backup-$stamp-$device"
 New-Item -ItemType Directory -Path $outDir -Force | Out-Null
 
+function Read-AdbBinary([string]$deviceSerial, [string]$devicePath, [string]$targetPath) {
+    $psi = New-Object System.Diagnostics.ProcessStartInfo
+    $psi.FileName = 'adb.exe'
+    $psi.Arguments = "-s `"$deviceSerial`" exec-out `"dd if=$devicePath bs=4M`""
+    $psi.UseShellExecute = $false
+    $psi.CreateNoWindow = $true
+    $psi.RedirectStandardOutput = $true
+    $psi.RedirectStandardError = $true
+    $process = New-Object System.Diagnostics.Process
+    $process.StartInfo = $psi
+    if (-not $process.Start()) {
+        throw "Unable to start adb for $devicePath"
+    }
+    $file = [System.IO.File]::Open($targetPath, [System.IO.FileMode]::Create, [System.IO.FileAccess]::Write)
+    try {
+        # Copy the native stdout BaseStream so PowerShell cannot transcode the
+        # binary partition into UTF-16/UTF-32 text.
+        $process.StandardOutput.BaseStream.CopyTo($file)
+    } finally {
+        $file.Dispose()
+    }
+    $stderr = $process.StandardError.ReadToEnd()
+    $process.WaitForExit()
+    if ($process.ExitCode -ne 0) {
+        throw "adb failed for ${devicePath}: $stderr"
+    }
+}
+
 & adb -s $device shell cat /proc/device-tree/model | Out-File (Join-Path $outDir 'model.txt') -Encoding utf8
 & adb -s $device shell cat /proc/cmdline | Out-File (Join-Path $outDir 'cmdline.txt') -Encoding utf8
 & adb -s $device shell cat /proc/partitions | Out-File (Join-Path $outDir 'partitions.txt') -Encoding utf8
@@ -41,7 +69,7 @@ foreach ($name in $partitions) {
 
     $target = Join-Path $outDir "$name.img"
     Write-Host "Reading $name -> $target"
-    & adb -s $device exec-out "dd if=$devicePath bs=4M" > $target
+    Read-AdbBinary $device $devicePath $target
     if (-not (Test-Path $target) -or (Get-Item $target).Length -eq 0) {
         throw "Backup failed or empty: $name"
     }
