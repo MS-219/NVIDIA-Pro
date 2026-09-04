@@ -1,0 +1,9 @@
+# Vendor SDKs and generated images can contain proprietary blobs and secrets.
+vendor-bsp/
+work/
+output/
+*.img
+*.img.xz
+*.zip
+*.tar.gz
+
