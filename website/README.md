@@ -13,7 +13,7 @@ python3 -m http.server 4173
 
 ## 服务器部署
 
-建议将本目录部署到 `/var/www/juxin-node-site`，并让 Nginx 使用 `nginx-jd.ldjuxin.yun.conf`：
+建议将本目录部署到 `/var/www/juxin-node-site`，并让 Nginx 使用 `nginx-jd.ldjuxin.yun.conf`。域名根路径现在打开独立的聚芯节点管理控制台，原公开介绍页仍可通过 `/index.html` 访问：
 
 ```bash
 sudo mkdir -p /var/www/juxin-node-site/downloads

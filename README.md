@@ -13,6 +13,9 @@
 - `app-backend/`: 全新 APP 后端与数据库 schema，当前已接入阿里云短信适配器。
 - `website/`: 聚芯节点官方静态官网，展示边缘算力能力并提供 APP 下载入口。
 
+`jd.ldjuxin.yun` 根路径现由独立 RK3588 管理控制台提供（`website/console.*`）。
+原官网介绍页仍保留为 `/index.html`，旧 Orin 管理端 `admin/` 和 `backend/` 不受影响。
+
 ## New APP (independent track)
 
 The APP track intentionally has no OpenID, legacy user, balance, device, or database migration. The current vertical slice includes phone/SMS authentication, account profile editing, pre-provisioned node binding, node telemetry snapshots, and independent earning summaries:

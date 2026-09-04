@@ -26,6 +26,7 @@ import java.util.Base64;
 import java.util.LinkedHashMap;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 
 /** Device protocol for RK3588 nodes connected through jd.ldjuxin.yun. */
 @RestController
@@ -123,7 +124,50 @@ public class AppEdgeController {
         data.put("offlineThreshold", 180);
         data.put("powerMode", "RK_DEFAULT");
         data.put("platform", "rk3588s");
+        jdbc.query("""
+                SELECT id, command_no, command_type, command_text
+                  FROM app_edge_command
+                 WHERE device_sn = ? AND status = 'pending'
+                 ORDER BY created_at ASC LIMIT 1
+                """, rs -> {
+            if (rs.next()) {
+                long id = rs.getLong("id");
+                int updated = jdbc.update("""
+                        UPDATE app_edge_command
+                           SET status = 'delivered', delivered_at = CURRENT_TIMESTAMP
+                         WHERE id = ? AND status = 'pending'
+                        """, id);
+                if (updated == 1) {
+                    data.put("action", "execute_command");
+                    data.put("commandNo", rs.getString("command_no"));
+                    data.put("commandType", rs.getString("command_type"));
+                    data.put("command", rs.getString("command_text"));
+                }
+            }
+        }, device.deviceSn());
         return ApiResponse.success(data);
+    }
+
+    @PostMapping("/commands/submit")
+    public ApiResponse<Void> submitCommand(
+            @RequestHeader(value = TOKEN_HEADER, required = false) String token,
+            @RequestHeader(value = LEGACY_TOKEN_HEADER, required = false) String legacyToken,
+            @RequestHeader(value = GENERIC_TOKEN_HEADER, required = false) String genericToken,
+            @RequestBody Map<String, Object> payload) {
+        EdgeDevice device = requireDevice(firstNonBlank(token, legacyToken, genericToken));
+        String commandNo = value(payload, "commandNo");
+        if (commandNo.isBlank()) throw new ApiException(400, "命令编号不能为空");
+        int exitCode;
+        try { exitCode = Integer.parseInt(value(payload, "exitCode")); }
+        catch (NumberFormatException error) { throw new ApiException(400, "命令结果格式不正确"); }
+        String result = cleanResult(value(payload, "resultText"));
+        int updated = jdbc.update("""
+                UPDATE app_edge_command
+                   SET status = ?, exit_code = ?, result_text = ?, completed_at = CURRENT_TIMESTAMP
+                 WHERE command_no = ? AND device_sn = ? AND status IN ('delivered', 'pending')
+                """, exitCode == 0 ? "completed" : "failed", exitCode, result, commandNo.trim(), device.deviceSn());
+        if (updated == 0) throw new ApiException(404, "命令不存在或已提交");
+        return ApiResponse.success();
     }
 
     @GetMapping("/tasks/fetch")
@@ -132,9 +176,23 @@ public class AppEdgeController {
             @RequestHeader(value = LEGACY_TOKEN_HEADER, required = false) String legacyToken,
             @RequestHeader(value = GENERIC_TOKEN_HEADER, required = false) String genericToken,
             HttpServletRequest request) {
-        requireDevice(firstNonBlank(token, legacyToken, genericToken));
-        // Task scheduling is intentionally added after the first RK pilot is online.
-        return ApiResponse.success(null);
+        EdgeDevice device = requireDevice(firstNonBlank(token, legacyToken, genericToken));
+        Map<String, Object> data = new LinkedHashMap<>();
+        jdbc.query("""
+                SELECT id, task_no, task_type, payload FROM app_device_task
+                 WHERE status='pending' AND (device_sn IS NULL OR device_sn=?)
+                 ORDER BY created_at ASC LIMIT 1
+                """, rs -> {
+            if (rs.next()) {
+                long id = rs.getLong("id");
+                if (jdbc.update("UPDATE app_device_task SET status='running' WHERE id=? AND status='pending'", id) == 1) {
+                    data.put("taskNo", rs.getString("task_no"));
+                    data.put("taskType", rs.getString("task_type"));
+                    data.put("payload", rs.getString("payload"));
+                }
+            }
+        }, device.deviceSn());
+        return ApiResponse.success(data.isEmpty() ? null : data);
     }
 
     @PostMapping("/tasks/submit")
@@ -143,7 +201,13 @@ public class AppEdgeController {
             @RequestHeader(value = LEGACY_TOKEN_HEADER, required = false) String legacyToken,
             @RequestHeader(value = GENERIC_TOKEN_HEADER, required = false) String genericToken,
             @RequestBody Map<String, Object> payload) {
-        requireDevice(firstNonBlank(token, legacyToken, genericToken));
+        EdgeDevice device = requireDevice(firstNonBlank(token, legacyToken, genericToken));
+        String taskNo = value(payload, "taskNo").trim();
+        if (taskNo.isBlank()) throw new ApiException(400, "任务编号不能为空");
+        String status = value(payload, "status").trim().toLowerCase(java.util.Locale.ROOT);
+        if (!Set.of("completed", "failed").contains(status)) status = "completed";
+        int updated = jdbc.update("UPDATE app_device_task SET status=?, result_text=?, completed_at=CURRENT_TIMESTAMP WHERE task_no=? AND (device_sn IS NULL OR device_sn=?) AND status='running'", status, cleanResult(value(payload, "resultText")), taskNo, device.deviceSn());
+        if (updated == 0) throw new ApiException(404, "任务不存在或已提交");
         return ApiResponse.success();
     }
 
@@ -153,8 +217,8 @@ public class AppEdgeController {
         }
         String hash = sha256(token.trim());
         EdgeDevice device = jdbc.query("""
-                SELECT id, binding_code FROM app_edge_device WHERE device_token_hash = ? LIMIT 1
-                """, (rs, rowNum) -> new EdgeDevice(rs.getLong("id"), rs.getString("binding_code")), hash)
+                SELECT id, device_sn, binding_code FROM app_edge_device WHERE device_token_hash = ? LIMIT 1
+                """, (rs, rowNum) -> new EdgeDevice(rs.getLong("id"), rs.getString("device_sn"), rs.getString("binding_code")), hash)
                 .stream().findFirst().orElse(null);
         if (device == null) throw new ApiException(401, "设备令牌无效");
         return device;
@@ -204,6 +268,11 @@ public class AppEdgeController {
         return value == null ? "" : value.trim().substring(0, Math.min(value.trim().length(), 128));
     }
 
+    private static String cleanResult(String value) {
+        String normalized = value == null ? "" : value;
+        return normalized.substring(Math.max(0, normalized.length() - 12000));
+    }
+
     private static String firstNonBlank(String... values) {
         for (String value : values) if (value != null && !value.isBlank()) return value;
         return null;
@@ -234,7 +303,7 @@ public class AppEdgeController {
 
     private static Timestamp timestamp(Instant value) { return Timestamp.from(value); }
 
-    private record EdgeDevice(long id, String bindingCode) { }
+    private record EdgeDevice(long id, String deviceSn, String bindingCode) { }
 
     public record EnrollRequest(
             @NotBlank @Size(max = 64) String sn,

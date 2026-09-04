@@ -15,6 +15,7 @@ import java.io.IOException;
 public class BearerTokenFilter extends OncePerRequestFilter {
     /** Request-scoped identity populated only after a JWT has been verified. */
     public static final String USER_ID_ATTRIBUTE = BearerTokenFilter.class.getName() + ".userId";
+    public static final String USER_TYPE_ATTRIBUTE = BearerTokenFilter.class.getName() + ".userType";
     private final JwtService jwtService;
 
     public BearerTokenFilter(JwtService jwtService) {
@@ -25,6 +26,7 @@ public class BearerTokenFilter extends OncePerRequestFilter {
     protected boolean shouldNotFilter(HttpServletRequest request) {
         String path = request.getRequestURI();
         return "OPTIONS".equalsIgnoreCase(request.getMethod())
+                || path.equals("/api/admin/login")
                 || path.equals("/api/auth/sms/send")
                 || path.equals("/api/auth/sms/login")
                 || path.equals("/api/health")
@@ -37,8 +39,13 @@ public class BearerTokenFilter extends OncePerRequestFilter {
                                     FilterChain filterChain) throws ServletException, IOException {
         String authorization = request.getHeader("Authorization");
         try {
-            long userId = jwtService.requireUserId(authorization);
-            request.setAttribute(USER_ID_ATTRIBUTE, userId);
+            var claims = jwtService.requireClaims(authorization);
+            Object userId = claims.get("userId");
+            if (userId instanceof Number number) {
+                request.setAttribute(USER_ID_ATTRIBUTE, number.longValue());
+            }
+            request.setAttribute(USER_TYPE_ATTRIBUTE, claims.get("userType", String.class));
+            request.setAttribute("juxin.app.adminUsername", claims.get("username", String.class));
             filterChain.doFilter(request, response);
         } catch (Exception e) {
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);

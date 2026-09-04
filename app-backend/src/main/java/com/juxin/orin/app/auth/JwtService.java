@@ -46,13 +46,25 @@ public class JwtService {
                 .compact();
     }
 
+    public String issueAdmin(String username) {
+        ensureInitialized();
+        Date now = new Date();
+        return Jwts.builder()
+                .claims(Map.of("userId", 0L, "userType", "app-admin", "username", username))
+                .subject("admin")
+                .issuedAt(now)
+                .expiration(new Date(now.getTime() + TOKEN_TTL.toMillis()))
+                .signWith(signingKey)
+                .compact();
+    }
+
     public Claims parse(String token) {
         ensureInitialized();
         return Jwts.parser().verifyWith(signingKey).build().parseSignedClaims(token).getPayload();
     }
 
     public long requireUserId(String token) {
-        Claims claims = parse(stripBearer(token));
+        Claims claims = requireClaims(token);
         if (!"app".equals(claims.get("userType", String.class))) {
             throw new IllegalArgumentException("token userType is not app");
         }
@@ -61,6 +73,15 @@ public class JwtService {
             throw new IllegalArgumentException("token missing userId");
         }
         return number.longValue();
+    }
+
+    public Claims requireClaims(String token) {
+        Claims claims = parse(stripBearer(token));
+        String userType = claims.get("userType", String.class);
+        if (!"app".equals(userType) && !"app-admin".equals(userType)) {
+            throw new IllegalArgumentException("unsupported token userType");
+        }
+        return claims;
     }
 
     public static String stripBearer(String token) {

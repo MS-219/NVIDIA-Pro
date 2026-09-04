@@ -20,6 +20,9 @@ app:
   public-base-url: ${APP_PUBLIC_BASE_URL:https://api.example.com}
   cors-allowed-origins: ${APP_CORS_ALLOWED_ORIGINS:}
   jwt-secret: ${APP_JWT_SECRET:}
+  admin:
+    username: ${APP_ADMIN_USERNAME:}
+    password: ${APP_ADMIN_PASSWORD:}
   sms:
     provider: ${APP_SMS_PROVIDER:mock}
     pepper: ${APP_SMS_PEPPER:}
