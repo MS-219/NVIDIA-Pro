@@ -290,16 +290,6 @@ def display_identity(state: dict[str, Any]) -> str:
     return clean_text(state.get("bindCode"), 32) or clean_text(state.get("sn"), 40)
 
 
-def display_power_mode(state: dict[str, Any]) -> str:
-    telemetry = state.get("telemetry") or {}
-    runtime_config = state.get("runtimeConfig") or {}
-    return (
-        clean_text(telemetry.get("power_mode"), 24)
-        or clean_text(runtime_config.get("powerMode"), 24)
-        or "RK_DEFAULT"
-    )
-
-
 def display_metric(value: Any) -> int:
     bounded = max(0.0, min(100.0, safe_number(value)))
     return int(math.floor(bounded + 0.5))
@@ -844,7 +834,7 @@ def render_frame(
     status_box = (x(0.265), y(0.805), x(0.735), y(0.875))
     status_font = font(fs(14))
     access_status = node_access_status(bool(state.get("connected")))
-    status_items = ("GPU 已就绪", display_power_mode(state), access_status)
+    status_items = ("GPU 已就绪", "边缘算力在线", access_status)
     item_width = (status_box[2] - status_box[0]) // 3
     for index, item in enumerate(status_items):
         item_x = status_box[0] + index * item_width
@@ -886,7 +876,7 @@ def terminal_frame(state: dict[str, Any], frame: int) -> str:
             "",
             f"{display_identity(state):^62}",
             "",
-            f"RK3588S READY  |  {display_power_mode(state)}  |  NODE ATTACHED",
+            "RK3588S READY  |  COMPUTE ONLINE  |  NODE ATTACHED",
             f"CPU {screen_metrics['cpu']:3d}%   "
             f"RAM {screen_metrics['ram']:3d}%   "
             f"GPU {screen_metrics['gpu']:3d}%",
