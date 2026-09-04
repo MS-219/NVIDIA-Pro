@@ -50,7 +50,10 @@ fi
 
 sn="$(tr -d '\r\n' <"${STATE_DIR}/device-sn")"
 fingerprint="$(tr -d '\r\n' <"${STATE_DIR}/hardware-fingerprint")"
-case "$sn" in JD-[A-F0-9][A-F0-9][A-F0-9][A-F0-9][A-F0-9][A-F0-9][A-F0-9][A-F0-9][A-F0-9][A-F0-9][A-F0-9][A-F0-9][A-F0-9][A-F0-9][A-F0-9][A-F0-9]|RK3588-[A-F0-9][A-F0-9][A-F0-9][A-F0-9][A-F0-9][A-F0-9][A-F0-9][A-F0-9][A-F0-9][A-F0-9][A-F0-9][A-F0-9][A-F0-9][A-F0-9][A-F0-9][A-F0-9][A-F0-9]) ;; *) exit 1 ;; esac
+case "$sn" in JD-*|RK3588-*) ;; *) exit 1 ;; esac
+sn_suffix="${sn#*-}"
+[ "${#sn_suffix}" -eq 16 ] || exit 1
+case "$sn_suffix" in *[!A-F0-9]*|"") exit 1 ;; esac
 case "$fingerprint" in [A-F0-9][A-F0-9]* ) [ "${#fingerprint}" -eq 64 ] || exit 1 ;; *) exit 1 ;; esac
 
 api_url="$(read_value JUXIN_RK_API_BASE_URL https://jd.ldjuxin.yun)"
