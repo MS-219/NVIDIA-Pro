@@ -102,7 +102,7 @@
     </section>
 
     <footer class="login-footer">
-      <span>© 2026 聚芯Orin</span>
+      <span>© 2026 聚芯节点</span>
       <span>边缘算力 · 独立部署 · 安全管理</span>
     </footer>
   </main>
