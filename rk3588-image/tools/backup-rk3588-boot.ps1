@@ -85,7 +85,13 @@ foreach ($name in $partitions) {
     }
 
     $target = Join-Path $outDir "$name.img"
-    $sizeText = (& adb -s $device shell "blockdev --getsize64 $devicePath 2>/dev/null").Trim()
+    # blockdev is not included in some CX3588-A Buildroot images. Try it
+    # first, then BusyBox stat (both return bytes) without calling Trim() on a
+    # null PowerShell result.
+    $sizeText = ((& adb -s $device shell "blockdev --getsize64 $devicePath 2>/dev/null" 2>$null) -join '').Trim()
+    if ([string]::IsNullOrWhiteSpace($sizeText)) {
+        $sizeText = ((& adb -s $device shell "stat -c %s $devicePath 2>/dev/null" 2>$null) -join '').Trim()
+    }
     [Int64]$expectedBytes = 0
     if (-not [Int64]::TryParse($sizeText, [ref]$expectedBytes) -or $expectedBytes -le 0) {
         throw "Unable to determine partition size for $name ($devicePath)"
