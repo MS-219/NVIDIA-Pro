@@ -50,3 +50,21 @@ CREATE TABLE IF NOT EXISTS app_node (
     KEY idx_app_node_owner_status (owner_user_id, status),
     KEY idx_app_node_last_reported (last_reported_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+CREATE TABLE IF NOT EXISTS app_edge_device (
+    id BIGINT NOT NULL AUTO_INCREMENT,
+    device_sn VARCHAR(64) NOT NULL,
+    binding_code VARCHAR(64) NOT NULL,
+    device_token_hash CHAR(64) NOT NULL,
+    hardware_fingerprint CHAR(64) NULL,
+    agent_version VARCHAR(64) NULL,
+    image_version VARCHAR(128) NULL,
+    telemetry_json JSON NULL,
+    last_reported_at TIMESTAMP NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    UNIQUE KEY uk_app_edge_device_sn (device_sn),
+    UNIQUE KEY uk_app_edge_device_binding_code (binding_code),
+    KEY idx_app_edge_device_last_reported (last_reported_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;

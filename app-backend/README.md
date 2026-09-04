@@ -47,21 +47,28 @@ DELETE /api/app/devices/{id}  Authorization: Bearer <token>
 GET  /api/app/dashboard/summary  Authorization: Bearer <token>
 GET  /api/app/earnings  Authorization: Bearer <token>
 GET  /api/health
+
+# RK3588S device protocol (X-RK3588-Device-Token)
+POST /api/edge/enroll      {\"sn\":\"RK3588-...\",\"agentVersion\":\"...\",\"imageVersion\":\"...\"}
+POST /api/edge/report      device telemetry JSON
+GET  /api/edge/tasks/fetch
+POST /api/edge/tasks/submit device task result JSON
 ```
 
 ## APP device data
 
 `app_node` is an APP-only table. It is deliberately not connected to the
-legacy `device`, user, wallet, or earnings tables. Operations must provision a
-row and its unique `binding_code` before a user can bind it; the mobile API
-cannot create a node or supply `owner_user_id`.
+legacy `device`, user, wallet, or earnings tables. An RK3588S enrollment creates
+the pending `app_node` row and its unique binding code; a user can then claim it
+from the APP. The mobile API cannot create an arbitrary node or supply
+`owner_user_id`.
 
 For example, provision a fresh node directly in the new APP database (use a
 random code in real deployments):
 
 ```sql
 INSERT INTO app_node (binding_code, name, status)
-VALUES ('ORIN-A1B2C3', '客厅节点', 'pending');
+VALUES ('RK3588-A1B2C3', '客厅节点', 'pending');
 ```
 
 `POST /api/app/devices/bind` derives the owner from the verified Bearer JWT.

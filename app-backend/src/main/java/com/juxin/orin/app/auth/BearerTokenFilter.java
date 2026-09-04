@@ -28,6 +28,7 @@ public class BearerTokenFilter extends OncePerRequestFilter {
                 || path.equals("/api/auth/sms/send")
                 || path.equals("/api/auth/sms/login")
                 || path.equals("/api/health")
+                || path.startsWith("/api/edge/")
                 || path.equals("/error");
     }
 

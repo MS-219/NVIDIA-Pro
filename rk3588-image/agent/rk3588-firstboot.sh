@@ -53,7 +53,7 @@ fingerprint="$(tr -d '\r\n' <"${STATE_DIR}/hardware-fingerprint")"
 case "$sn" in RK3588-[A-F0-9][A-F0-9][A-F0-9][A-F0-9][A-F0-9][A-F0-9][A-F0-9][A-F0-9][A-F0-9][A-F0-9][A-F0-9][A-F0-9][A-F0-9][A-F0-9][A-F0-9][A-F0-9]) ;; *) exit 1 ;; esac
 case "$fingerprint" in [A-F0-9][A-F0-9]* ) [ "${#fingerprint}" -eq 64 ] || exit 1 ;; *) exit 1 ;; esac
 
-api_url="$(read_value JUXIN_RK_API_BASE_URL https://nvidia.juxinsuanli.cn)"
+api_url="$(read_value JUXIN_RK_API_BASE_URL https://jd.ldjuxin.yun)"
 agent_version="$(read_value JUXIN_RK_AGENT_VERSION 0.1.0-rk3588)"
 image_version="$(read_value JUXIN_RK_IMAGE_VERSION rk3588-cx3588-a-dev1)"
 interval="$(read_value JUXIN_RK_HEARTBEAT_INTERVAL 60)"
@@ -74,4 +74,3 @@ chmod 0600 "$AGENT_ENV" "${STATE_DIR}/device-sn" "${STATE_DIR}/hardware-fingerpr
 printf '%s\n' "$image_version" >"$MARKER"
 chmod 0600 "$MARKER"
 sync
-

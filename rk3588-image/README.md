@@ -22,12 +22,16 @@ Linux 系统、全屏 UI、设备 Agent 和后台接入。
   -> 聚芯节点 init 脚本
   -> 聚芯节点全屏 UI
   -> RK3588S Agent（设备入网、心跳、任务）
-  -> nvidia.juxinsuanli.cn 设备后台
+  -> jd.ldjuxin.yun 设备后台
 ```
 
 旧 Jetson 镜像中的 NVIDIA、L4T、CUDA、`nvpmodel` 和 `tegrastats` 不会复制到本工程。
 UI 保持聚芯节点的产品布局和交互，但硬件状态采集改为 RK3588S 的 CPU、内存、Mali、
 NPU、温度和网络指标。
+
+设备 Agent 默认连接独立 APP 后台 `https://jd.ldjuxin.yun`，使用 `/api/edge/enroll`、
+`/api/edge/report`、`/api/edge/tasks/fetch` 和 `/api/edge/tasks/submit`。这些设备接口
+已加入 `app-backend`，与 APP 的短信登录和用户绑定共用同一域名。
 
 ## 公开硬件资料
 

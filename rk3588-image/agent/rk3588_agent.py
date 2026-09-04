@@ -25,7 +25,7 @@ from pathlib import Path
 from typing import Any
 
 
-API_BASE = os.getenv("JUXIN_RK_API_BASE_URL", "https://nvidia.juxinsuanli.cn").rstrip("/")
+API_BASE = os.getenv("JUXIN_RK_API_BASE_URL", "https://jd.ldjuxin.yun").rstrip("/")
 AGENT_VERSION = os.getenv("JUXIN_RK_AGENT_VERSION", "0.1.0-rk3588")
 IMAGE_VERSION = os.getenv("JUXIN_RK_IMAGE_VERSION", "rk3588-cx3588-a-dev1")
 STATE_DIR = Path(os.getenv("JUXIN_RK_STATE_DIR", "/var/lib/juxin-rk3588"))
@@ -534,7 +534,7 @@ def request(
         token = device_token()
         if not token:
             raise ApiError("device is not enrolled")
-        headers["X-Orin-Device-Token"] = token
+        headers["X-RK3588-Device-Token"] = token
 
     req = urllib.request.Request(f"{API_BASE}{path}", data=body, method=method, headers=headers)
     raw = ""
