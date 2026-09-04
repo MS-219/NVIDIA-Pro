@@ -185,7 +185,7 @@ def write_power_mode_state(state: dict[str, str]) -> dict[str, str]:
 
 
 def query_power_mode() -> tuple[str, str]:
-    # RK3588S boards do not expose Jetson's nvpmodel interface. Keep a stable
+    # RK3588S boards do not expose a vendor power-mode interface. Keep a stable
     # product-facing value until a board-specific thermal/power controller is
     # added to the vendor BSP.
     return "RK_DEFAULT", ""
@@ -426,7 +426,7 @@ def run_terminal_connection(websocket_module) -> None:
         raise RuntimeError("device is not enrolled")
     connection = websocket_module.create_connection(
         terminal_websocket_url(),
-        header=[f"X-Orin-Device-Token: {token}"],
+        header=[f"X-RK3588-Device-Token: {token}"],
         timeout=REQUEST_TIMEOUT,
         enable_multithread=True,
     )
@@ -1003,7 +1003,7 @@ def configured_task_runner() -> Path | None:
     runtime_root = RUNTIME_DIR.resolve()
     runner = TASK_RUNNER.resolve()
     if not runner.is_relative_to(runtime_root):
-        raise RuntimeError("configured task runner must be under the Orin runtime directory")
+        raise RuntimeError("configured task runner must be under the RK3588 runtime directory")
     if not runner.is_file() or not os.access(runner, os.X_OK):
         return None
     return runner
