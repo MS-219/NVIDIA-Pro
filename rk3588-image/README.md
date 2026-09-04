@@ -10,6 +10,7 @@ Linux 系统、全屏 UI、设备 Agent 和后台接入。
 - 已确认硬件型号：RK3588S、LP4X、aarch64、Buildroot 2021.11、eMMC 启动。
 - 已找到公开的 CX3588-A DTS/DTB，见 `build/fetch-public-assets.sh`。
 - 已加入独立的 RK3588S Agent、全屏 UI、首次启动身份初始化脚本，见 `agent/`。
+- 已加入 Windows 只读导出原厂启动分区工具，见 `tools/backup-rk3588-boot.ps1`。
 - 尚未找到公开的 CX3588-A 专用 U-Boot/DDR Loader/完整 `update.img`。
 - 因此当前工程默认采用“保留原厂启动链，替换 Linux RootFS”的安全路线。
 - 在拿到匹配 BSP 前，工程不会执行 `dd`、`rkdeveloptool wl` 或整盘刷写。
@@ -61,10 +62,10 @@ python3 -m py_compile rk3588-image/agent/rk3588_agent.py \
 ## 厂商 BSP 到位后的构建顺序
 
 1. 将厂商 BSP 解压到独立的 Linux 构建主机，并在 `vendor-bsp/` 中配置路径。
-2. 用 CX3588-A 的 DDR Loader、U-Boot、分区表和设备树生成可启动的 RK 镜像。
-3. 将 `rootfs/` 中的聚芯节点 UI、Agent、后台地址和 init 脚本注入 RootFS。
-4. 在一块测试板上先通过 ADB/串口验证显示、触摸、网络和 NPU，再制作刷机包。
-5. 先备份原厂 eMMC 的 `uboot`、`boot`、`rootfs` 和 `oem` 分区，最后才允许整包刷写。
+2. 先运行 `tools/backup-rk3588-boot.ps1` 导出原厂启动分区，保留可恢复副本。
+3. 用原厂 Loader、U-Boot、分区表和设备树生成可启动的 RK 镜像。
+4. 将 `rootfs/` 中的聚芯节点 UI、Agent、后台地址和 init 脚本注入 RootFS。
+5. 在一块测试板上先通过 ADB/串口验证显示、触摸、网络和 NPU，再制作刷机包。
 
 ## 目前不能做的事情
 

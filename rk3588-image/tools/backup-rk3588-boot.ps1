@@ -1,0 +1,57 @@
+$ErrorActionPreference = 'Stop'
+
+<#
+Read-only backup helper for the CX3588-A/RK3588S board.
+It deliberately backs up only boot-critical and vendor partitions. It never
+calls rkdeveloptool, fastboot flash, dd with an output file on the device, or
+any other write operation against eMMC.
+#>
+
+if (-not (Get-Command adb -ErrorAction SilentlyContinue)) {
+    throw 'adb.exe not found. Install Android platform-tools and add it to PATH.'
+}
+
+$device = (& adb get-serialno).Trim()
+if ([string]::IsNullOrWhiteSpace($device) -or $device -eq 'unknown') {
+    throw 'No ADB device found. Check USB debugging and run adb devices first.'
+}
+
+$rootCheck = (& adb -s $device shell id).Trim()
+if ($rootCheck -notmatch 'uid=0\(root\)') {
+    throw "ADB shell is not root: $rootCheck"
+}
+
+$stamp = Get-Date -Format 'yyyyMMdd-HHmmss'
+$outDir = Join-Path (Get-Location) "rk3588-backup-$stamp-$device"
+New-Item -ItemType Directory -Path $outDir -Force | Out-Null
+
+& adb -s $device shell cat /proc/device-tree/model | Out-File (Join-Path $outDir 'model.txt') -Encoding utf8
+& adb -s $device shell cat /proc/cmdline | Out-File (Join-Path $outDir 'cmdline.txt') -Encoding utf8
+& adb -s $device shell cat /proc/partitions | Out-File (Join-Path $outDir 'partitions.txt') -Encoding utf8
+& adb -s $device shell "ls -l /dev/block/by-name" | Out-File (Join-Path $outDir 'by-name.txt') -Encoding utf8
+
+$partitions = @('uboot', 'misc', 'boot', 'recovery', 'backup', 'oem')
+foreach ($name in $partitions) {
+    $devicePath = "/dev/block/by-name/$name"
+    $exists = (& adb -s $device shell "test -e $devicePath; echo `$?").Trim()
+    if ($exists -ne '0') {
+        Write-Warning "Skipping missing partition: $name"
+        continue
+    }
+
+    $target = Join-Path $outDir "$name.img"
+    Write-Host "Reading $name -> $target"
+    & adb -s $device exec-out "dd if=$devicePath bs=4M" > $target
+    if (-not (Test-Path $target) -or (Get-Item $target).Length -eq 0) {
+        throw "Backup failed or empty: $name"
+    }
+    Get-FileHash $target -Algorithm SHA256 | Format-Table -AutoSize
+}
+
+& adb -s $device shell "sed -n '1,260p' /opt/scripts/startup.sh 2>/dev/null" |
+    Out-File (Join-Path $outDir 'startup.sh.txt') -Encoding utf8
+& adb -s $device shell "find /etc/init.d /opt/scripts /oem -maxdepth 3 -type f 2>/dev/null" |
+    Out-File (Join-Path $outDir 'vendor-files.txt') -Encoding utf8
+
+Write-Host "Read-only backup complete: $outDir"
+Write-Host 'Keep this directory private. Do not upload token files or userdata.'
