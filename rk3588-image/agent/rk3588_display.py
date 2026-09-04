@@ -417,7 +417,7 @@ def draw_pixel_word(draw, x: int, y: int, word: str, cell: int, fill: str) -> in
     return cursor
 
 
-def draw_nvidia_brand(
+def draw_rk_brand(
     draw, x: int, y: int, cell: int, fill: str, word_fill: str | None = None
 ) -> int:
     return draw_pixel_word(draw, x, y, "RK", cell, word_fill or fill)
@@ -692,7 +692,7 @@ def static_dashboard(width: int, height: int):
     draw.line((x(0.31), y(0.083), x(0.34), y(0.105), x(0.66), y(0.105), x(0.69), y(0.083)), fill="#265D2B", width=thin)
 
     brand_cell = max(2, round(3 * scale))
-    draw_nvidia_brand(draw, x(0.035), y(0.03), brand_cell, COLORS["green"], COLORS["white"])
+    draw_rk_brand(draw, x(0.035), y(0.03), brand_cell, COLORS["green"], COLORS["white"])
     centered_text(draw, width, y(0.032), "聚芯节点边缘算力", font(fs(30), bold=True), COLORS["white"])
 
     badge_font = font(fs(14))

@@ -56,8 +56,9 @@ python3 -m py_compile rk3588-image/agent/rk3588_agent.py \
 ```
 
 `agent/S99juxin-rk3588` 是 Buildroot `/etc/init.d/` 风格的启动模板；正式注入时，
-需要把 Agent、UI 和 `rk3588-core.png` 安装到 `/opt/juxin-rk3588/`，并由厂商 BSP
-确认 Python、Pillow、字体和 framebuffer/DRM 输出链路是否可用。
+需要把 Agent、UI 和 `rk3588-core.png` 安装到 `/opt/juxin-rk3588/`。设备原厂 RootFS
+未预装 Python3 时，可注入匹配 glibc/aarch64 的独立 Python 运行时；Pillow、字体和
+framebuffer/DRM 输出链路仍需在测试板上确认。
 
 ## 厂商 BSP 到位后的构建顺序
 
