@@ -26,3 +26,10 @@ powershell -ExecutionPolicy Bypass -File .\backup-rk3588-boot.ps1 `
 
 备份目录中的镜像和哈希是制作可恢复 RootFS/刷机包的基础；在确认备份完整前，不要执行
 任何 `rkdeveloptool wl`、`fastboot flash` 或 `dd of=` 命令。
+
+如需制作完整系统镜像，可额外导出约 15 GB 的 `rootfs`（需要电脑至少 20 GB 可用空间）：
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass `
+  -File .\backup-rk3588-boot.ps1 -IncludeRootfs
+```

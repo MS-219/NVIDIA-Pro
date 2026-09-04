@@ -1,5 +1,6 @@
 param(
-    [string]$OutputDir = $PSScriptRoot
+    [string]$OutputDir = $PSScriptRoot,
+    [switch]$IncludeRootfs
 )
 
 $ErrorActionPreference = 'Stop'
@@ -76,6 +77,10 @@ function Read-AdbBinary([string]$deviceSerial, [string]$devicePath, [string]$tar
 & adb -s $device shell "ls -l /dev/block/by-name" | Out-File (Join-Path $outDir 'by-name.txt') -Encoding utf8
 
 $partitions = @('uboot', 'misc', 'boot', 'recovery', 'backup', 'oem')
+if ($IncludeRootfs) {
+    Write-Warning 'Including rootfs.img. This is a read-only dump and may be about 15 GB; ensure the PC has at least 20 GB free.'
+    $partitions += 'rootfs'
+}
 foreach ($name in $partitions) {
     $devicePath = "/dev/block/by-name/$name"
     $exists = (& adb -s $device shell "test -e $devicePath; echo `$?").Trim()
