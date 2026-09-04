@@ -32,10 +32,9 @@ New-Item -ItemType Directory -Path $outDir -Force | Out-Null
 function Read-AdbBinary([string]$deviceSerial, [string]$devicePath, [string]$targetPath, [Int64]$expectedBytes) {
     $psi = New-Object System.Diagnostics.ProcessStartInfo
     $psi.FileName = 'adb.exe'
-    # BusyBox on this Buildroot image writes dd statistics to the stream that
-    # adb exposes via exec-out.  status=none plus an explicit stderr redirect
-    # keeps those human-readable lines out of the raw image bytes.
-    $psi.Arguments = "-s `"$deviceSerial`" exec-out `"dd if=$devicePath bs=4M status=none 2>/dev/null`""
+    # Keep the command BusyBox-compatible. Some vendor builds append dd
+    # statistics to exec-out; the size check below removes those bytes safely.
+    $psi.Arguments = "-s `"$deviceSerial`" exec-out `"dd if=$devicePath bs=4M 2>/dev/null`""
     $psi.UseShellExecute = $false
     $psi.CreateNoWindow = $true
     $psi.RedirectStandardOutput = $true
