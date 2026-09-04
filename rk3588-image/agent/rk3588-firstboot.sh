@@ -44,13 +44,13 @@ mkdir -p "$ETC_DIR" "$STATE_DIR"
 if [ ! -s "${STATE_DIR}/device-sn" ] || [ ! -s "${STATE_DIR}/hardware-fingerprint" ]; then
     seed="$(read_identity_seed)"
     digest="$(printf 'juxin-rk3588-v1|%s' "$seed" | sha256sum | awk '{print toupper($1)}')"
-    printf 'RK3588-%s\n' "$(printf '%s' "$digest" | cut -c1-16)" >"${STATE_DIR}/device-sn"
+    printf 'JD-%s\n' "$(printf '%s' "$digest" | cut -c1-16)" >"${STATE_DIR}/device-sn"
     printf '%s\n' "$digest" >"${STATE_DIR}/hardware-fingerprint"
 fi
 
 sn="$(tr -d '\r\n' <"${STATE_DIR}/device-sn")"
 fingerprint="$(tr -d '\r\n' <"${STATE_DIR}/hardware-fingerprint")"
-case "$sn" in RK3588-[A-F0-9][A-F0-9][A-F0-9][A-F0-9][A-F0-9][A-F0-9][A-F0-9][A-F0-9][A-F0-9][A-F0-9][A-F0-9][A-F0-9][A-F0-9][A-F0-9][A-F0-9][A-F0-9]) ;; *) exit 1 ;; esac
+case "$sn" in JD-[A-F0-9][A-F0-9][A-F0-9][A-F0-9][A-F0-9][A-F0-9][A-F0-9][A-F0-9][A-F0-9][A-F0-9][A-F0-9][A-F0-9][A-F0-9][A-F0-9][A-F0-9][A-F0-9]|RK3588-[A-F0-9][A-F0-9][A-F0-9][A-F0-9][A-F0-9][A-F0-9][A-F0-9][A-F0-9][A-F0-9][A-F0-9][A-F0-9][A-F0-9][A-F0-9][A-F0-9][A-F0-9][A-F0-9][A-F0-9]) ;; *) exit 1 ;; esac
 case "$fingerprint" in [A-F0-9][A-F0-9]* ) [ "${#fingerprint}" -eq 64 ] || exit 1 ;; *) exit 1 ;; esac
 
 api_url="$(read_value JUXIN_RK_API_BASE_URL https://jd.ldjuxin.yun)"

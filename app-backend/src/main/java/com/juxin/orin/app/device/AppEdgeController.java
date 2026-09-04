@@ -24,6 +24,7 @@ import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.Base64;
 import java.util.LinkedHashMap;
+import java.util.HexFormat;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
@@ -78,7 +79,7 @@ public class AppEdgeController {
             jdbc.update("""
                     INSERT INTO app_node (binding_code, name, status, updated_at)
                     VALUES (?, ?, 'pending', ?)
-                    """, bindingCode, "RK3588S 节点", timestamp(now));
+                    """, bindingCode, "聚芯节点", timestamp(now));
         }
 
         Map<String, Object> data = new LinkedHashMap<>();
@@ -285,9 +286,9 @@ public class AppEdgeController {
     }
 
     private static String randomCode() {
-        byte[] bytes = new byte[5];
+        byte[] bytes = new byte[3];
         RANDOM.nextBytes(bytes);
-        return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes).substring(0, 8).toUpperCase(Locale.ROOT);
+        return "JD" + HexFormat.of().formatHex(bytes).toUpperCase(Locale.ROOT);
     }
 
     private static String sha256(String value) {

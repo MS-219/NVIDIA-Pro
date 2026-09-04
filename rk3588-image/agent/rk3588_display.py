@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Fullscreen framebuffer status display for Juxin RK3588S nodes."""
+"""Fullscreen framebuffer status display for Juxin nodes."""
 
 from __future__ import annotations
 
@@ -70,6 +70,7 @@ COLORS = {
 }
 
 PIXEL_GLYPHS = {
+    "J": ("00111", "00010", "00010", "00010", "00010", "10010", "01100"),
     "A": ("01110", "10001", "10001", "11111", "10001", "10001", "10001"),
     "D": ("11110", "10001", "10001", "10001", "10001", "10001", "11110"),
     "I": ("11111", "00100", "00100", "00100", "00100", "00100", "11111"),
@@ -164,8 +165,8 @@ def read_sn() -> str:
     try:
         value = SN_FILE.read_text(encoding="utf-8", errors="ignore").strip()
     except OSError:
-        return "RK3588-正在初始化"
-    return clean_text(value, 40) or "RK3588-正在初始化"
+        return "JD-正在初始化"
+    return clean_text(value, 40) or "JD-正在初始化"
 
 
 def default_state() -> dict[str, Any]:
@@ -287,7 +288,7 @@ def display_copy(state: dict[str, Any], now: float | None = None) -> dict[str, s
 
 
 def display_identity(state: dict[str, Any]) -> str:
-    return clean_text(state.get("bindCode"), 32) or clean_text(state.get("sn"), 40)
+    return clean_text(state.get("bindCode"), 32) or "等待绑定码"
 
 
 def display_metric(value: Any) -> int:
@@ -407,10 +408,10 @@ def draw_pixel_word(draw, x: int, y: int, word: str, cell: int, fill: str) -> in
     return cursor
 
 
-def draw_rk_brand(
+def draw_jd_brand(
     draw, x: int, y: int, cell: int, fill: str, word_fill: str | None = None
 ) -> int:
-    return draw_pixel_word(draw, x, y, "RK", cell, word_fill or fill)
+    return draw_pixel_word(draw, x, y, "JD", cell, word_fill or fill)
 
 
 def draw_pixel_text(
@@ -682,11 +683,11 @@ def static_dashboard(width: int, height: int):
     draw.line((x(0.31), y(0.083), x(0.34), y(0.105), x(0.66), y(0.105), x(0.69), y(0.083)), fill="#265D2B", width=thin)
 
     brand_cell = max(2, round(3 * scale))
-    draw_rk_brand(draw, x(0.035), y(0.03), brand_cell, COLORS["green"], COLORS["white"])
+    draw_jd_brand(draw, x(0.035), y(0.03), brand_cell, COLORS["green"], COLORS["white"])
     centered_text(draw, width, y(0.032), "聚芯节点边缘算力", font(fs(30), bold=True), COLORS["white"])
 
     badge_font = font(fs(14))
-    badge = "●  RK3588S 平台"
+    badge = "●  聚芯节点"
     badge_w = text_width(draw, badge, badge_font) + round(34 * scale)
     badge_box = (x(0.965) - badge_w, y(0.027), x(0.965), y(0.068))
     draw.rounded_rectangle(badge_box, radius=min(8, fs(8)), outline="#3C8A27", fill="#030806", width=thin)
@@ -698,7 +699,7 @@ def static_dashboard(width: int, height: int):
     for panel in (left_top, left_bottom, right_panel):
         draw_tech_panel(draw, panel, scale)
     draw_panel_heading(draw, left_top, "节点状态", "NODE STATUS", scale)
-    draw_panel_heading(draw, left_bottom, "算力信息", "COMPUTE INFO", scale)
+    draw_panel_heading(draw, left_bottom, "系统信息", "SYSTEM STATUS", scale)
     draw_panel_heading(draw, right_panel, "节点性能", "PERFORMANCE", scale)
 
     engine_box = (x(0.325), y(0.505), x(0.675), y(0.555))
@@ -716,7 +717,7 @@ def static_dashboard(width: int, height: int):
         draw,
         width,
         y(0.925),
-        "Rockchip RK3588S  ·  聚芯节点边缘计算",
+        "聚芯节点  ·  边缘算力服务",
         font(fs(16), bold=True),
         COLORS["white"],
     )
@@ -759,9 +760,9 @@ def render_frame(
     draw_panel_row(draw, left_top, 3, "内存使用", f"{screen_metrics['ram']}%", scale, progress=screen_metrics["ram"])
     draw_panel_row(draw, left_top, 4, "GPU 使用", f"{screen_metrics['gpu']}%", scale, progress=screen_metrics["gpu"])
 
-    draw_panel_row(draw, left_bottom, 0, "GPU 型号", "Mali-G610", scale, accent=True)
-    draw_panel_row(draw, left_bottom, 1, "NPU", "RKNN 6TOPS", scale)
-    draw_panel_row(draw, left_bottom, 2, "平台", "RK3588S", scale)
+    draw_panel_row(draw, left_bottom, 0, "设备状态", "正常" if state.get("connected") else "连接中", scale, accent=True)
+    draw_panel_row(draw, left_bottom, 1, "网络状态", "已连接" if state.get("connected") else "未连接", scale)
+    draw_panel_row(draw, left_bottom, 2, "绑定状态", "已绑定" if state.get("bindCode") else "待绑定", scale)
 
     gauge_center = ((right_panel[0] + right_panel[2]) // 2, right_panel[1] + round(280 * scale))
     draw_performance_gauge(draw, gauge_center, round(96 * scale), performance, scale)
@@ -829,7 +830,7 @@ def render_frame(
     identity_font = font(fs(30), bold=True)
     centered_text(draw, width, identity_box[1] + round(85 * scale), display_identity(state), identity_font, COLORS["white"])
     id_label_font = font(fs(13))
-    centered_text(draw, width, identity_box[1] + round(126 * scale), "节点 ID", id_label_font, "#7F9488")
+    centered_text(draw, width, identity_box[1] + round(126 * scale), "绑定码", id_label_font, "#7F9488")
 
     status_box = (x(0.265), y(0.805), x(0.735), y(0.875))
     status_font = font(fs(14))
@@ -867,7 +868,7 @@ def terminal_frame(state: dict[str, Any], frame: int) -> str:
     screen_metrics = display_screen_metrics(state, frame)
     return "\n".join(
         [
-            "ROCKCHIP RK3588S       JUXIN EDGE COMPUTE",
+            "JUXIN EDGE COMPUTE",
             "=" * 62,
             "",
             f"{main:^62}",
@@ -876,7 +877,7 @@ def terminal_frame(state: dict[str, Any], frame: int) -> str:
             "",
             f"{display_identity(state):^62}",
             "",
-            "RK3588S READY  |  COMPUTE ONLINE  |  NODE ATTACHED",
+            "COMPUTE ONLINE  |  NODE ATTACHED",
             f"CPU {screen_metrics['cpu']:3d}%   "
             f"RAM {screen_metrics['ram']:3d}%   "
             f"GPU {screen_metrics['gpu']:3d}%",

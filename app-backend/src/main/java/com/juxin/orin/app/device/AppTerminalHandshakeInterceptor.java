@@ -19,8 +19,8 @@ import java.util.regex.Pattern;
 public class AppTerminalHandshakeInterceptor implements HandshakeInterceptor {
     static final String ROLE = "terminalRole";
     static final String SN = "deviceSn";
-    private static final Pattern ADMIN = Pattern.compile("^/ws/admin/terminal/(RK3588-[A-F0-9]{16})$");
-    private static final Pattern DEVICE = Pattern.compile("^/ws/device/(RK3588-[A-F0-9]{16})$");
+    private static final Pattern ADMIN = Pattern.compile("^/ws/admin/terminal/((?:JD|RK3588)-[A-F0-9]{16})$");
+    private static final Pattern DEVICE = Pattern.compile("^/ws/device/((?:JD|RK3588)-[A-F0-9]{16})$");
     private final JdbcTemplate jdbc;
     private final AppTerminalTicketService tickets;
 

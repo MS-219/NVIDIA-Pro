@@ -496,7 +496,7 @@ def start_remote_terminal() -> threading.Thread:
 def device_sn() -> str:
     configured = os.getenv("JUXIN_RK_DEVICE_SN", "").strip()
     value = configured or read_text(SN_FILE)
-    if not re.fullmatch(r"RK3588-[A-F0-9]{12,32}", value):
+    if not re.fullmatch(r"(?:JD|RK3588)-[A-F0-9]{12,32}", value):
         raise RuntimeError("device identity is missing; rk3588-firstboot must run first")
     return value
 

@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>聚芯节点 · RK3588S</title>
+  <title>聚芯节点</title>
   <style>
     :root{color-scheme:dark;--bg:#050806;--panel:#0a100c;--line:#24442d;--green:#76b900;--text:#f3f7f1;--muted:#91a397;--cyan:#4fd1c5}
     *{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at 50% 35%,#102315 0,#050806 55%);color:var(--text);font:16px system-ui,"Microsoft YaHei",sans-serif;min-height:100vh;display:grid;place-items:center}
@@ -16,18 +16,18 @@
 </head>
 <body><main>
   <header><h1>聚芯节点<small>边缘算力平台 · JUXIN EDGE COMPUTE</small></h1><div class="badge" id="conn">连接中</div></header>
-  <section class="hero"><div class="core"><div><div class="core-logo">RK</div><p>Rockchip RK3588S<br>节点算力核心</p></div></div><div class="stats">
-    <div class="stat"><label>CPU 使用率</label><strong id="cpu">--</strong><em>八核处理器</em></div>
+  <section class="hero"><div class="core"><div><div class="core-logo">JD</div><p>聚芯节点<br>算力核心</p></div></div><div class="stats">
+    <div class="stat"><label>CPU 使用率</label><strong id="cpu">--</strong><em>实时数据</em></div>
     <div class="stat"><label>内存使用率</label><strong id="ram">--</strong><em id="mem">--</em></div>
-    <div class="stat"><label>GPU 使用率</label><strong id="gpu">--</strong><em>Mali-G610</em></div>
-    <div class="stat"><label>芯片温度</label><strong id="temp">--</strong><em>RK3588S</em></div>
+    <div class="stat"><label>GPU 使用率</label><strong id="gpu">--</strong><em>实时数据</em></div>
+    <div class="stat"><label>芯片温度</label><strong id="temp">--</strong><em>设备状态</em></div>
     <div class="stat"><label>网络地址</label><strong id="ip" style="font-size:22px">获取中</strong><em id="iface">--</em></div>
-    <div class="stat"><label>节点编号</label><strong id="sn" style="font-size:18px">初始化中</strong><em id="bind">绑定码：--</em></div>
+    <div class="stat"><label>绑定码</label><strong id="bind-code" style="font-size:22px">初始化中</strong><em>用于 APP 绑定节点</em></div>
   </div></section>
   <div class="status"><b id="phase">节点接入中</b><span id="detail">正在连接聚芯节点后台</span></div>
-  <footer>RK3588S · RKNN 6TOPS · 聚芯节点边缘计算</footer>
+  <footer>聚芯节点 · 边缘算力服务</footer>
 </main><script>
 const $=id=>document.getElementById(id); const pct=v=>{v=Number(v);return Number.isFinite(v)?Math.round(v)+'%':'--'};
-function paint(s){const t=s.telemetry||{}; $('conn').textContent=s.connected?'节点已接入':'连接中';$('conn').style.color=s.connected?'#76b900':'#e7b84b';$('cpu').textContent=pct(t.cpu_load);$('ram').textContent=pct(t.mem_load);$('gpu').textContent=pct(t.gpu_usage);let temp=t.gpu_temperature??t.cpu_temperature??t.temperature;$('temp').textContent=temp==null?'--':Math.round(Number(temp))+'°C';$('mem').textContent=t.memory_total_mb?Math.round(Number(t.memory_total_mb))+' MB':'系统内存';$('ip').textContent=t.ip||'获取中';$('iface').textContent=t.network_interface||'网络接口';$('sn').textContent=s.sn||'初始化中';$('bind').textContent='绑定码：'+(s.bindCode||'--');$('phase').textContent=s.connected?'节点已接入':'节点接入中';$('detail').textContent=s.error|| (s.task?'算力任务运行中':'等待后台任务');}
+function paint(s){const t=s.telemetry||{}; $('conn').textContent=s.connected?'节点已接入':'连接中';$('conn').style.color=s.connected?'#76b900':'#e7b84b';$('cpu').textContent=pct(t.cpu_load);$('ram').textContent=pct(t.mem_load);$('gpu').textContent=pct(t.gpu_usage);let temp=t.gpu_temperature??t.cpu_temperature??t.temperature;$('temp').textContent=temp==null?'--':Math.round(Number(temp))+'°C';$('mem').textContent=t.memory_total_mb?Math.round(Number(t.memory_total_mb))+' MB':'系统内存';$('ip').textContent=t.ip||'获取中';$('iface').textContent=t.network_interface||'网络接口';$('bind-code').textContent=s.bindCode||'等待绑定码';$('phase').textContent=s.connected?'节点已接入':'节点接入中';$('detail').textContent=s.error|| (s.task?'算力任务运行中':'等待后台任务');}
 async function refresh(){try{const r=await fetch('/status.json?ts='+Date.now(),{cache:'no-store'});if(!r.ok)throw Error();paint(await r.json())}catch(e){$('conn').textContent='本地服务中';$('phase').textContent='等待设备状态';$('detail').textContent='Agent 尚未上报状态'}} setInterval(refresh,2000);refresh();
 </script></body></html>
