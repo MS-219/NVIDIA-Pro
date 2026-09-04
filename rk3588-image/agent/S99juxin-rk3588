@@ -1,0 +1,14 @@
+#!/bin/sh
+
+case "${1:-start}" in
+    start)
+        /opt/juxin-rk3588/rk3588-firstboot.sh || exit 1
+        . /etc/juxin-rk3588/agent.env
+        /usr/bin/python3 /opt/juxin-rk3588/rk3588_agent.py >>/var/log/juxin-rk3588-agent.log 2>&1 &
+        /usr/bin/python3 /opt/juxin-rk3588/rk3588_display.py >>/var/log/juxin-rk3588-display.log 2>&1 &
+        ;;
+    stop)
+        killall rk3588_agent.py rk3588_display.py 2>/dev/null || true
+        ;;
+esac
+

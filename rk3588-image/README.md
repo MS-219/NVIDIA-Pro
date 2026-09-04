@@ -9,6 +9,7 @@ Linux 系统、全屏 UI、设备 Agent 和后台接入。
 
 - 已确认硬件型号：RK3588S、LP4X、aarch64、Buildroot 2021.11、eMMC 启动。
 - 已找到公开的 CX3588-A DTS/DTB，见 `build/fetch-public-assets.sh`。
+- 已加入独立的 RK3588S Agent、全屏 UI、首次启动身份初始化脚本，见 `agent/`。
 - 尚未找到公开的 CX3588-A 专用 U-Boot/DDR Loader/完整 `update.img`。
 - 因此当前工程默认采用“保留原厂启动链，替换 Linux RootFS”的安全路线。
 - 在拿到匹配 BSP 前，工程不会执行 `dd`、`rkdeveloptool wl` 或整盘刷写。
@@ -41,6 +42,18 @@ NPU、温度和网络指标。
 ./rk3588-image/build/fetch-public-assets.sh ./rk3588-image/vendor-public
 ```
 
+在已具备 Python/Pillow 的临时 RootFS 中，可以先做离线冒烟测试：
+
+```bash
+python3 -m py_compile rk3588-image/agent/rk3588_agent.py \
+  rk3588-image/agent/rk3588_display.py
+./rk3588-image/build/verify-layout.sh
+```
+
+`agent/S99juxin-rk3588` 是 Buildroot `/etc/init.d/` 风格的启动模板；正式注入时，
+需要把 Agent、UI 和 `rk3588-core.png` 安装到 `/opt/juxin-rk3588/`，并由厂商 BSP
+确认 Python、Pillow、字体和 framebuffer/DRM 输出链路是否可用。
+
 ## 厂商 BSP 到位后的构建顺序
 
 1. 将厂商 BSP 解压到独立的 Linux 构建主机，并在 `vendor-bsp/` 中配置路径。
@@ -54,4 +67,3 @@ NPU、温度和网络指标。
 没有与 CX3588-A 修订版匹配的 DDR Loader、分区参数和恢复包时，不能把其他 RK3588
 开发板的 `update.img` 当作本板固件。即使设备树名称相同，DDR、电源时序、屏幕和
 eMMC 参数也可能不同。
-
