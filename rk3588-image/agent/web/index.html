@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>聚芯节点 · RK3588S</title>
+  <style>
+    :root{color-scheme:dark;--bg:#050806;--panel:#0a100c;--line:#24442d;--green:#76b900;--text:#f3f7f1;--muted:#91a397;--cyan:#4fd1c5}
+    *{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at 50% 35%,#102315 0,#050806 55%);color:var(--text);font:16px system-ui,"Microsoft YaHei",sans-serif;min-height:100vh;display:grid;place-items:center}
+    main{width:min(1400px,94vw);padding:34px;border:1px solid #183322;background:rgba(5,10,7,.94);box-shadow:0 0 70px #0b3218;border-radius:20px}
+    header{display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--line);padding-bottom:22px}h1{margin:0;color:var(--green);font-size:clamp(28px,4vw,52px);letter-spacing:.08em}h1 small{display:block;color:var(--muted);font-size:.36em;letter-spacing:.18em;margin-top:8px}.badge{border:1px solid var(--green);border-radius:999px;padding:9px 18px;color:var(--green)}
+    .hero{display:grid;grid-template-columns:1.3fr 1fr;gap:26px;padding:28px 0}.core{min-height:300px;display:grid;place-items:center;border:1px solid var(--line);border-radius:16px;background:linear-gradient(145deg,#09150d,#050806)}.core-logo{width:170px;height:170px;border-radius:30%;background:linear-gradient(145deg,#9cff45,#187d2d 55%,#071b0c);box-shadow:0 0 42px #54bb36;display:grid;place-items:center;font-size:48px;font-weight:800;letter-spacing:.08em}.core p{text-align:center;color:var(--muted);margin:22px 0 0}.stats{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}.stat{border:1px solid var(--line);border-radius:12px;padding:20px;background:var(--panel)}.stat label{display:block;color:var(--muted);font-size:14px}.stat strong{display:block;font-size:30px;color:var(--text);margin-top:8px}.stat em{font-style:normal;color:var(--cyan);font-size:13px}
+    .status{display:flex;justify-content:space-between;gap:18px;align-items:center;border:1px solid var(--line);border-radius:12px;padding:17px 20px;background:#07100a}.status b{color:var(--green)}.status span{color:var(--muted)}footer{text-align:center;color:var(--muted);font-size:13px;margin-top:22px;letter-spacing:.08em}
+    @media(max-width:800px){main{padding:20px}.hero{grid-template-columns:1fr}.core{min-height:220px}}
+  </style>
+</head>
+<body><main>
+  <header><h1>聚芯节点<small>边缘算力平台 · JUXIN EDGE COMPUTE</small></h1><div class="badge" id="conn">连接中</div></header>
+  <section class="hero"><div class="core"><div><div class="core-logo">RK</div><p>Rockchip RK3588S<br>节点算力核心</p></div></div><div class="stats">
+    <div class="stat"><label>CPU 使用率</label><strong id="cpu">--</strong><em>八核处理器</em></div>
+    <div class="stat"><label>内存使用率</label><strong id="ram">--</strong><em id="mem">--</em></div>
+    <div class="stat"><label>GPU 使用率</label><strong id="gpu">--</strong><em>Mali-G610</em></div>
+    <div class="stat"><label>芯片温度</label><strong id="temp">--</strong><em>RK3588S</em></div>
+    <div class="stat"><label>网络地址</label><strong id="ip" style="font-size:22px">获取中</strong><em id="iface">--</em></div>
+    <div class="stat"><label>节点编号</label><strong id="sn" style="font-size:18px">初始化中</strong><em id="bind">绑定码：--</em></div>
+  </div></section>
+  <div class="status"><b id="phase">节点接入中</b><span id="detail">正在连接聚芯节点后台</span></div>
+  <footer>RK3588S · RKNN 6TOPS · 聚芯节点边缘计算</footer>
+</main><script>
+const $=id=>document.getElementById(id); const pct=v=>{v=Number(v);return Number.isFinite(v)?Math.round(v)+'%':'--'};
+function paint(s){const t=s.telemetry||{}; $('conn').textContent=s.connected?'节点已接入':'连接中';$('conn').style.color=s.connected?'#76b900':'#e7b84b';$('cpu').textContent=pct(t.cpu_load);$('ram').textContent=pct(t.mem_load);$('gpu').textContent=pct(t.gpu_usage);let temp=t.gpu_temperature??t.cpu_temperature??t.temperature;$('temp').textContent=temp==null?'--':Math.round(Number(temp))+'°C';$('mem').textContent=t.memory_total_mb?Math.round(Number(t.memory_total_mb))+' MB':'系统内存';$('ip').textContent=t.ip||'获取中';$('iface').textContent=t.network_interface||'网络接口';$('sn').textContent=s.sn||'初始化中';$('bind').textContent='绑定码：'+(s.bindCode||'--');$('phase').textContent=s.connected?'节点已接入':'节点接入中';$('detail').textContent=s.error|| (s.task?'算力任务运行中':'等待后台任务');}
+async function refresh(){try{const r=await fetch('/status.json?ts='+Date.now(),{cache:'no-store'});if(!r.ok)throw Error();paint(await r.json())}catch(e){$('conn').textContent='本地服务中';$('phase').textContent='等待设备状态';$('detail').textContent='Agent 尚未上报状态'}} setInterval(refresh,2000);refresh();
+</script></body></html>

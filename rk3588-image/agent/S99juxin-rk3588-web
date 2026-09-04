@@ -1,0 +1,13 @@
+#!/bin/sh
+
+case "${1:-start}" in
+    start)
+        /opt/juxin-rk3588/rk3588-firstboot.sh || exit 1
+        . /etc/juxin-rk3588/agent.env
+        /usr/bin/python3 /opt/juxin-rk3588/rk3588_agent.py >>/var/log/juxin-rk3588-agent.log 2>&1 &
+        /opt/juxin-rk3588/launch-juxin-web-ui.sh >>/var/log/juxin-rk3588-web-launch.log 2>&1 &
+        ;;
+    stop)
+        killall chromium python3 2>/dev/null || true
+        ;;
+esac
