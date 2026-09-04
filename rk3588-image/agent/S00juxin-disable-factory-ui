@@ -1,0 +1,15 @@
+#!/bin/sh
+
+# Keep the vendor hardware services, but prevent the Jawest factory desktop
+# from launching before the Juxin dashboard. The original binary is retained
+# under a non-executable backup name for recovery/debugging.
+case "${1:-start}" in
+    start)
+        if [ -x /usr/local/bin/jwsservice ]; then
+            mv /usr/local/bin/jwsservice /usr/local/bin/jwsservice.factory-disabled
+            chmod 0644 /usr/local/bin/jwsservice.factory-disabled
+        fi
+        ;;
+    stop|restart|reload)
+        ;;
+esac
