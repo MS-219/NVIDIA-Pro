@@ -758,7 +758,7 @@ def render_frame(
     draw_panel_row(draw, left_top, 1, "在线时长", display_uptime(), scale)
     draw_panel_row(draw, left_top, 2, "CPU 使用", f"{screen_metrics['cpu']}%", scale, progress=screen_metrics["cpu"])
     draw_panel_row(draw, left_top, 3, "内存使用", f"{screen_metrics['ram']}%", scale, progress=screen_metrics["ram"])
-    draw_panel_row(draw, left_top, 4, "GPU 使用", f"{screen_metrics['gpu']}%", scale, progress=screen_metrics["gpu"])
+    draw_panel_row(draw, left_top, 4, "NPU 使用", f"{screen_metrics['gpu']}%", scale, progress=screen_metrics["gpu"])
 
     draw_panel_row(draw, left_bottom, 0, "设备状态", "正常" if state.get("connected") else "连接中", scale, accent=True)
     draw_panel_row(draw, left_bottom, 1, "网络状态", "已连接" if state.get("connected") else "未连接", scale)
@@ -835,7 +835,7 @@ def render_frame(
     status_box = (x(0.265), y(0.805), x(0.735), y(0.875))
     status_font = font(fs(14))
     access_status = node_access_status(bool(state.get("connected")))
-    status_items = ("GPU 已就绪", "边缘算力在线", access_status)
+    status_items = ("NPU 已就绪", "边缘算力在线", access_status)
     item_width = (status_box[2] - status_box[0]) // 3
     for index, item in enumerate(status_items):
         item_x = status_box[0] + index * item_width
@@ -880,7 +880,7 @@ def terminal_frame(state: dict[str, Any], frame: int) -> str:
             "COMPUTE ONLINE  |  NODE ATTACHED",
             f"CPU {screen_metrics['cpu']:3d}%   "
             f"RAM {screen_metrics['ram']:3d}%   "
-            f"GPU {screen_metrics['gpu']:3d}%",
+            f"NPU {screen_metrics['gpu']:3d}%",
         ]
     )
 
