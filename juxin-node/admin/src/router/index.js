@@ -144,7 +144,7 @@ const router = createRouter({
 
 // 路由守卫
 router.beforeEach((to, from, next) => {
-    const token = localStorage.getItem('orin_admin_token')
+    const token = localStorage.getItem('juxin_node_admin_token')
 
     if (to.meta.requiresAuth !== false && !token) {
         next('/login')

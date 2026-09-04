@@ -9,11 +9,11 @@ export default defineConfig({
     port: 5174,
     proxy: {
       '/api': {
-        target: process.env.ORIN_API_PROXY || 'http://127.0.0.1:8090',
+        target: process.env.JUXIN_NODE_API_PROXY || 'http://127.0.0.1:8090',
         changeOrigin: true,
       },
       '/ws': {
-        target: process.env.ORIN_API_PROXY || 'http://127.0.0.1:8090',
+        target: process.env.JUXIN_NODE_API_PROXY || 'http://127.0.0.1:8090',
         ws: true,
       },
     },

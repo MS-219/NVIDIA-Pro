@@ -249,7 +249,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 const route = useRoute()
 const adminInfo = ref({})
 const uploadHeaders = {
-  Authorization: `Bearer ${localStorage.getItem('orin_admin_token') || ''}`
+  Authorization: `Bearer ${localStorage.getItem('juxin_node_admin_token') || ''}`
 }
 
 const earningsSettings = reactive({
@@ -513,7 +513,7 @@ const changePassword = async () => {
     if (res.data.code === 200) {
       ElMessage.success('密码修改成功，请重新登录')
       // 清除本地信息并强制跳转到登录页
-      localStorage.removeItem('orin_admin_token')
+      localStorage.removeItem('juxin_node_admin_token')
 
       setTimeout(() => {
         window.location.href = '/login'

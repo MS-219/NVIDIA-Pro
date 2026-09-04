@@ -12,7 +12,7 @@ export const uploadImageFile = async (file) => {
   const formData = new FormData()
   formData.append('file', file)
 
-  const token = localStorage.getItem('orin_admin_token') || ''
+  const token = localStorage.getItem('juxin_node_admin_token') || ''
   const response = await fetch('/api/upload/image', {
     method: 'POST',
     headers: token ? { Authorization: `Bearer ${token}` } : {},

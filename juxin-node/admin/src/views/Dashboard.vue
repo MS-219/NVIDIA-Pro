@@ -195,7 +195,7 @@ const activeMenu = computed(() => route.path)
 
 const handleCommand = (command) => {
   if (command === 'logout') {
-    localStorage.removeItem('orin_admin_token')
+    localStorage.removeItem('juxin_node_admin_token')
     ElMessage.success('已退出聚芯节点控制台')
     router.push('/login')
   }

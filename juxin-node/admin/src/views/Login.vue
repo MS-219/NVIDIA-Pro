@@ -132,7 +132,7 @@ const handleLogin = async () => {
 
   loading.value = true
   try {
-    localStorage.removeItem('orin_admin_token')
+    localStorage.removeItem('juxin_node_admin_token')
     const res = await request.post('/api/admin/login', form)
     const payload = res?.data || res
     if (Number(payload.code) !== 200 || !payload.data?.token) {
@@ -140,9 +140,9 @@ const handleLogin = async () => {
       return
     }
 
-    localStorage.setItem('orin_admin_token', payload.data.token)
-    if (rememberMe.value) localStorage.setItem('orin_admin_remember_user', form.username)
-    else localStorage.removeItem('orin_admin_remember_user')
+    localStorage.setItem('juxin_node_admin_token', payload.data.token)
+    if (rememberMe.value) localStorage.setItem('juxin_node_admin_remember_user', form.username)
+    else localStorage.removeItem('juxin_node_admin_remember_user')
     ElMessage.success('已进入聚芯节点管理后台')
     router.push('/')
   } catch (error) {
@@ -154,7 +154,7 @@ const handleLogin = async () => {
 }
 
 onMounted(() => {
-  const remembered = localStorage.getItem('orin_admin_remember_user')
+  const remembered = localStorage.getItem('juxin_node_admin_remember_user')
   if (remembered) {
     form.username = remembered
     rememberMe.value = true

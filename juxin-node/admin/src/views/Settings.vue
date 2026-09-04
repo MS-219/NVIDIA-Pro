@@ -176,14 +176,7 @@ const deviceConfig = reactive({
   heartbeatTimeout: 120,
   autoAssignBusiness: true,
   initialHashrate: 100,
-  powerMode: 'MAXN_SUPER',
 })
-
-const powerModeLabels = {
-  '15W': '节能 15W',
-  '25W': '均衡 25W',
-  MAXN_SUPER: '最大性能 MAXN SUPER',
-}
 
 // 带宽估算
 const calcBandwidth = (intervalSec) => {
@@ -223,7 +216,6 @@ const loadSettings = async () => {
       deviceConfig.heartbeatTimeout = d.heartbeatTimeout ?? 120
       deviceConfig.autoAssignBusiness = d.autoAssignBusiness ?? true
       deviceConfig.initialHashrate = d.initialHashrate ?? 100
-      deviceConfig.powerMode = d.powerMode ?? 'MAXN_SUPER'
     }
   } catch (e) {
     console.error('加载配置失败', e)
@@ -249,7 +241,6 @@ const saveDeviceConfig = async () => {
       heartbeatTimeout: deviceConfig.heartbeatTimeout,
       autoAssignBusiness: deviceConfig.autoAssignBusiness,
       initialHashrate: deviceConfig.initialHashrate,
-      powerMode: deviceConfig.powerMode,
     })
     if (res.data.code === 200) {
       ElMessage.success('设备配置保存成功，设备将在下次心跳时获取新配置')
@@ -379,11 +370,6 @@ onMounted(() => {
   flex-shrink: 0;
   align-items: center;
   gap: 8px;
-}
-
-.power-mode-control :deep(.el-radio-group) {
-  display: flex;
-  flex-wrap: nowrap;
 }
 
 .unit {
@@ -546,18 +532,6 @@ onMounted(() => {
   .form-control :deep(.el-input-number) {
     flex: 1;
     width: 100%;
-  }
-
-  .power-mode-control :deep(.el-radio-group) {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    width: 100%;
-  }
-
-  .power-mode-control :deep(.el-radio-button__inner) {
-    width: 100%;
-    padding-right: 6px;
-    padding-left: 6px;
   }
 
   .form-actions :deep(.el-button) {
