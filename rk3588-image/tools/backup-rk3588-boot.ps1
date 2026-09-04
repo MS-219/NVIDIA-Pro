@@ -29,7 +29,7 @@ $stamp = Get-Date -Format 'yyyyMMdd-HHmmss'
 $outDir = Join-Path $OutputDir "rk3588-backup-$stamp-$device"
 New-Item -ItemType Directory -Path $outDir -Force | Out-Null
 
-function Read-AdbBinary([string]$deviceSerial, [string]$devicePath, [string]$targetPath) {
+function Read-AdbBinary([string]$deviceSerial, [string]$devicePath, [string]$targetPath, [Int64]$expectedBytes) {
     $psi = New-Object System.Diagnostics.ProcessStartInfo
     $psi.FileName = 'adb.exe'
     # BusyBox on this Buildroot image writes dd statistics to the stream that
@@ -58,6 +58,17 @@ function Read-AdbBinary([string]$deviceSerial, [string]$devicePath, [string]$tar
     if ($process.ExitCode -ne 0) {
         throw "adb failed for ${devicePath}: $stderr"
     }
+    $actualBytes = (Get-Item $targetPath).Length
+    if ($actualBytes -lt $expectedBytes) {
+        throw "Short read for ${devicePath}: got $actualBytes bytes, expected $expectedBytes"
+    }
+    if ($actualBytes -gt $expectedBytes) {
+        # Some vendor BusyBox builds still append dd diagnostics to exec-out.
+        # Remove only trailing bytes after proving the raw payload is complete.
+        $stream = [System.IO.File]::Open($targetPath, [System.IO.FileMode]::Open,
+            [System.IO.FileAccess]::Write, [System.IO.FileShare]::Read)
+        try { $stream.SetLength($expectedBytes) } finally { $stream.Dispose() }
+    }
 }
 
 & adb -s $device shell cat /proc/device-tree/model | Out-File (Join-Path $outDir 'model.txt') -Encoding utf8
@@ -75,8 +86,13 @@ foreach ($name in $partitions) {
     }
 
     $target = Join-Path $outDir "$name.img"
+    $sizeText = (& adb -s $device shell "blockdev --getsize64 $devicePath 2>/dev/null").Trim()
+    [Int64]$expectedBytes = 0
+    if (-not [Int64]::TryParse($sizeText, [ref]$expectedBytes) -or $expectedBytes -le 0) {
+        throw "Unable to determine partition size for $name ($devicePath)"
+    }
     Write-Host "Reading $name -> $target"
-    Read-AdbBinary $device $devicePath $target
+    Read-AdbBinary $device $devicePath $target $expectedBytes
     if (-not (Test-Path $target) -or (Get-Item $target).Length -eq 0) {
         throw "Backup failed or empty: $name"
     }
