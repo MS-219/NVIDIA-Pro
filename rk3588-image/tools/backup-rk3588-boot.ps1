@@ -1,3 +1,7 @@
+param(
+    [string]$OutputDir = $PSScriptRoot
+)
+
 $ErrorActionPreference = 'Stop'
 
 <#
@@ -22,7 +26,7 @@ if ($rootCheck -notmatch 'uid=0\(root\)') {
 }
 
 $stamp = Get-Date -Format 'yyyyMMdd-HHmmss'
-$outDir = Join-Path (Get-Location) "rk3588-backup-$stamp-$device"
+$outDir = Join-Path $OutputDir "rk3588-backup-$stamp-$device"
 New-Item -ItemType Directory -Path $outDir -Force | Out-Null
 
 function Read-AdbBinary([string]$deviceSerial, [string]$devicePath, [string]$targetPath) {

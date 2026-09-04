@@ -2,11 +2,19 @@
 
 ## 导出原厂启动分区（Windows）
 
-设备连接并确认 `adb devices` 显示为 `device` 后，在 PowerShell 中运行：
+这个 `.ps1` 可以单独复制到 Windows 桌面运行，不需要复制整个仓库。设备连接并确认
+`adb devices` 显示为 `device` 后，在 PowerShell 中运行：
 
 ```powershell
-cd C:\path\to\NVIDIA-Pro
-powershell -ExecutionPolicy Bypass -File .\rk3588-image\tools\backup-rk3588-boot.ps1
+cd $env:USERPROFILE\Desktop
+powershell -ExecutionPolicy Bypass -File .\backup-rk3588-boot.ps1
+```
+
+备份目录默认创建在脚本所在目录；也可以显式指定输出目录：
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\backup-rk3588-boot.ps1 `
+  -OutputDir C:\Users\123\Desktop
 ```
 
 脚本使用原始字节流只读导出 `uboot`、`misc`、`boot`、`recovery`、`backup` 和 `oem`，同时保存设备树型号、
