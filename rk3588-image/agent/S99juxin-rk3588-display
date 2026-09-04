@@ -1,0 +1,20 @@
+#!/bin/sh
+
+case "${1:-start}" in
+    start)
+        mkdir -p /var/log
+        /usr/bin/python3 /opt/juxin-rk3588/rk3588_display.py \
+            >>/var/log/juxin-rk3588-display.log 2>&1 &
+        ;;
+    stop)
+        killall rk3588_display.py 2>/dev/null || true
+        ;;
+    restart)
+        "$0" stop
+        "$0" start
+        ;;
+    *)
+        echo "Usage: $0 {start|stop|restart}" >&2
+        exit 1
+        ;;
+esac
