@@ -85,16 +85,23 @@ foreach ($name in $partitions) {
     }
 
     $target = Join-Path $outDir "$name.img"
-    # blockdev is not included in some CX3588-A Buildroot images. Try it
-    # first, then BusyBox stat (both return bytes) without calling Trim() on a
-    # null PowerShell result.
-    $sizeText = ((& adb -s $device shell "blockdev --getsize64 $devicePath 2>/dev/null" 2>$null) -join '').Trim()
-    if ([string]::IsNullOrWhiteSpace($sizeText)) {
-        $sizeText = ((& adb -s $device shell "stat -c %s $devicePath 2>/dev/null" 2>$null) -join '').Trim()
+    # Resolve the by-name symlink first. BusyBox stat reports the symlink
+    # length (15) instead of the block size, so use blockdev on the real node
+    # or read its sector count from sysfs (512 bytes per sector).
+    $resolvedPath = ((& adb -s $device shell "readlink -f $devicePath 2>/dev/null" 2>$null) -join '').Trim()
+    $blockName = [regex]::Match($resolvedPath, '[^/]+$').Value
+    $sizeText = ''
+    if (-not [string]::IsNullOrWhiteSpace($resolvedPath)) {
+        $sizeText = ((& adb -s $device shell "blockdev --getsize64 $resolvedPath 2>/dev/null" 2>$null) -join '').Trim()
     }
     [Int64]$expectedBytes = 0
-    if (-not [Int64]::TryParse($sizeText, [ref]$expectedBytes) -or $expectedBytes -le 0) {
-        throw "Unable to determine partition size for $name ($devicePath)"
+    if (-not [Int64]::TryParse($sizeText, [ref]$expectedBytes) -or $expectedBytes -lt 1048576) {
+        $sectorText = ((& adb -s $device shell "cat /sys/class/block/$blockName/size 2>/dev/null" 2>$null) -join '').Trim()
+        [Int64]$sectors = 0
+        if (-not [Int64]::TryParse($sectorText, [ref]$sectors) -or $sectors -le 0) {
+            throw "Unable to determine partition size for $name ($devicePath -> $resolvedPath)"
+        }
+        $expectedBytes = $sectors * 512
     }
     Write-Host "Reading $name -> $target"
     Read-AdbBinary $device $devicePath $target $expectedBytes
