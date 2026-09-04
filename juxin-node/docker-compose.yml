@@ -1,0 +1,77 @@
+services:
+  mysql:
+    image: mysql:8.4
+    container_name: juxin-node-mysql
+    restart: unless-stopped
+    environment:
+      TZ: Asia/Shanghai
+      MYSQL_DATABASE: juxin_node
+      MYSQL_USER: juxin_node
+      MYSQL_PASSWORD: ${JUXIN_NODE_DB_PASSWORD:?set JUXIN_NODE_DB_PASSWORD in .env}
+      MYSQL_ROOT_PASSWORD: ${JUXIN_NODE_MYSQL_ROOT_PASSWORD:?set JUXIN_NODE_MYSQL_ROOT_PASSWORD in .env}
+    volumes:
+      - juxin_node_mysql_data:/var/lib/mysql
+      - ./deploy/mysql-init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping --silent -h 127.0.0.1 -u\"$${MYSQL_USER}\" -p\"$${MYSQL_PASSWORD}\""]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+    networks: [juxin_node_internal]
+
+  backend:
+    build:
+      context: ./backend
+    image: juxin-node-backend:latest
+    container_name: juxin-node-backend
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      TZ: Asia/Shanghai
+      ORIN_SERVER_PORT: 8090
+      ORIN_DB_URL: jdbc:mysql://mysql:3306/juxin_node?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false
+      ORIN_DB_USERNAME: juxin_node
+      ORIN_DB_PASSWORD: ${JUXIN_NODE_DB_PASSWORD}
+      ORIN_JWT_SECRET: ${JUXIN_NODE_JWT_SECRET:?set JUXIN_NODE_JWT_SECRET in .env}
+      ORIN_ADMIN_USERNAME: ${JUXIN_NODE_ADMIN_USERNAME:-admin}
+      ORIN_ADMIN_PASSWORD: ${JUXIN_NODE_ADMIN_PASSWORD:?set JUXIN_NODE_ADMIN_PASSWORD in .env}
+      ORIN_PUBLIC_BASE_URL: ${JUXIN_NODE_PUBLIC_BASE_URL:-https://jd.ldjuxin.yun}
+      ORIN_CORS_ALLOWED_ORIGINS: ${JUXIN_NODE_CORS_ALLOWED_ORIGINS:-https://jd.ldjuxin.yun}
+      ORIN_AGENT_ASSET_PATH: /agent-assets
+      ORIN_PLATFORM_VERSION: juxin-node-rk3588
+    ports:
+      - "127.0.0.1:${JUXIN_NODE_BACKEND_PORT:-18092}:8090"
+    volumes:
+      - ./backend/uploads:/app/uploads
+      - ../rk3588-image/agent:/agent-assets:ro
+    networks: [juxin_node_internal]
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8090/api/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 8
+      start_period: 60s
+
+  admin:
+    build:
+      context: ./admin
+    image: juxin-node-admin:latest
+    container_name: juxin-node-admin
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:${JUXIN_NODE_ADMIN_PORT:-18175}:80"
+    networks: [juxin_node_internal]
+
+volumes:
+  juxin_node_mysql_data:
+    name: juxin-node-mysql-data
+
+networks:
+  juxin_node_internal:
+    name: juxin-node-internal
