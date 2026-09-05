@@ -55,12 +55,12 @@ function DeviceDetails({ device }: { device: AppDevice }) {
     <>
       <View style={styles.hero}>
         <View style={styles.heroTop}><View style={styles.heroIcon}><Ionicons name="hardware-chip" size={30} color={colors.lime} /></View><StatusPill label={statusLabel} tone={statusTone} icon={online ? 'pulse-outline' : device.status === 'offline' ? 'close-circle-outline' : 'time-outline'} /></View>
-        <Text style={styles.heroName}>{device.name}</Text><Text style={styles.heroCode}>设备型号：RK3588S</Text>
+        <Text style={styles.heroName}>{device.name}</Text>
         <View style={styles.heroRule} /><View style={styles.heroFooter}><Ionicons name="calendar-outline" size={14} color="#b6cbb0" /><Text style={styles.heroFooterText}>{device.boundAt ? `绑定于 ${formatDate(device.boundAt)}` : '绑定时间待同步'}</Text></View>
       </View>
 
       <Text style={styles.sectionTitle}>实时遥测</Text>
-      <View style={styles.telemetryGrid}><Telemetry icon="speedometer-outline" label="节点算力" value={device.hashrate > 0 ? `${formatNumber(device.hashrate)} TOPS` : '--'} /><Telemetry icon="thermometer-outline" label="设备温度" value={device.temperature === null ? '--' : `${formatNumber(device.temperature)}°C`} /><Telemetry icon="wifi-outline" label="连接状态" value={online ? '稳定' : statusLabel} /><Telemetry icon="time-outline" label="最近上报" value={device.lastReportedAt ? formatDate(device.lastReportedAt) : '--'} /></View>
+      <View style={styles.telemetryGrid}><Telemetry icon="thermometer-outline" label="设备温度" value={device.temperature === null ? '--' : `${formatNumber(device.temperature)}°C`} /><Telemetry icon="wifi-outline" label="连接状态" value={online ? '稳定' : statusLabel} /><Telemetry icon="time-outline" label="最近上报" value={device.lastReportedAt ? formatDate(device.lastReportedAt) : '--'} /></View>
 
       <Text style={styles.sectionTitle}>收益快照</Text>
       <View style={styles.earningsCard}><View style={styles.earningMain}><Text style={styles.earningLabel}>今日收益</Text><Text style={styles.earningValue} selectable>{formatCurrency(device.dailyEarnings)}</Text></View><View style={styles.earningDivider} /><View style={styles.earningMain}><Text style={styles.earningLabel}>累计收益</Text><Text style={styles.earningValue} selectable>{formatCurrency(device.totalEarnings)}</Text></View></View>
