@@ -4,6 +4,13 @@ server:
 spring:
   application:
     name: juxin-orin-app-backend
+  servlet:
+    multipart:
+      # APK releases are larger than Spring Boot's 10 MB default limit.
+      # Keep this configurable while allowing the admin release endpoint to
+      # accept the bundled mobile APK (currently about 43 MB).
+      max-file-size: ${APP_MULTIPART_MAX_FILE_SIZE:512MB}
+      max-request-size: ${APP_MULTIPART_MAX_REQUEST_SIZE:512MB}
   datasource:
     url: ${APP_DB_URL:jdbc:mysql://localhost:3306/orin_app?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true}
     username: ${APP_DB_USERNAME:orin_app}
