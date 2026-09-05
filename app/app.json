@@ -3,7 +3,7 @@
     "name": "聚芯节点",
     "slug": "juxin-orin-app",
     "scheme": "juxinorin",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -13,7 +13,7 @@
     },
     "android": {
       "package": "cn.juxin.orin.app",
-      "versionCode": 2,
+      "versionCode": 3,
       "adaptiveIcon": {
         "backgroundColor": "#294b35",
         "foregroundImage": "./assets/android-icon-foreground.png",
