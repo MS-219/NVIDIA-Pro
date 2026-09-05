@@ -97,11 +97,11 @@ public class AppUpdateController {
     @PostMapping(value = "/api/admin/app-updates", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ApiResponse<Map<String, Object>> upload(
             @RequestPart("file") MultipartFile file,
-            @RequestPart("version") @NotBlank @Size(max = 64) String version,
-            @RequestPart("versionCode") int versionCode,
-            @RequestPart(value = "platform", required = false) String platform,
-            @RequestPart(value = "releaseNote", required = false) String releaseNote,
-            @RequestPart(value = "forceUpdate", required = false) Boolean forceUpdate,
+            @RequestParam("version") @NotBlank @Size(max = 64) String version,
+            @RequestParam("versionCode") int versionCode,
+            @RequestParam(value = "platform", required = false) String platform,
+            @RequestParam(value = "releaseNote", required = false) String releaseNote,
+            @RequestParam(value = "forceUpdate", required = false) Boolean forceUpdate,
             HttpServletRequest request) throws IOException {
         String admin = requireAdmin(request);
         if (file.isEmpty()) throw new ApiException(400, "更新包不能为空");
