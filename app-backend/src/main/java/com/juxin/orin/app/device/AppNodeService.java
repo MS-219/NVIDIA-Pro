@@ -18,20 +18,32 @@ public class AppNodeService {
     private static final Pattern SAFE_CODE = Pattern.compile("[A-Za-z0-9][A-Za-z0-9-]{5,63}");
 
     private final AppNodeRepository repository;
+    private final NodeDeviceSyncService nodeDeviceSyncService;
     private final Clock clock;
 
     @Autowired
+    public AppNodeService(AppNodeRepository repository, NodeDeviceSyncService nodeDeviceSyncService) {
+        this(repository, nodeDeviceSyncService, Clock.systemUTC());
+    }
+
+    /** Compatibility constructor for lightweight callers and unit tests. */
     public AppNodeService(AppNodeRepository repository) {
-        this(repository, Clock.systemUTC());
+        this(repository, null, Clock.systemUTC());
     }
 
     AppNodeService(AppNodeRepository repository, Clock clock) {
+        this(repository, null, clock);
+    }
+
+    AppNodeService(AppNodeRepository repository, NodeDeviceSyncService nodeDeviceSyncService, Clock clock) {
         this.repository = repository;
+        this.nodeDeviceSyncService = nodeDeviceSyncService;
         this.clock = clock;
     }
 
     public List<AppNode> list(long ownerUserId) {
         requirePositiveUserId(ownerUserId);
+        if (nodeDeviceSyncService != null) nodeDeviceSyncService.syncForUser(ownerUserId);
         return repository.findOwnedBy(ownerUserId);
     }
 
@@ -68,11 +80,13 @@ public class AppNodeService {
 
     public AppNodeRepository.DashboardAggregate summary(long ownerUserId) {
         requirePositiveUserId(ownerUserId);
+        if (nodeDeviceSyncService != null) nodeDeviceSyncService.syncForUser(ownerUserId);
         return repository.aggregateOwnedBy(ownerUserId);
     }
 
     public EarningsSummary earnings(long ownerUserId) {
         requirePositiveUserId(ownerUserId);
+        if (nodeDeviceSyncService != null) nodeDeviceSyncService.syncForUser(ownerUserId);
         List<AppNodeRepository.EarningSnapshot> snapshots = repository.earningsOwnedBy(ownerUserId);
         BigDecimal today = snapshots.stream()
                 .map(AppNodeRepository.EarningSnapshot::todayEarnings)

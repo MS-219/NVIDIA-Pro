@@ -7,10 +7,12 @@ import { StatusPill } from '../../components/StatusPill';
 import { colors, radii } from '../../components/theme';
 import { useAuth } from '../../context/AuthContext';
 import { useDevices } from '../../context/DeviceContext';
+import { useUpdates } from '../../context/UpdateContext';
 
 export default function ProfileScreen() {
   const { session, signOut } = useAuth();
   const { devices } = useDevices();
+  const { currentVersion, checking, checkNow } = useUpdates();
   const nickname = session?.user.nickname || 'Orin 用户';
 
   return (
@@ -31,6 +33,11 @@ export default function ProfileScreen() {
         <MenuRow icon="notifications-outline" title="通知设置" detail="管理平台消息" href="/notifications" last />
       </View>
 
+      <Text style={styles.sectionTitle}>应用更新</Text>
+      <View style={styles.menuPanel}>
+        <MenuRow icon="cloud-download-outline" title="检查更新" detail={checking ? '正在检查…' : `当前版本 ${currentVersion}`} onPress={() => { void checkNow(); }} last />
+      </View>
+
       <Text style={styles.sectionTitle}>关于 APP</Text>
       <View style={styles.menuPanel}>
         <MenuRow icon="server-outline" title="服务环境" detail="独立 API 与数据库" />
@@ -40,7 +47,7 @@ export default function ProfileScreen() {
       <Pressable onPress={signOut} style={({ pressed }) => [styles.logout, pressed && styles.pressed]} accessibilityRole="button" accessibilityLabel="退出登录">
         <Ionicons name="log-out-outline" size={19} color={colors.coral} /><Text style={styles.logoutText}>退出登录</Text>
       </Pressable>
-      <Text style={styles.version}>聚芯节点 · APP 1.0.0</Text>
+      <Text style={styles.version}>聚芯节点 · {currentVersion}</Text>
     </ScrollView>
   );
 }
@@ -49,8 +56,9 @@ function Stat({ label, value }: { label: string; value: string }) {
   return <View style={styles.stat}><Text style={styles.statLabel}>{label}</Text><Text style={styles.statValue} selectable>{value}</Text></View>;
 }
 
-function MenuRow({ icon, title, detail, href, last = false }: { icon: keyof typeof Ionicons.glyphMap; title: string; detail: string; href?: string; last?: boolean }) {
+function MenuRow({ icon, title, detail, href, onPress, last = false }: { icon: keyof typeof Ionicons.glyphMap; title: string; detail: string; href?: string; onPress?: () => void; last?: boolean }) {
   const row = <View style={[styles.menuRow, last && styles.menuRowLast]}><View style={styles.menuIcon}><Ionicons name={icon} size={18} color={colors.forest} /></View><View style={styles.menuCopy}><Text style={styles.menuTitle}>{title}</Text><Text style={styles.menuDetail}>{detail}</Text></View><Ionicons name="chevron-forward" size={16} color={colors.inkFaint} /></View>;
+  if (onPress) return <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel={title}>{row}</Pressable>;
   if (!href) return row;
   return <Link href={href as never} asChild><Pressable accessibilityRole="button" accessibilityLabel={title}>{row}</Pressable></Link>;
 }

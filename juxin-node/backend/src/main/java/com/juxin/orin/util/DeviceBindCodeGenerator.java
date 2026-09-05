@@ -9,7 +9,7 @@ import java.util.Locale;
 
 public final class DeviceBindCodeGenerator {
 
-    private static final String PREFIX = "Orin-";
+    private static final String PREFIX = "JD";
     private static final String ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
     private static final SecureRandom SECURE_RANDOM = new SecureRandom();
 

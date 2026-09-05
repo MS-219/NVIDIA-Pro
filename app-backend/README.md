@@ -1,6 +1,9 @@
 # Independent APP Backend
 
-This service is intentionally separate from the legacy mini-program backend. It starts with a phone/SMS authentication vertical slice and has no data migration or OpenID dependency.
+This service keeps APP accounts and counters in its own database. When the
+optional legacy database connection is configured, virtual devices assigned in
+the二开后台 are mirrored into the APP node table by matching the user's phone
+number.
 
 ## Run locally
 
@@ -82,10 +85,12 @@ POST /api/edge/tasks/submit device task result JSON
 
 ## APP device data
 
-`app_node` is an APP-only table. It is deliberately not connected to the
-legacy `device`, user, wallet, or earnings tables. An RK3588S enrollment creates
-the pending `app_node` row and its unique binding code; a user can then claim it
-from the APP. The mobile API cannot create an arbitrary node or supply
+`app_node` is the APP-facing node table. An RK3588S enrollment creates the
+pending row and its unique binding code; a user can then claim it from the APP.
+When `APP_NODE_DB_URL`, `APP_NODE_DB_USERNAME`, and `APP_NODE_DB_PASSWORD` are
+set, each authenticated device refresh also imports type-1 virtual devices
+from the二开后台 by matching phone number and assigns the verified APP account
+as owner. The mobile API still cannot create an arbitrary node or supply
 `owner_user_id`.
 
 For example, provision a fresh node directly in the new APP database (use a
@@ -108,10 +113,12 @@ Alibaba Cloud credentials stay on the server. Use a RAM sub-account restricted t
 The SDK uses bounded network timeouts by default (connect 5s, read 10s); tune
 `ALI_SMS_CONNECT_TIMEOUT_MILLIS` and `ALI_SMS_READ_TIMEOUT_MILLIS` when needed.
 
-The new operations console is served by `website/console.*`. Nginx uses
-`console.html` as the root page for `jd.ldjuxin.yun`; the previous public
-brochure remains available at `/index.html`. Configure `APP_ADMIN_USERNAME`
-and a strong `APP_ADMIN_PASSWORD` in the server-only `.env` before deploying.
+The `website/console.*` files are an early static verification console and are
+not the production operations UI. Production administration is served by the
+separate Vue fork in `juxin-node/admin`, with APIs from `juxin-node/backend`.
+Do not install `website/nginx-jd.ldjuxin.yun.conf` for the production admin
+domain; use `juxin-node/deploy/nginx-jd.ldjuxin.yun.conf` instead. The APP
+backend remains the service for mobile authentication and APP APIs.
 
 The APP client can read published notices, submit feedback, view its wallet,
 request withdrawals, submit payment accounts, view invites and place exchange

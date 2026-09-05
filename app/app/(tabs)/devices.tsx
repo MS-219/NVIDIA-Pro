@@ -32,7 +32,7 @@ export default function DevicesScreen() {
 
       <View style={styles.summaryBand}>
         <View style={styles.summaryIcon}><Ionicons name="hardware-chip-outline" size={23} color={colors.lime} /></View>
-        <View style={styles.summaryCopy}><Text style={styles.summaryTitle}>{hasDevices ? `${devices.length} 个节点` : '还没有节点'}</Text><Text style={styles.summarySubtitle}>{hasDevices ? `${onlineCount} 个在线 · 下拉刷新状态` : '绑定你的第一个 Orin 节点'}</Text></View>
+        <View style={styles.summaryCopy}><Text style={styles.summaryTitle}>{hasDevices ? `${devices.length} 个节点` : '还没有节点'}</Text><Text style={styles.summarySubtitle}>{hasDevices ? `${onlineCount} 个在线 · 下拉刷新状态` : '绑定你的第一个 RK3588S 节点'}</Text></View>
         <StatusPill label={hasDevices ? (onlineCount ? '运行中' : '待上线') : '未配置'} tone={hasDevices ? (onlineCount ? 'positive' : 'pending') : 'muted'} icon={hasDevices && onlineCount ? 'pulse-outline' : hasDevices ? 'time-outline' : 'ellipse-outline'} />
       </View>
 
@@ -66,7 +66,7 @@ export default function DevicesScreen() {
 }
 
 function DeviceCard({ device }: { device: AppDevice }) {
-  const { name, code, status } = device;
+  const { name, status } = device;
   const statusLabel = status === 'online' ? '在线' : status === 'offline' ? '离线' : '待上线';
   const statusIcon = status === 'online' ? 'checkmark-circle-outline' : status === 'offline' ? 'close-circle-outline' : 'time-outline';
   const hashrate = device.hashrate > 0 ? `${formatNumber(device.hashrate)} TOPS` : '--';
@@ -74,7 +74,7 @@ function DeviceCard({ device }: { device: AppDevice }) {
   return (
     <Link href={`/device/${device.id}` as never} asChild>
       <Pressable style={styles.deviceCard} accessibilityRole="button" accessibilityLabel={`查看${name}详情`}>
-        <View style={styles.deviceTop}><View style={styles.deviceIcon}><Ionicons name="hardware-chip" size={21} color={colors.forest} /></View><View style={styles.deviceCopy}><Text style={styles.deviceName}>{name}</Text><Text style={styles.deviceCode} selectable>{code}</Text></View><StatusPill label={statusLabel} tone={status === 'online' ? 'positive' : status === 'offline' ? 'danger' : 'pending'} icon={statusIcon} /></View>
+        <View style={styles.deviceTop}><View style={styles.deviceIcon}><Ionicons name="hardware-chip" size={21} color={colors.forest} /></View><View style={styles.deviceCopy}><Text style={styles.deviceName}>{name}</Text><Text style={styles.deviceCode}>设备型号：RK3588S</Text></View><StatusPill label={statusLabel} tone={status === 'online' ? 'positive' : status === 'offline' ? 'danger' : 'pending'} icon={statusIcon} /></View>
         <View style={styles.deviceDivider} />
         <View style={styles.deviceMeta}><View><Text style={styles.metaLabel}>算力</Text><Text style={styles.metaValue}>{hashrate}</Text></View><View><Text style={styles.metaLabel}>温度</Text><Text style={styles.metaValue}>{temperature}</Text></View><View><Text style={styles.metaLabel}>今日收益</Text><Text style={styles.metaValue}>{formatCurrency(device.dailyEarnings)}</Text></View><Ionicons name="chevron-forward" size={17} color={colors.inkFaint} /></View>
       </Pressable>

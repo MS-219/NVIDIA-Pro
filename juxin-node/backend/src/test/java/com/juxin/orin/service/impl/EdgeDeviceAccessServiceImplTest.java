@@ -74,7 +74,7 @@ class EdgeDeviceAccessServiceImplTest {
 
         assertEquals("ORIN-001", response.deviceSn());
         assertEquals(42L, response.deviceId());
-        assertTrue(response.bindCode().matches("Orin-[A-F0-9]{6}"));
+        assertTrue(response.bindCode().matches("JD[A-F0-9]{6}"));
         assertEquals(response.bindCode(), stored.getBindCode());
         assertNotNull(response.deviceToken());
         assertEquals(43, response.deviceToken().length());
@@ -90,7 +90,7 @@ class EdgeDeviceAccessServiceImplTest {
     @Test
     void enrollRetriesWhenFirstShortCodeIsOwnedByAnotherDevice() {
         String sn = "ORIN-0123456789ABCDEF";
-        String firstCandidate = "Orin-" + EdgeDeviceAccessServiceImpl.sha256(sn)
+        String firstCandidate = "JD" + EdgeDeviceAccessServiceImpl.sha256(sn)
                 .substring(0, 6).toUpperCase();
         Device owner = new Device();
         owner.setSn("ORIN-OTHER");
@@ -106,7 +106,7 @@ class EdgeDeviceAccessServiceImplTest {
         EdgeEnrollResponse response = service.enroll(
                 enrollmentRequest(sn), "203.0.113.20");
 
-        assertTrue(response.bindCode().matches("Orin-[A-F0-9]{6}"));
+        assertTrue(response.bindCode().matches("JD[A-F0-9]{6}"));
         assertNotEquals(firstCandidate, response.bindCode());
     }
 

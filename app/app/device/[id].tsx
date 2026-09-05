@@ -55,7 +55,7 @@ function DeviceDetails({ device }: { device: AppDevice }) {
     <>
       <View style={styles.hero}>
         <View style={styles.heroTop}><View style={styles.heroIcon}><Ionicons name="hardware-chip" size={30} color={colors.lime} /></View><StatusPill label={statusLabel} tone={statusTone} icon={online ? 'pulse-outline' : device.status === 'offline' ? 'close-circle-outline' : 'time-outline'} /></View>
-        <Text style={styles.heroName}>{device.name}</Text><Text style={styles.heroCode} selectable>{device.code}</Text>
+        <Text style={styles.heroName}>{device.name}</Text><Text style={styles.heroCode}>设备型号：RK3588S</Text>
         <View style={styles.heroRule} /><View style={styles.heroFooter}><Ionicons name="calendar-outline" size={14} color="#b6cbb0" /><Text style={styles.heroFooterText}>{device.boundAt ? `绑定于 ${formatDate(device.boundAt)}` : '绑定时间待同步'}</Text></View>
       </View>
 

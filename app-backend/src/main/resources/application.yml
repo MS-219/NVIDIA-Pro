@@ -20,9 +20,17 @@ app:
   public-base-url: ${APP_PUBLIC_BASE_URL:https://api.example.com}
   cors-allowed-origins: ${APP_CORS_ALLOWED_ORIGINS:}
   jwt-secret: ${APP_JWT_SECRET:}
+  node-admin-jwt-secret: ${APP_NODE_ADMIN_JWT_SECRET:}
   admin:
     username: ${APP_ADMIN_USERNAME:}
     password: ${APP_ADMIN_PASSWORD:}
+  node-db:
+    url: ${APP_NODE_DB_URL:}
+    username: ${APP_NODE_DB_USERNAME:}
+    password: ${APP_NODE_DB_PASSWORD:}
+  update:
+    storage-dir: ${APP_UPDATE_STORAGE_DIR:./uploads/app-releases}
+    max-file-bytes: ${APP_UPDATE_MAX_FILE_BYTES:524288000}
   sms:
     provider: ${APP_SMS_PROVIDER:mock}
     pepper: ${APP_SMS_PEPPER:}

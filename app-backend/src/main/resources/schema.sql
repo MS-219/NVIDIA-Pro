@@ -274,6 +274,25 @@ CREATE TABLE IF NOT EXISTS app_device_upgrade_record (
     PRIMARY KEY (id), KEY idx_app_upgrade_record_status (status, created_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
+CREATE TABLE IF NOT EXISTS app_mobile_release (
+    id BIGINT NOT NULL AUTO_INCREMENT,
+    platform VARCHAR(16) NOT NULL DEFAULT 'android',
+    version VARCHAR(64) NOT NULL,
+    version_code INT NOT NULL,
+    file_name VARCHAR(255) NOT NULL,
+    file_size BIGINT NOT NULL,
+    sha256 CHAR(64) NOT NULL,
+    release_note TEXT NULL,
+    force_update BOOLEAN NOT NULL DEFAULT FALSE,
+    status VARCHAR(16) NOT NULL DEFAULT 'active',
+    storage_path VARCHAR(500) NOT NULL,
+    download_path VARCHAR(500) NOT NULL,
+    published_at TIMESTAMP NULL,
+    created_by VARCHAR(80) NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (id), KEY idx_app_mobile_release_platform_code (platform, version_code, status)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
 CREATE TABLE IF NOT EXISTS app_system_setting (
     setting_key VARCHAR(80) NOT NULL,
     setting_value TEXT NOT NULL,

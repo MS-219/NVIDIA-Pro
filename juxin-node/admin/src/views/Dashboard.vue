@@ -94,6 +94,10 @@
           <el-icon><UploadFilled /></el-icon>
           <span>版本升级</span>
         </el-menu-item>
+        <el-menu-item index="/app-updates">
+          <el-icon><Download /></el-icon>
+          <span>APP 更新</span>
+        </el-menu-item>
         <el-menu-item index="/terminal">
           <el-icon><Platform /></el-icon>
           <span>终端会话</span>
@@ -170,6 +174,7 @@ import {
   CircleCheck,
   Connection,
   DataAnalysis,
+  Download,
   DocumentChecked,
   Goods,
   List,

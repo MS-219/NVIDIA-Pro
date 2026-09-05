@@ -37,7 +37,7 @@ function mapDevice(payload: DevicePayload): AppDevice {
   const normalizedStatus = payload.status?.toLowerCase();
   return {
     id: payload.id,
-    name: payload.name || 'Orin 节点',
+    name: payload.name || 'RK3588S 节点',
     code: payload.code,
     status: normalizedStatus === 'online' || normalizedStatus === 'offline' ? normalizedStatus : 'pending',
     hashrate: Number(payload.hashrate) || 0,

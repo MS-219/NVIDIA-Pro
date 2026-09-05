@@ -33,14 +33,16 @@ public class AuthService {
     private final JwtService jwtService;
     private final AppProperties properties;
     private final Clock clock;
+    private final NodeUserSyncService nodeUserSyncService;
 
     @Autowired
     public AuthService(SmsChallengeStore challengeStore,
                        UserAccountRepository userRepository,
                        SmsGateway smsGateway,
                        JwtService jwtService,
-                       AppProperties properties) {
-        this(challengeStore, userRepository, smsGateway, jwtService, properties, Clock.systemUTC());
+                       AppProperties properties,
+                       NodeUserSyncService nodeUserSyncService) {
+        this(challengeStore, userRepository, smsGateway, jwtService, properties, Clock.systemUTC(), nodeUserSyncService);
     }
 
     AuthService(SmsChallengeStore challengeStore,
@@ -49,12 +51,23 @@ public class AuthService {
                 JwtService jwtService,
                 AppProperties properties,
                 Clock clock) {
+        this(challengeStore, userRepository, smsGateway, jwtService, properties, clock, null);
+    }
+
+    AuthService(SmsChallengeStore challengeStore,
+                UserAccountRepository userRepository,
+                SmsGateway smsGateway,
+                JwtService jwtService,
+                AppProperties properties,
+                Clock clock,
+                NodeUserSyncService nodeUserSyncService) {
         this.challengeStore = challengeStore;
         this.userRepository = userRepository;
         this.smsGateway = smsGateway;
         this.jwtService = jwtService;
         this.properties = properties;
         this.clock = clock;
+        this.nodeUserSyncService = nodeUserSyncService;
     }
 
     @Transactional
@@ -112,6 +125,7 @@ public class AuthService {
             log.error("account persistence failed for phone suffix {}", phone.substring(Math.max(0, phone.length() - 4)), e);
             throw new ApiException(503, "账号服务暂时不可用");
         }
+        if (nodeUserSyncService != null) nodeUserSyncService.syncNickname(user.phone(), user.nickname());
         return new LoginResult(jwtService.issue(user), user);
     }
 
@@ -132,8 +146,10 @@ public class AuthService {
         if (nickname.length() > 40) {
             throw new ApiException(400, "昵称长度不能超过 40 个字符");
         }
-        return userRepository.updateNickname(userId, nickname)
+        UserAccount user = userRepository.updateNickname(userId, nickname)
                 .orElseThrow(() -> new ApiException(404, "账号不存在"));
+        if (nodeUserSyncService != null) nodeUserSyncService.syncNickname(user.phone(), user.nickname());
+        return user;
     }
 
     private String hashCode(String phone, String code) {

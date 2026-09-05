@@ -1276,7 +1276,7 @@ public class DeviceController {
         return success ? Result.success("删除成功") : Result.error("删除失败");
     }
 
-    /** 生成 Orin 设备绑定码。 */
+    /** 生成聚芯节点设备绑定码。 */
     private String generateBindCode() {
         String code;
         int attempts = 0;

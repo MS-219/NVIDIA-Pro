@@ -30,9 +30,14 @@ services:
       APP_DB_URL: jdbc:mysql://mysql:3306/orin_app?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
       APP_DB_USERNAME: ${APP_DB_USERNAME:-orin_app}
       APP_DB_PASSWORD: ${APP_DB_PASSWORD}
+      # Read-only access to the二开库 is used to mirror virtual devices by phone.
+      APP_NODE_DB_URL: ${APP_NODE_DB_URL:-jdbc:mysql://juxin-node-mysql:3306/juxin_node?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true}
+      APP_NODE_DB_USERNAME: ${APP_NODE_DB_USERNAME:-juxin_node}
+      APP_NODE_DB_PASSWORD: ${APP_NODE_DB_PASSWORD:-}
       APP_PUBLIC_BASE_URL: ${APP_PUBLIC_BASE_URL:-http://localhost:8091}
       APP_CORS_ALLOWED_ORIGINS: ${APP_CORS_ALLOWED_ORIGINS:-}
       APP_JWT_SECRET: ${APP_JWT_SECRET:?set APP_JWT_SECRET}
+      APP_NODE_ADMIN_JWT_SECRET: ${APP_NODE_ADMIN_JWT_SECRET:-}
       APP_ADMIN_USERNAME: ${APP_ADMIN_USERNAME:?set APP_ADMIN_USERNAME}
       APP_ADMIN_PASSWORD: ${APP_ADMIN_PASSWORD:?set APP_ADMIN_PASSWORD}
       APP_SMS_PROVIDER: ${APP_SMS_PROVIDER:-mock}
@@ -45,6 +50,11 @@ services:
       ALI_SMS_READ_TIMEOUT_MILLIS: ${ALI_SMS_READ_TIMEOUT_MILLIS:-10000}
     ports:
       - "${APP_BACKEND_PORT:-18091}:8091"
+    networks:
+      - default
+      - juxin_node_internal
+    volumes:
+      - ./uploads:/app/uploads
     healthcheck:
       test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:8091/api/health >/dev/null"]
       interval: 15s
@@ -54,3 +64,8 @@ services:
 
 volumes:
   app_mysql_data:
+
+networks:
+  juxin_node_internal:
+    external: true
+    name: juxin-node-internal

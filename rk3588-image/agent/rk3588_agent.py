@@ -9,12 +9,14 @@ import fcntl
 import math
 import os
 import platform
+import pwd
 import pty
 import re
 import signal
 import socket
 import struct
 import subprocess
+import shutil
 import termios
 import threading
 import time
@@ -59,7 +61,8 @@ RUNTIME_DIR = Path(os.getenv("JUXIN_RK_RUNTIME_DIR", "/opt/juxin-rk3588/runtime"
 TASK_RUNNER = Path(os.getenv("JUXIN_RK_TASK_RUNNER", str(RUNTIME_DIR / "task-runner")))
 OLLAMA_API_BASE = os.getenv("JUXIN_RK_OLLAMA_API_BASE_URL", "http://127.0.0.1:11434").rstrip("/")
 TERMINAL_USER = os.getenv("JUXIN_RK_TERMINAL_USER", "juxin").strip() or "juxin"
-TERMINAL_SETSID_BIN = os.getenv("JUXIN_RK_TERMINAL_SETSID_BIN", "/usr/bin/setsid")
+TERMINAL_SETSID_BIN = os.getenv("JUXIN_RK_TERMINAL_SETSID_BIN", "").strip() or shutil.which("setsid") or "/usr/bin/setsid"
+TERMINAL_RUNUSER_BIN = os.getenv("JUXIN_RK_TERMINAL_RUNUSER_BIN", "").strip() or shutil.which("runuser") or "/usr/sbin/runuser"
 TERMINAL_KEEPALIVE_INTERVAL = min(
     300, max(10, int(os.getenv("JUXIN_RK_TERMINAL_KEEPALIVE_INTERVAL", "25")))
 )
@@ -241,20 +244,12 @@ class TerminalShell:
             if self.fd >= 0:
                 self.resize(columns, rows)
                 return
-            account = subprocess.run(
-                ["/usr/bin/getent", "passwd", TERMINAL_USER],
-                text=True,
-                capture_output=True,
-                timeout=5,
-                check=False,
-            )
-            if account.returncode != 0 or not account.stdout.strip():
-                raise RuntimeError(f"terminal user {TERMINAL_USER} does not exist")
-            fields = account.stdout.strip().split(":")
-            if len(fields) < 7:
-                raise RuntimeError("terminal user account is invalid")
-            home = fields[5] or f"/home/{TERMINAL_USER}"
-            shell = fields[6] or "/bin/bash"
+            try:
+                account = pwd.getpwnam(TERMINAL_USER)
+            except KeyError as error:
+                raise RuntimeError(f"terminal user {TERMINAL_USER} does not exist") from error
+            home = account.pw_dir or f"/home/{TERMINAL_USER}"
+            shell = account.pw_shell or "/bin/bash"
             if not os.access(TERMINAL_SETSID_BIN, os.X_OK):
                 raise RuntimeError(f"terminal session helper {TERMINAL_SETSID_BIN} is unavailable")
             master, slave = pty.openpty()
@@ -273,7 +268,7 @@ class TerminalShell:
                     [
                         TERMINAL_SETSID_BIN,
                         "--ctty",
-                        "/usr/sbin/runuser",
+                        TERMINAL_RUNUSER_BIN,
                         "-u",
                         TERMINAL_USER,
                         "--",

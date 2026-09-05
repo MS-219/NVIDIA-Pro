@@ -49,6 +49,38 @@ curl -kfsS https://jd.ldjuxin.yun/ | grep -m1 '<title>'
 `ssl_certificate` 和 `ssl_certificate_key`。后台登录账号密码由 `.env` 中的
 `JUXIN_NODE_ADMIN_USERNAME`、`JUXIN_NODE_ADMIN_PASSWORD` 决定。
 
+## 从旧 HTML 控制台切换
+
+`website/console.html` 是早期静态验证页，不是二开后台。生产域名必须使用本目录的
+`deploy/nginx-jd.ldjuxin.yun.conf`，并让 `juxin-node-admin` 容器提供页面。
+
+如果域名现在仍显示 `console.html`，在服务器执行：
+
+```bash
+cd /www/wwwroot/NVIDIA-Pro/juxin-node
+docker compose --env-file .env up -d --build mysql backend admin
+curl -fsS http://127.0.0.1:18092/api/health
+curl -fsS http://127.0.0.1:18175/ | grep -m1 '<title>'
+
+sudo cp /etc/nginx/sites-available/jd.ldjuxin.yun \
+  /etc/nginx/sites-available/jd.ldjuxin.yun.bak.$(date +%Y%m%d%H%M%S)
+sudo cp deploy/nginx-jd.ldjuxin.yun.conf \
+  /etc/nginx/sites-available/jd.ldjuxin.yun
+sudo ln -sfn /etc/nginx/sites-available/jd.ldjuxin.yun \
+  /etc/nginx/sites-enabled/jd.ldjuxin.yun
+sudo nginx -t && sudo systemctl reload nginx
+curl -kfsS https://jd.ldjuxin.yun/ | grep -m1 '<title>'
+```
+
+最后一条应返回 `聚芯节点｜设备运营后台`，页面源码应包含 `<div id="app">`。
+如果仍返回 `console.html`，用 `sudo nginx -T | grep -n -B3 -A8
+'server_name jd.ldjuxin.yun'` 找出并停用同一域名的其它 server block 后再重载 Nginx。
+
+后台创建的虚拟设备会写入 `juxin_node.device`。如果 APP 后端配置了
+`APP_NODE_DB_URL`、`APP_NODE_DB_USERNAME` 和 `APP_NODE_DB_PASSWORD`，APP
+刷新设备列表时会按手机号把这些虚拟设备同步到 `orin_app.app_node`，因此
+后台指定用户后无需在 APP 再次输入绑定码。
+
 ## 与原项目的边界
 
 `juxin-node/admin` 和 `juxin-node/backend` 是已复制后的独立源码；构建、数据库和端口

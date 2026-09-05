@@ -6,8 +6,10 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 public class AppProperties {
     private String publicBaseUrl = "https://api.example.com";
     private String jwtSecret;
+    private String nodeAdminJwtSecret;
     private Admin admin = new Admin();
     private Sms sms = new Sms();
+    private Update update = new Update();
 
     public String getPublicBaseUrl() {
         return publicBaseUrl;
@@ -24,6 +26,8 @@ public class AppProperties {
     public void setJwtSecret(String jwtSecret) {
         this.jwtSecret = jwtSecret;
     }
+    public String getNodeAdminJwtSecret() { return nodeAdminJwtSecret; }
+    public void setNodeAdminJwtSecret(String value) { this.nodeAdminJwtSecret = value; }
 
     public Admin getAdmin() {
         return admin;
@@ -56,6 +60,18 @@ public class AppProperties {
 
     public Sms getSms() {
         return sms;
+    }
+
+    public Update getUpdate() { return update; }
+    public void setUpdate(Update update) { this.update = update; }
+
+    public static class Update {
+        private String storageDir = "./uploads/app-releases";
+        private long maxFileBytes = 500L * 1024 * 1024;
+        public String getStorageDir() { return storageDir; }
+        public void setStorageDir(String storageDir) { this.storageDir = storageDir; }
+        public long getMaxFileBytes() { return maxFileBytes; }
+        public void setMaxFileBytes(long maxFileBytes) { this.maxFileBytes = maxFileBytes; }
     }
 
     public void setSms(Sms sms) {

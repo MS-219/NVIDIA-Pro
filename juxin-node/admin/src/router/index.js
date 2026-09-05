@@ -62,6 +62,12 @@ const routes = [
                 meta: { title: '设备升级管理' }
             },
             {
+                path: 'app-updates',
+                name: 'AppUpdates',
+                component: () => import('../views/AppUpdates.vue'),
+                meta: { title: 'APP 自动更新' }
+            },
+            {
                 path: 'terminal',
                 name: 'Terminal',
                 component: Terminal,

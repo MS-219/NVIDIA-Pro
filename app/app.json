@@ -13,6 +13,7 @@
     },
     "android": {
       "package": "cn.juxin.orin.app",
+      "versionCode": 2,
       "adaptiveIcon": {
         "backgroundColor": "#294b35",
         "foregroundImage": "./assets/android-icon-foreground.png",

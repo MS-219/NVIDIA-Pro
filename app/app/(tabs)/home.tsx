@@ -16,7 +16,6 @@ export default function HomeScreen() {
   const { devices, summary, earnings, loading, error, refresh } = useDevices();
   const nickname = session?.user.nickname || 'Orin 用户';
   const activeDevices = summary?.online ?? devices.filter((device) => device.status === 'online').length;
-  const totalHashrate = summary?.totalHashrate ?? 0;
   const todayEarnings = summary?.todayEarnings ?? earnings.todayEarnings;
   const totalEarnings = summary?.totalEarnings ?? earnings.totalEarnings;
   const hasDevices = devices.length > 0;
@@ -51,11 +50,6 @@ export default function HomeScreen() {
 
         <View style={styles.heroDivider} />
         <View style={styles.heroStats}>
-          <View style={styles.heroStat}>
-            <Text style={styles.heroStatLabel}>可用算力</Text>
-            <Text style={styles.heroStatValue} selectable>{totalHashrate > 0 ? `${formatNumber(totalHashrate)} TOPS` : '--'}</Text>
-          </View>
-          <View style={styles.heroStatLine} />
           <View style={styles.heroStat}>
             <Text style={styles.heroStatLabel}>在线节点</Text>
             <Text style={styles.heroStatValue} selectable>{summary ? activeDevices : '--'}</Text>
@@ -153,10 +147,6 @@ function ActivityRow({ icon, title, detail, last = false }: { icon: keyof typeof
       <Ionicons name="checkmark" size={16} color={colors.leaf} />
     </View>
   );
-}
-
-function formatNumber(value: number): string {
-  return new Intl.NumberFormat('zh-CN', { maximumFractionDigits: 2 }).format(value);
 }
 
 function formatCurrency(value: number): string {
