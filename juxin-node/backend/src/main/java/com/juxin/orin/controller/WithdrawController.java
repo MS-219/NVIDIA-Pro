@@ -19,6 +19,8 @@ import java.util.Map;
 @RequestMapping("/api/withdraw")
 public class WithdrawController {
 
+    private static final String KEY_WITHDRAW_MONTHLY_ALLOWED = "withdraw.monthlyAllowedDays";
+
     @Autowired
     private IWithdrawService withdrawService;
 
@@ -98,31 +100,41 @@ public class WithdrawController {
      */
     @PostMapping("/apply")
     public Result<String> apply(@RequestBody Map<String, Object> params) {
-        int monthlyStart = parseDay(configService.getConfig("withdraw.monthlyStartDay", "1"), 1);
-        int monthlyEnd = parseDay(configService.getConfig("withdraw.monthlyEndDay", "31"), 31);
-        if (monthlyStart < monthlyEnd || monthlyStart != 1 || monthlyEnd != 31) {
-            java.time.LocalDate todayDate = java.time.LocalDate.now();
-            int effectiveEnd = Math.min(monthlyEnd, todayDate.lengthOfMonth());
-            if (todayDate.getDayOfMonth() < monthlyStart || todayDate.getDayOfMonth() > effectiveEnd) {
-                return Result.error("今日暂不可申请，开放时间为每月" + monthlyStart + "号至" + monthlyEnd + "号");
+        String monthlyAllowed = normalizeMonthlyDays(configService.getConfig(KEY_WITHDRAW_MONTHLY_ALLOWED, ""));
+        if (!monthlyAllowed.isEmpty()) {
+            java.time.LocalDate today = java.time.LocalDate.now();
+            if (!isMonthlyWithdrawalDay(monthlyAllowed, today)) {
+                return Result.error("今日暂不可申请，允许提现日为" + formatMonthlyDays(monthlyAllowed));
             }
-        }
-        String allowedDays = configService.getConfig("withdraw.allowedDays", "");
-        if (allowedDays != null && !allowedDays.trim().isEmpty()) {
-            int today = java.time.LocalDate.now().getDayOfWeek().getValue();
-            java.util.List<Integer> configuredDays = java.util.Arrays.stream(allowedDays.split(","))
-                    .map(String::trim)
-                    .filter(day -> day.matches("[1-7]"))
-                    .map(Integer::parseInt)
-                    .distinct()
-                    .sorted()
-                    .toList();
-            if (!configuredDays.isEmpty() && !configuredDays.contains(today)) {
-                String[] names = { "", "周一", "周二", "周三", "周四", "周五", "周六", "周日" };
-                String dayText = configuredDays.stream()
-                        .map(day -> names[day])
-                        .collect(java.util.stream.Collectors.joining("、"));
-                return Result.error("今日暂不可申请，允许提现日为" + dayText);
+        } else {
+            // Legacy range/weekday rules remain available only when no monthly date list
+            // is configured, so stale settings cannot unexpectedly narrow the new rule.
+            int monthlyStart = parseDay(configService.getConfig("withdraw.monthlyStartDay", "1"), 1);
+            int monthlyEnd = parseDay(configService.getConfig("withdraw.monthlyEndDay", "31"), 31);
+            if (monthlyStart < monthlyEnd || monthlyStart != 1 || monthlyEnd != 31) {
+                java.time.LocalDate todayDate = java.time.LocalDate.now();
+                int effectiveEnd = Math.min(monthlyEnd, todayDate.lengthOfMonth());
+                if (todayDate.getDayOfMonth() < monthlyStart || todayDate.getDayOfMonth() > effectiveEnd) {
+                    return Result.error("今日暂不可申请，开放时间为每月" + monthlyStart + "号至" + monthlyEnd + "号");
+                }
+            }
+            String allowedDays = configService.getConfig("withdraw.allowedDays", "");
+            if (allowedDays != null && !allowedDays.trim().isEmpty()) {
+                int today = java.time.LocalDate.now().getDayOfWeek().getValue();
+                java.util.List<Integer> configuredDays = java.util.Arrays.stream(allowedDays.split(","))
+                        .map(String::trim)
+                        .filter(day -> day.matches("[1-7]"))
+                        .map(Integer::parseInt)
+                        .distinct()
+                        .sorted()
+                        .toList();
+                if (!configuredDays.isEmpty() && !configuredDays.contains(today)) {
+                    String[] names = { "", "周一", "周二", "周三", "周四", "周五", "周六", "周日" };
+                    String dayText = configuredDays.stream()
+                            .map(day -> names[day])
+                            .collect(java.util.stream.Collectors.joining("、"));
+                    return Result.error("今日暂不可申请，允许提现日为" + dayText);
+                }
             }
         }
 
@@ -175,6 +187,44 @@ public class WithdrawController {
     private int parseDay(String value, int fallback) {
         try { int day = Integer.parseInt(value); return day >= 1 && day <= 31 ? day : fallback; }
         catch (Exception ignored) { return fallback; }
+    }
+
+    private String normalizeMonthlyDays(String value) {
+        if (value == null || value.trim().isEmpty()) return "";
+        String raw = value.trim();
+        // Accept the JSON-like representation produced by some clients (for example [1,15]).
+        if (raw.startsWith("[") && raw.endsWith("]")) {
+            raw = raw.substring(1, raw.length() - 1);
+        }
+        java.util.SortedSet<Integer> days = new java.util.TreeSet<>();
+        if (raw.trim().isEmpty()) return "";
+        for (String item : raw.split(",")) {
+            try {
+                String token = item.trim().replaceAll("^\\\"|\\\"$", "");
+                int day = Integer.parseInt(token);
+                if (day < 1 || day > 31) return "";
+                days.add(day);
+            } catch (NumberFormatException ignored) {
+                return "";
+            }
+        }
+        return days.stream().map(String::valueOf).collect(java.util.stream.Collectors.joining(","));
+    }
+
+    /**
+     * A selected day only opens on months that actually contain that day. Thus selecting
+     * the 31st does not make February 28/29 an implicit withdrawal day.
+     */
+    private boolean isMonthlyWithdrawalDay(String monthlyAllowed, java.time.LocalDate date) {
+        int day = date.getDayOfMonth();
+        return java.util.Arrays.stream(monthlyAllowed.split(","))
+                .anyMatch(configured -> Integer.parseInt(configured) == day);
+    }
+
+    private String formatMonthlyDays(String days) {
+        return java.util.Arrays.stream(days.split(","))
+                .map(day -> day + "号")
+                .collect(java.util.stream.Collectors.joining("、"));
     }
 
     /**

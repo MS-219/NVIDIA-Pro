@@ -125,13 +125,16 @@
           </template>
           <el-form label-width="120px">
             <el-form-item label="每月开放日期">
-              <div class="earning-range-row">
-                <el-input-number v-model="withdrawMonthlyStartDay" :min="1" :max="31" :precision="0" />
-                <span class="range-text">号至</span>
-                <el-input-number v-model="withdrawMonthlyEndDay" :min="1" :max="31" :precision="0" />
-                <span class="unit">号</span>
+              <el-checkbox-group v-model="monthlyAllowedDays" class="withdraw-days-grid">
+                <el-checkbox v-for="day in monthlyDayOptions" :key="day" :label="day">
+                  {{ day }}号
+                </el-checkbox>
+              </el-checkbox-group>
+              <div class="withdraw-days-actions">
+                <el-button size="small" @click="selectAllWithdrawDays">全选</el-button>
+                <el-button size="small" @click="clearWithdrawDays">清空</el-button>
               </div>
-              <div class="hint">可设置每月 1 至 31 号，月底不足 31 天时按当月最后一天计算</div>
+              <div class="hint">勾选后仅在每月所选日期开放提现；当月没有对应日期时自动跳过</div>
             </el-form-item>
             <el-form-item label="固定规则">
               <div>0.01 元起 · 完成实名签约 · 本人收款账户 · 1-3 个工作日处理</div>
@@ -287,18 +290,8 @@ const securitySettings = reactive({
   confirmPassword: ''
 })
 
-const withdrawAllowedDays = ref([])
-const withdrawMonthlyStartDay = ref(1)
-const withdrawMonthlyEndDay = ref(31)
-const withdrawDayOptions = [
-  { value: 1, label: '周一' },
-  { value: 2, label: '周二' },
-  { value: 3, label: '周三' },
-  { value: 4, label: '周四' },
-  { value: 5, label: '周五' },
-  { value: 6, label: '周六' },
-  { value: 7, label: '周日' }
-]
+const monthlyDayOptions = Array.from({ length: 31 }, (_, index) => index + 1)
+const monthlyAllowedDays = ref([...monthlyDayOptions])
 
 // 加载设置
 const loadSettings = async () => {
@@ -333,13 +326,31 @@ const loadSettings = async () => {
       if (data.banners) {
         banners.splice(0, banners.length, ...data.banners)
       }
-      withdrawAllowedDays.value = (data.withdrawAllowedDays || '')
-        .split(',')
-        .filter(day => day.trim())
-        .map(day => Number(day.trim()))
-        .filter(day => day >= 1 && day <= 7)
-      withdrawMonthlyStartDay.value = Number(data.withdrawMonthlyStartDay || 1)
-      withdrawMonthlyEndDay.value = Number(data.withdrawMonthlyEndDay || 31)
+      // 月提现日支持 1-31 号多选。兼容后端返回逗号分隔字符串和数组格式。
+      const configuredMonthlyDays = data.monthlyAllowedDays ?? data.withdrawMonthlyAllowedDays
+      if (configuredMonthlyDays !== undefined && configuredMonthlyDays !== null) {
+        const values = Array.isArray(configuredMonthlyDays)
+          ? configuredMonthlyDays
+          : String(configuredMonthlyDays).split(',')
+        const parsedDays = values
+          .map(day => Number(day))
+          .filter(day => Number.isInteger(day) && day >= 1 && day <= 31)
+          .filter((day, index, list) => list.indexOf(day) === index)
+          .sort((a, b) => a - b)
+        if (parsedDays.length > 0) {
+          monthlyAllowedDays.value = parsedDays
+        } else {
+          // 空配置代表旧版“每天开放”，按旧区间字段展示，默认全选。
+          const start = Number(data.withdrawMonthlyStartDay || 1)
+          const end = Number(data.withdrawMonthlyEndDay || 31)
+          monthlyAllowedDays.value = monthlyDayOptions.filter(day => day >= start && day <= end)
+        }
+      } else {
+        // 旧版区间配置迁移到勾选列表，避免升级后设置被重置。
+        const start = Number(data.withdrawMonthlyStartDay || 1)
+        const end = Number(data.withdrawMonthlyEndDay || 31)
+        monthlyAllowedDays.value = monthlyDayOptions.filter(day => day >= start && day <= end)
+      }
     }
   } catch (e) {
     console.error('加载设置失败:', e)
@@ -439,13 +450,12 @@ const validateEarningsSettings = () => {
 
 const saveWithdrawDays = async () => {
   try {
-    if (withdrawMonthlyStartDay.value > withdrawMonthlyEndDay.value) {
-      ElMessage.error('起始日不能晚于结束日')
+    if (monthlyAllowedDays.value.length === 0) {
+      ElMessage.error('请至少选择一个提现日期')
       return
     }
     const res = await axios.post('/api/settings/withdraw-days', {
-      startDay: withdrawMonthlyStartDay.value,
-      endDay: withdrawMonthlyEndDay.value
+      monthlyAllowedDays: [...monthlyAllowedDays.value].sort((a, b) => a - b)
     })
     if (res.data.code === 200) {
       ElMessage.success('提现日期设置已保存')
@@ -455,6 +465,14 @@ const saveWithdrawDays = async () => {
   } catch (e) {
     ElMessage.error('网络请求失败')
   }
+}
+
+const selectAllWithdrawDays = () => {
+  monthlyAllowedDays.value = [...monthlyDayOptions]
+}
+
+const clearWithdrawDays = () => {
+  monthlyAllowedDays.value = []
 }
 
 const saveSystemSettings = async () => {
@@ -704,6 +722,28 @@ onMounted(async () => {
 
 .earning-range-row .unit {
   margin-left: 0;
+}
+
+.withdraw-days-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(52px, 1fr));
+  gap: 8px 4px;
+  width: 100%;
+  max-width: 460px;
+  padding: 12px 14px;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  background: #f8fafc;
+}
+
+.withdraw-days-grid :deep(.el-checkbox) {
+  margin-right: 0;
+}
+
+.withdraw-days-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
 }
 
 .remove-level-button {

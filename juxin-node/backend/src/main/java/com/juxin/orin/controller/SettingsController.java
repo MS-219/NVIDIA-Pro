@@ -62,6 +62,7 @@ public class SettingsController {
     private static final String KEY_WITHDRAW_ALLOWED_DAYS = "withdraw.allowedDays"; // 允许提现的星期几,如"1,4"表示周一和周四
     private static final String KEY_WITHDRAW_MONTHLY_START = "withdraw.monthlyStartDay";
     private static final String KEY_WITHDRAW_MONTHLY_END = "withdraw.monthlyEndDay";
+    private static final String KEY_WITHDRAW_MONTHLY_ALLOWED = "withdraw.monthlyAllowedDays";
 
     private static final String SUFFIX_NAME = ".name";
     private static final String SUFFIX_RATE = ".rate";
@@ -166,6 +167,8 @@ public class SettingsController {
         settings.put("withdrawAllowedDays", configService.getConfig(KEY_WITHDRAW_ALLOWED_DAYS, ""));
         settings.put("withdrawMonthlyStartDay", configService.getConfig(KEY_WITHDRAW_MONTHLY_START, "1"));
         settings.put("withdrawMonthlyEndDay", configService.getConfig(KEY_WITHDRAW_MONTHLY_END, "31"));
+        settings.put("withdrawMonthlyAllowedDays", configService.getConfig(KEY_WITHDRAW_MONTHLY_ALLOWED, ""));
+        settings.put("monthlyAllowedDays", configService.getConfig(KEY_WITHDRAW_MONTHLY_ALLOWED, ""));
 
         return Result.success(settings);
     }
@@ -526,7 +529,7 @@ public class SettingsController {
      * 保存提现日期限制配置（管理员专用）
      * 安全修复：需要管理员权限
      * 
-     * @param params 包含 allowedDays 字段，如 "1,4" 表示周一和周四可提现，空字符串表示不限制
+     * @param params 新版包含 monthlyAllowedDays（每月 1-31 号，可传数组或逗号分隔字符串）；同时兼容旧 allowedDays 星期规则
      */
     @PostMapping("/withdraw-days")
     public Result<Object> saveWithdrawDays(
@@ -538,7 +541,22 @@ public class SettingsController {
             return Result.error(error);
         }
 
-        String allowedDays = params.get("allowedDays") != null ? params.get("allowedDays").toString() : "";
+        // 新规则：每月 1-31 号可多选。支持数组或逗号分隔字符串。
+        if (params.containsKey("monthlyAllowedDays")) {
+            try {
+                String normalized = normalizeMonthlyDays(params.get("monthlyAllowedDays"));
+                configService.setConfig(KEY_WITHDRAW_MONTHLY_ALLOWED, normalized);
+                // 清除旧规则，避免两套设置同时生效。
+                configService.setConfig(KEY_WITHDRAW_MONTHLY_START, "1");
+                configService.setConfig(KEY_WITHDRAW_MONTHLY_END, "31");
+                configService.setConfig(KEY_WITHDRAW_ALLOWED_DAYS, "");
+                return Result.success("提现日期设置已保存");
+            } catch (IllegalArgumentException exception) {
+                return Result.error(exception.getMessage());
+            }
+        }
+
+        // 兼容旧版起止日期请求，但不再作为新前端的保存格式。
         if (params.containsKey("startDay") || params.containsKey("endDay")) {
             try {
                 int start = Integer.parseInt(String.valueOf(params.getOrDefault("startDay", 1)));
@@ -548,12 +566,15 @@ public class SettingsController {
                 }
                 configService.setConfig(KEY_WITHDRAW_MONTHLY_START, String.valueOf(start));
                 configService.setConfig(KEY_WITHDRAW_MONTHLY_END, String.valueOf(end));
+                configService.setConfig(KEY_WITHDRAW_MONTHLY_ALLOWED, "");
                 configService.setConfig(KEY_WITHDRAW_ALLOWED_DAYS, "");
                 return Result.success("提现日期设置已保存");
             } catch (NumberFormatException exception) {
                 return Result.error("提现日期必须是数字");
             }
         }
+
+        String allowedDays = params.get("allowedDays") != null ? params.get("allowedDays").toString() : "";
         String normalizedDays;
         try {
             normalizedDays = normalizeWithdrawDays(allowedDays);
@@ -561,6 +582,9 @@ public class SettingsController {
             return Result.error(exception.getMessage());
         }
         configService.setConfig(KEY_WITHDRAW_ALLOWED_DAYS, normalizedDays);
+        configService.setConfig(KEY_WITHDRAW_MONTHLY_ALLOWED, "");
+        configService.setConfig(KEY_WITHDRAW_MONTHLY_START, "1");
+        configService.setConfig(KEY_WITHDRAW_MONTHLY_END, "31");
         return Result.success("提现日期设置已保存");
     }
 
@@ -570,6 +594,23 @@ public class SettingsController {
      */
     @GetMapping("/withdraw-status")
     public Result<Object> getWithdrawStatus() {
+        String monthlyAllowed = normalizeMonthlyDaysOrEmpty(configService.getConfig(KEY_WITHDRAW_MONTHLY_ALLOWED, ""));
+        if (!monthlyAllowed.isEmpty()) {
+            java.time.LocalDate todayDate = java.time.LocalDate.now();
+            int today = todayDate.getDayOfMonth();
+            boolean canWithdraw = java.util.Arrays.stream(monthlyAllowed.split(","))
+                    .anyMatch(day -> Integer.parseInt(day) == today);
+            String allowedDaysText = formatMonthlyDays(monthlyAllowed);
+            Map<String, Object> result = new HashMap<>();
+            result.put("monthlyAllowedDays", monthlyAllowed);
+            result.put("allowedDays", monthlyAllowed);
+            result.put("allowedDaysText", allowedDaysText);
+            result.put("canWithdraw", canWithdraw);
+            result.put("message", canWithdraw ? "今日可申请提现" : "今日暂不可申请，允许提现日为" + allowedDaysText);
+            result.put("minWithdraw", 0.01D);
+            result.put("processingTime", "1-3个工作日");
+            return Result.success(result);
+        }
         int monthlyStart = parseDay(configService.getConfig(KEY_WITHDRAW_MONTHLY_START, "1"), 1);
         int monthlyEnd = parseDay(configService.getConfig(KEY_WITHDRAW_MONTHLY_END, "31"), 31);
         if (monthlyStart <= monthlyEnd && (monthlyStart != 1 || monthlyEnd != 31)) {
@@ -631,6 +672,45 @@ public class SettingsController {
             }
         }
         return days.stream().map(String::valueOf).collect(java.util.stream.Collectors.joining(","));
+    }
+
+    private String normalizeMonthlyDaysOrEmpty(String value) {
+        try {
+            return normalizeMonthlyDays(value);
+        } catch (IllegalArgumentException ignored) {
+            return "";
+        }
+    }
+
+    /** Normalize monthly day list (1-31), accepting comma-separated text or JSON-like arrays. */
+    private String normalizeMonthlyDays(Object value) {
+        if (value == null) return "";
+        String raw;
+        if (value instanceof java.util.Collection<?> collection) {
+            raw = collection.stream().map(String::valueOf).collect(java.util.stream.Collectors.joining(","));
+        } else {
+            raw = value.toString().trim();
+            if (raw.startsWith("[") && raw.endsWith("]")) raw = raw.substring(1, raw.length() - 1);
+        }
+        if (raw.isBlank()) return "";
+        java.util.SortedSet<Integer> days = new java.util.TreeSet<>();
+        for (String item : raw.split(",")) {
+            try {
+                String token = item.trim().replaceAll("^\\\"|\\\"$", "");
+                int day = Integer.parseInt(token);
+                if (day < 1 || day > 31) throw new IllegalArgumentException("每月提现日期只能选择 1 至 31 号");
+                days.add(day);
+            } catch (NumberFormatException exception) {
+                throw new IllegalArgumentException("每月提现日期格式不正确");
+            }
+        }
+        return days.stream().map(String::valueOf).collect(java.util.stream.Collectors.joining(","));
+    }
+
+    private String formatMonthlyDays(String days) {
+        return java.util.Arrays.stream(days.split(","))
+                .map(day -> day + "号")
+                .collect(java.util.stream.Collectors.joining("、"));
     }
 
     private String formatWithdrawDays(String allowedDays) {
