@@ -124,13 +124,14 @@
             <span class="card-title"><el-icon><Calendar /></el-icon> 提现开放规则</span>
           </template>
           <el-form label-width="120px">
-            <el-form-item label="允许提现日">
-              <el-checkbox-group v-model="withdrawAllowedDays">
-                <el-checkbox v-for="day in withdrawDayOptions" :key="day.value" :value="day.value">
-                  {{ day.label }}
-                </el-checkbox>
-              </el-checkbox-group>
-              <div class="hint">不勾选表示每天开放；也可勾选周一至周日明确设置为每天开放</div>
+            <el-form-item label="每月开放日期">
+              <div class="earning-range-row">
+                <el-input-number v-model="withdrawMonthlyStartDay" :min="1" :max="31" :precision="0" />
+                <span class="range-text">号至</span>
+                <el-input-number v-model="withdrawMonthlyEndDay" :min="1" :max="31" :precision="0" />
+                <span class="unit">号</span>
+              </div>
+              <div class="hint">可设置每月 1 至 31 号，月底不足 31 天时按当月最后一天计算</div>
             </el-form-item>
             <el-form-item label="固定规则">
               <div>0.01 元起 · 完成实名签约 · 本人收款账户 · 1-3 个工作日处理</div>
@@ -287,6 +288,8 @@ const securitySettings = reactive({
 })
 
 const withdrawAllowedDays = ref([])
+const withdrawMonthlyStartDay = ref(1)
+const withdrawMonthlyEndDay = ref(31)
 const withdrawDayOptions = [
   { value: 1, label: '周一' },
   { value: 2, label: '周二' },
@@ -335,6 +338,8 @@ const loadSettings = async () => {
         .filter(day => day.trim())
         .map(day => Number(day.trim()))
         .filter(day => day >= 1 && day <= 7)
+      withdrawMonthlyStartDay.value = Number(data.withdrawMonthlyStartDay || 1)
+      withdrawMonthlyEndDay.value = Number(data.withdrawMonthlyEndDay || 31)
     }
   } catch (e) {
     console.error('加载设置失败:', e)
@@ -434,10 +439,14 @@ const validateEarningsSettings = () => {
 
 const saveWithdrawDays = async () => {
   try {
-    const allowedDays = [...withdrawAllowedDays.value]
-      .sort((a, b) => a - b)
-      .join(',')
-    const res = await axios.post('/api/settings/withdraw-days', { allowedDays })
+    if (withdrawMonthlyStartDay.value > withdrawMonthlyEndDay.value) {
+      ElMessage.error('起始日不能晚于结束日')
+      return
+    }
+    const res = await axios.post('/api/settings/withdraw-days', {
+      startDay: withdrawMonthlyStartDay.value,
+      endDay: withdrawMonthlyEndDay.value
+    })
     if (res.data.code === 200) {
       ElMessage.success('提现日期设置已保存')
     } else {

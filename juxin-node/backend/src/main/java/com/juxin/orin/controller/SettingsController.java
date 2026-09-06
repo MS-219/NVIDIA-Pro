@@ -60,6 +60,8 @@ public class SettingsController {
     private static final String KEY_MAINTENANCE_MODE = "system.maintenanceMode";
     private static final String KEY_BANNER_LIST = "system.bannerList";
     private static final String KEY_WITHDRAW_ALLOWED_DAYS = "withdraw.allowedDays"; // 允许提现的星期几,如"1,4"表示周一和周四
+    private static final String KEY_WITHDRAW_MONTHLY_START = "withdraw.monthlyStartDay";
+    private static final String KEY_WITHDRAW_MONTHLY_END = "withdraw.monthlyEndDay";
 
     private static final String SUFFIX_NAME = ".name";
     private static final String SUFFIX_RATE = ".rate";
@@ -162,6 +164,8 @@ public class SettingsController {
 
         // 提现日期限制配置 (1=周一, 7=周日，空字符串表示不限制)
         settings.put("withdrawAllowedDays", configService.getConfig(KEY_WITHDRAW_ALLOWED_DAYS, ""));
+        settings.put("withdrawMonthlyStartDay", configService.getConfig(KEY_WITHDRAW_MONTHLY_START, "1"));
+        settings.put("withdrawMonthlyEndDay", configService.getConfig(KEY_WITHDRAW_MONTHLY_END, "31"));
 
         return Result.success(settings);
     }
@@ -535,6 +539,21 @@ public class SettingsController {
         }
 
         String allowedDays = params.get("allowedDays") != null ? params.get("allowedDays").toString() : "";
+        if (params.containsKey("startDay") || params.containsKey("endDay")) {
+            try {
+                int start = Integer.parseInt(String.valueOf(params.getOrDefault("startDay", 1)));
+                int end = Integer.parseInt(String.valueOf(params.getOrDefault("endDay", 31)));
+                if (start < 1 || start > 31 || end < 1 || end > 31 || start > end) {
+                    return Result.error("提现日期必须是每月 1 至 31 号，起始日不能晚于结束日");
+                }
+                configService.setConfig(KEY_WITHDRAW_MONTHLY_START, String.valueOf(start));
+                configService.setConfig(KEY_WITHDRAW_MONTHLY_END, String.valueOf(end));
+                configService.setConfig(KEY_WITHDRAW_ALLOWED_DAYS, "");
+                return Result.success("提现日期设置已保存");
+            } catch (NumberFormatException exception) {
+                return Result.error("提现日期必须是数字");
+            }
+        }
         String normalizedDays;
         try {
             normalizedDays = normalizeWithdrawDays(allowedDays);
@@ -551,6 +570,21 @@ public class SettingsController {
      */
     @GetMapping("/withdraw-status")
     public Result<Object> getWithdrawStatus() {
+        int monthlyStart = parseDay(configService.getConfig(KEY_WITHDRAW_MONTHLY_START, "1"), 1);
+        int monthlyEnd = parseDay(configService.getConfig(KEY_WITHDRAW_MONTHLY_END, "31"), 31);
+        if (monthlyStart <= monthlyEnd && (monthlyStart != 1 || monthlyEnd != 31)) {
+            java.time.LocalDate todayDate = java.time.LocalDate.now();
+            int today = todayDate.getDayOfMonth();
+            int effectiveEnd = Math.min(monthlyEnd, todayDate.lengthOfMonth());
+            boolean canWithdraw = monthlyStart <= effectiveEnd && today >= monthlyStart && today <= effectiveEnd;
+            String rangeText = "每月" + monthlyStart + "号至" + monthlyEnd + "号";
+            Map<String, Object> result = new HashMap<>();
+            result.put("monthlyStartDay", monthlyStart); result.put("monthlyEndDay", monthlyEnd);
+            result.put("allowedDaysText", rangeText); result.put("canWithdraw", canWithdraw);
+            result.put("message", canWithdraw ? "今日可申请提现" : "今日暂不可申请，开放时间为" + rangeText);
+            result.put("minWithdraw", 0.01D); result.put("processingTime", "1-3个工作日");
+            return Result.success(result);
+        }
         String allowedDays;
         try {
             allowedDays = normalizeWithdrawDays(configService.getConfig(KEY_WITHDRAW_ALLOWED_DAYS, ""));
@@ -573,6 +607,11 @@ public class SettingsController {
         result.put("minWithdraw", 0.01D);
         result.put("processingTime", "1-3个工作日");
         return Result.success(result);
+    }
+
+    private int parseDay(String value, int fallback) {
+        try { int day = Integer.parseInt(value); return day >= 1 && day <= 31 ? day : fallback; }
+        catch (Exception ignored) { return fallback; }
     }
 
     private String normalizeWithdrawDays(String value) {

@@ -98,6 +98,15 @@ public class WithdrawController {
      */
     @PostMapping("/apply")
     public Result<String> apply(@RequestBody Map<String, Object> params) {
+        int monthlyStart = parseDay(configService.getConfig("withdraw.monthlyStartDay", "1"), 1);
+        int monthlyEnd = parseDay(configService.getConfig("withdraw.monthlyEndDay", "31"), 31);
+        if (monthlyStart < monthlyEnd || monthlyStart != 1 || monthlyEnd != 31) {
+            java.time.LocalDate todayDate = java.time.LocalDate.now();
+            int effectiveEnd = Math.min(monthlyEnd, todayDate.lengthOfMonth());
+            if (todayDate.getDayOfMonth() < monthlyStart || todayDate.getDayOfMonth() > effectiveEnd) {
+                return Result.error("今日暂不可申请，开放时间为每月" + monthlyStart + "号至" + monthlyEnd + "号");
+            }
+        }
         String allowedDays = configService.getConfig("withdraw.allowedDays", "");
         if (allowedDays != null && !allowedDays.trim().isEmpty()) {
             int today = java.time.LocalDate.now().getDayOfWeek().getValue();
@@ -161,6 +170,11 @@ public class WithdrawController {
             return Result.error(error);
         }
         return Result.success("提现申请已提交，请等待审核");
+    }
+
+    private int parseDay(String value, int fallback) {
+        try { int day = Integer.parseInt(value); return day >= 1 && day <= 31 ? day : fallback; }
+        catch (Exception ignored) { return fallback; }
     }
 
     /**
