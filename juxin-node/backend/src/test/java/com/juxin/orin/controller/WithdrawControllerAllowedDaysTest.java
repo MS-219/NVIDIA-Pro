@@ -26,4 +26,18 @@ class WithdrawControllerAllowedDaysTest {
 
         assertTrue(response.getMsg().contains("允许提现日"));
     }
+
+    @Test
+    void applyRejectsWhenTodayIsNotAmongMonthlySelectedDates() {
+        WithdrawController controller = new WithdrawController();
+        ISystemConfigService configService = mock(ISystemConfigService.class);
+        int today = java.time.LocalDate.now().getDayOfMonth();
+        int otherDay = today == 31 ? 1 : today + 1;
+        when(configService.getConfig("withdraw.monthlyAllowedDays", "")).thenReturn("[" + otherDay + ", " + otherDay + "]");
+        ReflectionTestUtils.setField(controller, "configService", configService);
+
+        Result<String> response = controller.apply(Map.of());
+
+        assertTrue(response.getMsg().contains("允许提现日为"));
+    }
 }
