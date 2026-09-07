@@ -1,6 +1,7 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { api } from '../lib/api';
 import type { DashboardPayload, DevicePayload, EarningsPayload } from '../lib/api';
+import { sanitizeNodeName } from '../lib/display';
 import { useAuth } from './AuthContext';
 
 export type AppDevice = {
@@ -37,7 +38,7 @@ function mapDevice(payload: DevicePayload): AppDevice {
   const normalizedStatus = payload.status?.toLowerCase();
   return {
     id: payload.id,
-    name: payload.name || '聚芯节点',
+    name: sanitizeNodeName(payload.name),
     code: payload.code,
     status: normalizedStatus === 'online' || normalizedStatus === 'offline' ? normalizedStatus : 'pending',
     hashrate: Number(payload.hashrate) || 0,

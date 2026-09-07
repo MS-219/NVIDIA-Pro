@@ -9,7 +9,7 @@ import { useAuth } from '../../context/AuthContext';
 export default function EditProfileScreen() {
   const router = useRouter();
   const { session, updateNickname } = useAuth();
-  const [nickname, setNickname] = useState(session?.user.nickname || 'Orin 用户');
+  const [nickname, setNickname] = useState(session?.user.nickname || '用户');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 

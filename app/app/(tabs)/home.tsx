@@ -14,7 +14,7 @@ const chartBars = [0.28, 0.42, 0.34, 0.64, 0.48, 0.74, 0.54];
 export default function HomeScreen() {
   const { session } = useAuth();
   const { devices, summary, earnings, loading, error, refresh } = useDevices();
-  const nickname = session?.user.nickname || 'Orin 用户';
+  const nickname = session?.user.nickname || '用户';
   const activeDevices = summary?.online ?? devices.filter((device) => device.status === 'online').length;
   const todayEarnings = summary?.todayEarnings ?? earnings.todayEarnings;
   const totalEarnings = summary?.totalEarnings ?? earnings.totalEarnings;
@@ -41,7 +41,7 @@ export default function HomeScreen() {
       <View style={styles.hero}>
         <View style={styles.heroTop}>
           <View style={styles.heroCopy}>
-            <Text style={styles.heroKicker}>ORIN CONTROL CENTER</Text>
+            <Text style={styles.heroKicker}>NODE CONTROL CENTER</Text>
             <Text style={styles.heroTitle}>你好，{nickname}</Text>
             <Text style={styles.heroSubtitle}>你的节点网络，随时可查看。</Text>
           </View>

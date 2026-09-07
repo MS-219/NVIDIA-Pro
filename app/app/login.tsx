@@ -76,7 +76,7 @@ export default function LoginScreen() {
         <ScrollView contentContainerStyle={styles.container} contentInsetAdjustmentBehavior="automatic" keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
           <View style={styles.brandRow}><BrandMark /><View style={styles.secureTag}><Ionicons name="shield-checkmark-outline" size={13} color={colors.leaf} /><Text style={styles.secureText}>安全登录</Text></View></View>
 
-          <View style={styles.hero}><Text style={styles.eyebrow}>ORIN NODE NETWORK</Text><Text style={styles.title}>欢迎回来</Text><Text style={styles.subtitle}>使用手机号登录全新的聚芯节点 APP</Text></View>
+          <View style={styles.hero}><Text style={styles.eyebrow}>NODE NETWORK</Text><Text style={styles.title}>欢迎回来</Text><Text style={styles.subtitle}>使用手机号登录全新的聚芯节点 APP</Text></View>
 
           <View style={styles.form}>
             <Text style={styles.label}>手机号</Text>

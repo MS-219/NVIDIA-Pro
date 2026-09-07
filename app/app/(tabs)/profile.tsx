@@ -13,7 +13,7 @@ export default function ProfileScreen() {
   const { session, signOut } = useAuth();
   const { devices } = useDevices();
   const { currentVersion, checking, checkNow } = useUpdates();
-  const nickname = session?.user.nickname || 'Orin 用户';
+  const nickname = session?.user.nickname || '用户';
 
   return (
     <ScrollView style={styles.page} contentContainerStyle={styles.content} contentInsetAdjustmentBehavior="automatic" showsVerticalScrollIndicator={false}>

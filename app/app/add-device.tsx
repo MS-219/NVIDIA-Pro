@@ -39,7 +39,7 @@ export default function AddDeviceScreen() {
       <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <ScrollView contentContainerStyle={styles.content} contentInsetAdjustmentBehavior="automatic" keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
           <View style={styles.nav}><Pressable onPress={() => router.back()} style={styles.navButton} accessibilityRole="button" accessibilityLabel="关闭"><Ionicons name="close" size={22} color={colors.ink} /></Pressable><Text style={styles.navTitle}>绑定节点</Text><View style={styles.navSpacer} /></View>
-          <View style={styles.hero}><View style={styles.heroIcon}><Ionicons name="hardware-chip-outline" size={30} color={colors.lime} /></View><View style={styles.heroCopy}><Text style={styles.heroKicker}>ADD A NODE</Text><Text style={styles.heroTitle}>连接你的 Orin</Text><Text style={styles.heroSubtitle}>绑定后可在设备页查看节点状态与收益。</Text></View></View>
+          <View style={styles.hero}><View style={styles.heroIcon}><Ionicons name="hardware-chip-outline" size={30} color={colors.lime} /></View><View style={styles.heroCopy}><Text style={styles.heroKicker}>ADD A NODE</Text><Text style={styles.heroTitle}>连接你的节点</Text><Text style={styles.heroSubtitle}>绑定后可在设备页查看节点状态与收益。</Text></View></View>
 
           <View style={styles.steps}><Step index="01" title="找到绑定码" detail="在节点管理页面或设备标签上查看。" /><Step index="02" title="输入并保存" detail="绑定码只用于新 APP 账户。" /><Step index="03" title="等待上线" detail="节点首次上报后会显示实时状态。" last /></View>
 
