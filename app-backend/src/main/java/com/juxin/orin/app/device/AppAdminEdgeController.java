@@ -23,6 +23,7 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api/admin/edge")
 public class AppAdminEdgeController {
+    private static final int OFFLINE_THRESHOLD_SECONDS = 180;
     private final JdbcTemplate jdbc;
 
     public AppAdminEdgeController(JdbcTemplate jdbc) {
@@ -35,12 +36,21 @@ public class AppAdminEdgeController {
         List<Map<String, Object>> rows = jdbc.query("""
                 SELECT d.device_sn, d.binding_code, d.agent_version, d.image_version,
                        d.telemetry_json, d.last_reported_at, d.updated_at,
-                       n.id AS node_id, n.name, n.status, n.temperature, n.hashrate,
+                       n.id AS node_id, n.name,
+                       CASE
+                         WHEN LOWER(n.status) = 'online'
+                              AND d.last_reported_at IS NOT NULL
+                              AND d.last_reported_at >= TIMESTAMPADD(SECOND, -%d, CURRENT_TIMESTAMP)
+                           THEN 'online'
+                         WHEN LOWER(n.status) = 'online' THEN 'offline'
+                         ELSE n.status
+                       END AS status,
+                       n.temperature, n.hashrate,
                        n.owner_user_id
                   FROM app_edge_device d
                   LEFT JOIN app_node n ON n.binding_code = d.binding_code
                  ORDER BY d.updated_at DESC
-                """, (rs, rowNum) -> {
+                """.formatted(OFFLINE_THRESHOLD_SECONDS), (rs, rowNum) -> {
             Map<String, Object> row = new LinkedHashMap<>();
             row.put("sn", rs.getString("device_sn"));
             row.put("bindingCode", rs.getString("binding_code"));

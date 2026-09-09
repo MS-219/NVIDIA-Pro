@@ -183,6 +183,36 @@ class AppNodeControllerIntegrationTest {
                 .andExpect(jsonPath("$.data.totalEarnings").value(0));
     }
 
+    @Test
+    void staleOnlineNodeIsReportedOfflineInListAndSummary() throws Exception {
+        provision("NODE-STALE", 403L, "断电节点", "online", "10", "42", "0", "0");
+        jdbc.update("UPDATE app_node SET last_reported_at = TIMESTAMPADD(SECOND, -600, CURRENT_TIMESTAMP) WHERE binding_code = 'NODE-STALE'");
+        String token = tokenFor(403);
+
+        mockMvc.perform(get("/api/app/devices").header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data[0].status").value("offline"));
+
+        mockMvc.perform(get("/api/app/dashboard/summary").header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.online").value(0));
+    }
+
+    @Test
+    void recentlyReportedOnlineNodeRemainsOnline() throws Exception {
+        provision("NODE-FRESH", 404L, "在线节点", "online", "10", "42", "0", "0");
+        jdbc.update("UPDATE app_node SET last_reported_at = CURRENT_TIMESTAMP WHERE binding_code = 'NODE-FRESH'");
+        String token = tokenFor(404);
+
+        mockMvc.perform(get("/api/app/devices").header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data[0].status").value("online"));
+
+        mockMvc.perform(get("/api/app/dashboard/summary").header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.online").value(1));
+    }
+
     private String tokenFor(long userId) {
         return jwtService.issue(new UserAccount(userId, "13800000000", "测试用户", Instant.now()));
     }

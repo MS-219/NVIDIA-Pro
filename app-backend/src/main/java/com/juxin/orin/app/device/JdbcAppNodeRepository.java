@@ -11,6 +11,7 @@ import java.util.Optional;
 
 @Repository
 public class JdbcAppNodeRepository implements AppNodeRepository {
+    private static final int OFFLINE_THRESHOLD_SECONDS = 180;
     private final JdbcTemplate jdbc;
 
     public JdbcAppNodeRepository(JdbcTemplate jdbc) {
@@ -61,13 +62,16 @@ public class JdbcAppNodeRepository implements AppNodeRepository {
     public DashboardAggregate aggregateOwnedBy(long ownerUserId) {
         return jdbc.queryForObject("""
                 SELECT COUNT(*) AS total,
-                       COALESCE(SUM(CASE WHEN LOWER(status) = 'online' THEN 1 ELSE 0 END), 0) AS online,
-                       COALESCE(SUM(hashrate), 0) AS total_hashrate,
-                       COALESCE(SUM(daily_earnings), 0) AS today_earnings,
-                       COALESCE(SUM(total_earnings), 0) AS total_earnings
-                  FROM app_node
-                 WHERE owner_user_id = ?
-                """, (rs, rowNum) -> new DashboardAggregate(
+                       COALESCE(SUM(CASE WHEN LOWER(n.status) = 'online'
+                              AND n.last_reported_at IS NOT NULL
+                              AND n.last_reported_at >= TIMESTAMPADD(SECOND, -%d, CURRENT_TIMESTAMP)
+                            THEN 1 ELSE 0 END), 0) AS online,
+                       COALESCE(SUM(n.hashrate), 0) AS total_hashrate,
+                       COALESCE(SUM(n.daily_earnings), 0) AS today_earnings,
+                       COALESCE(SUM(n.total_earnings), 0) AS total_earnings
+                  FROM app_node n
+                 WHERE n.owner_user_id = ?
+                """.formatted(OFFLINE_THRESHOLD_SECONDS), (rs, rowNum) -> new DashboardAggregate(
                 rs.getLong("total"),
                 rs.getLong("online"),
                 decimal(rs.getBigDecimal("total_hashrate")),
@@ -93,11 +97,19 @@ public class JdbcAppNodeRepository implements AppNodeRepository {
 
     private static String selectColumns() {
         return """
-                SELECT id, binding_code, owner_user_id, name, status, hashrate,
-                       temperature, daily_earnings, total_earnings, last_reported_at,
-                       bound_at, created_at, updated_at
+                SELECT id, binding_code, owner_user_id, name,
+                       CASE
+                         WHEN LOWER(status) = 'online'
+                              AND last_reported_at IS NOT NULL
+                              AND last_reported_at >= TIMESTAMPADD(SECOND, -%d, CURRENT_TIMESTAMP)
+                           THEN 'online'
+                         WHEN LOWER(status) = 'online' THEN 'offline'
+                         ELSE status
+                       END AS status,
+                       hashrate, temperature, daily_earnings, total_earnings,
+                       last_reported_at, bound_at, created_at, updated_at
                   FROM app_node
-                """;
+                """.formatted(OFFLINE_THRESHOLD_SECONDS);
     }
 
     private AppNode mapNode(java.sql.ResultSet rs, int rowNum) throws java.sql.SQLException {

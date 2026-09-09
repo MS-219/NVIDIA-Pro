@@ -35,7 +35,12 @@ public class AppAdminManagementController {
         Map<String, Object> out = new LinkedHashMap<>();
         out.put("users", scalar("SELECT COUNT(*) FROM app_user_account WHERE status = 1"));
         out.put("nodes", scalar("SELECT COUNT(*) FROM app_node"));
-        out.put("onlineNodes", scalar("SELECT COUNT(*) FROM app_node WHERE status = 'online'"));
+        out.put("onlineNodes", scalar("""
+                SELECT COUNT(*) FROM app_node
+                 WHERE LOWER(status) = 'online'
+                   AND last_reported_at IS NOT NULL
+                   AND last_reported_at >= TIMESTAMPADD(SECOND, -180, CURRENT_TIMESTAMP)
+                """));
         out.put("pendingWithdrawals", scalar("SELECT COUNT(*) FROM app_withdrawal WHERE status = 'pending'"));
         out.put("pendingPaymentApplies", scalar("SELECT COUNT(*) FROM app_payment_apply WHERE status = 'pending'"));
         out.put("openFeedback", scalar("SELECT COUNT(*) FROM app_feedback WHERE status = 'open'"));
