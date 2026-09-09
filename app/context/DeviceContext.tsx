@@ -120,7 +120,9 @@ export function DeviceProvider({ children }: React.PropsWithChildren) {
     try {
       const device = mapDevice(await api.bindDevice(token, code, name));
       setDevices((current) => [...current.filter((item) => item.id !== device.id), device]);
-      await refreshAggregates(token);
+      // Re-sync the authoritative list (backend syncForUser) so devices bound in
+      // the admin panel — and the mirror reconciliation — show up immediately.
+      await refresh();
       return device;
     } catch (requestError) {
       const message = errorMessage(requestError);
@@ -129,7 +131,7 @@ export function DeviceProvider({ children }: React.PropsWithChildren) {
     } finally {
       setMutating(false);
     }
-  }, [refreshAggregates, token]);
+  }, [refresh, token]);
 
   const removeDevice = useCallback(async (id: number) => {
     if (!token) throw new Error('请先登录');

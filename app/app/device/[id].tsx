@@ -41,13 +41,13 @@ export default function DeviceDetailScreen() {
       >
         <View style={styles.nav}><Pressable onPress={() => router.back()} style={styles.navButton} accessibilityRole="button" accessibilityLabel="返回"><Ionicons name="chevron-back" size={22} color={colors.ink} /></Pressable><Text style={styles.navTitle}>节点详情</Text><Pressable onPress={handleRemove} style={styles.navButton} accessibilityRole="button" accessibilityLabel="解绑节点" disabled={!device || mutating}><Ionicons name="ellipsis-horizontal" size={21} color={device ? colors.ink : colors.inkFaint} /></Pressable></View>
 
-        {device ? <DeviceDetails device={device} /> : <MissingDevice />}
+        {device ? <DeviceDetails device={device} onRemove={handleRemove} removing={mutating} /> : <MissingDevice />}
       </ScrollView>
     </>
   );
 }
 
-function DeviceDetails({ device }: { device: AppDevice }) {
+function DeviceDetails({ device, onRemove, removing }: { device: AppDevice; onRemove: () => void; removing: boolean }) {
   const online = device.status === 'online';
   const statusLabel = online ? '在线运行' : device.status === 'offline' ? '已离线' : '等待上线';
   const statusTone = online ? 'positive' : device.status === 'offline' ? 'danger' : 'pending';
@@ -67,6 +67,11 @@ function DeviceDetails({ device }: { device: AppDevice }) {
       <View style={styles.earningsCard}><View style={styles.earningMain}><Text style={styles.earningLabel}>今日收益</Text><Text style={styles.earningValue} selectable>{formatCurrency(device.dailyEarnings)}</Text></View><View style={styles.earningDivider} /><View style={styles.earningMain}><Text style={styles.earningLabel}>累计收益</Text><Text style={styles.earningValue} selectable>{formatCurrency(device.totalEarnings)}</Text></View></View>
 
       <View style={styles.notice}><Ionicons name="information-circle-outline" size={18} color={colors.leaf} /><Text style={styles.noticeText}>节点数据由新 APP 后端同步，和旧小程序设备完全独立。</Text></View>
+
+      <Pressable onPress={onRemove} disabled={removing} style={[styles.unbind, removing && styles.unbindDisabled]} accessibilityRole="button" accessibilityLabel="解绑节点">
+        <Ionicons name="unlink-outline" size={18} color={colors.coral} />
+        <Text style={styles.unbindText}>{removing ? '解绑中…' : '解绑节点'}</Text>
+      </Pressable>
     </>
   );
 }
@@ -123,4 +128,7 @@ const styles = StyleSheet.create({
   missing: { backgroundColor: colors.surface, borderRadius: radii.md, borderWidth: 1, borderColor: colors.line, minHeight: 220, alignItems: 'center', justifyContent: 'center', padding: 24 },
   missingTitle: { color: colors.ink, fontSize: 17, fontWeight: '700', marginTop: 13 },
   missingText: { color: colors.inkSoft, fontSize: 12, textAlign: 'center', marginTop: 7 },
+  unbind: { minHeight: 54, borderRadius: radii.md, borderWidth: 1, borderColor: '#ecc9c2', backgroundColor: '#fff6f4', alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 8 },
+  unbindDisabled: { opacity: 0.6 },
+  unbindText: { color: colors.coral, fontSize: 15, fontWeight: '700' },
 });
