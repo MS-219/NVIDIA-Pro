@@ -139,6 +139,73 @@ class NodeDeviceSyncServiceTest {
         assertNull(service.syncByCode("UNKNOWN"));
     }
 
+    @Test
+    void virtualDeviceFallsBackToAffiliatedLabel() {
+        nodeJdbc.update("""
+                INSERT INTO device (id, bind_code, name, status, hashrate, type, user_id)
+                VALUES (50, 'JDVIRT01', NULL, 1, 100, 1, NULL)
+                """);
+
+        service.syncByCode("JDVIRT01");
+
+        String name = appJdbc.queryForObject(
+                "SELECT name FROM app_node WHERE binding_code = 'JDVIRT01'", String.class);
+        assertEquals("挂靠设备", name);
+    }
+
+    @Test
+    void rebindReassignsAppNodeFromOldOwnerToNewOwner() {
+        nodeJdbc.update("INSERT INTO app_user (id, phone) VALUES (1, '13800000000')");
+        nodeJdbc.update("INSERT INTO app_user (id, phone) VALUES (2, '13900000000')");
+        nodeJdbc.update("""
+                INSERT INTO device (id, bind_code, name, status, hashrate, type, user_id)
+                VALUES (60, 'JDREBIND', NULL, 1, 100, 2, 1)
+                """);
+        appJdbc.update("INSERT INTO app_user_account (id, phone) VALUES (101, '13800000000')");
+        appJdbc.update("INSERT INTO app_user_account (id, phone) VALUES (102, '13900000000')");
+        appJdbc.update("""
+                INSERT INTO app_node (binding_code, owner_user_id, name, status, hashrate)
+                VALUES ('JDREBIND', 101, '聚芯节点', 'online', 100)
+                """);
+
+        // The 二开后台 rebinds the device to legacy user 2 (APP account 102).
+        nodeJdbc.update("UPDATE device SET user_id = 2 WHERE id = 60");
+
+        // The old owner's refresh drops the stale mirror.
+        service.syncForUser(101);
+        assertNull(ownerOf("JDREBIND"));
+
+        // The new owner's refresh reassigns it.
+        service.syncForUser(102);
+        assertEquals(102L, ownerOf("JDREBIND"));
+    }
+
+    @Test
+    void unboundLegacyDeviceIsReleasedFromAppOwner() {
+        nodeJdbc.update("INSERT INTO app_user (id, phone) VALUES (1, '13800000000')");
+        nodeJdbc.update("""
+                INSERT INTO device (id, bind_code, name, status, hashrate, type, user_id)
+                VALUES (70, 'JDUNBIND', NULL, 1, 100, 2, 1)
+                """);
+        appJdbc.update("INSERT INTO app_user_account (id, phone) VALUES (101, '13800000000')");
+        appJdbc.update("""
+                INSERT INTO app_node (binding_code, owner_user_id, name, status, hashrate)
+                VALUES ('JDUNBIND', 101, '聚芯节点', 'online', 100)
+                """);
+
+        // The 二开后台 unbinds the device (user_id -> NULL).
+        nodeJdbc.update("UPDATE device SET user_id = NULL WHERE id = 70");
+
+        service.syncForUser(101);
+
+        assertNull(ownerOf("JDUNBIND"));
+    }
+
+    private Long ownerOf(String code) {
+        return appJdbc.queryForObject(
+                "SELECT owner_user_id FROM app_node WHERE binding_code = ?", Long.class, code);
+    }
+
     private static JdbcTemplate h2(String url) {
         DriverManagerDataSource dataSource = new DriverManagerDataSource(url, "sa", "");
         dataSource.setDriverClassName("org.h2.Driver");

@@ -66,14 +66,14 @@ export default function DevicesScreen() {
 }
 
 function DeviceCard({ device }: { device: AppDevice }) {
-  const { name, status } = device;
+  const { name, code, status } = device;
   const statusLabel = status === 'online' ? '在线' : status === 'offline' ? '离线' : '待上线';
   const statusIcon = status === 'online' ? 'checkmark-circle-outline' : status === 'offline' ? 'close-circle-outline' : 'time-outline';
   const temperature = device.temperature === null || Number.isNaN(device.temperature) ? '--' : `${formatNumber(device.temperature)}°`;
   return (
     <Link href={`/device/${device.id}` as never} asChild>
       <Pressable style={styles.deviceCard} accessibilityRole="button" accessibilityLabel={`查看${name}详情`}>
-        <View style={styles.deviceTop}><View style={styles.deviceIcon}><Ionicons name="hardware-chip" size={21} color={colors.forest} /></View><View style={styles.deviceCopy}><Text style={styles.deviceName}>{name}</Text></View><StatusPill label={statusLabel} tone={status === 'online' ? 'positive' : status === 'offline' ? 'danger' : 'pending'} icon={statusIcon} /></View>
+        <View style={styles.deviceTop}><View style={styles.deviceIcon}><Ionicons name="hardware-chip" size={21} color={colors.forest} /></View><View style={styles.deviceCopy}><Text style={styles.deviceName}>{name}</Text><Text style={styles.deviceCode}>设备码 {code}</Text></View><StatusPill label={statusLabel} tone={status === 'online' ? 'positive' : status === 'offline' ? 'danger' : 'pending'} icon={statusIcon} /></View>
         <View style={styles.deviceDivider} />
         <View style={styles.deviceMeta}><View><Text style={styles.metaLabel}>温度</Text><Text style={styles.metaValue}>{temperature}</Text></View><View><Text style={styles.metaLabel}>今日收益</Text><Text style={styles.metaValue}>{formatCurrency(device.dailyEarnings)}</Text></View><Ionicons name="chevron-forward" size={17} color={colors.inkFaint} /></View>
       </Pressable>

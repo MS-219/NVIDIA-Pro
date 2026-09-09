@@ -12,8 +12,10 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.time.Instant;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Set;
 
 /**
  * Mirrors the 二开后台 (juxin_node) device table into the APP node table.
@@ -70,6 +72,7 @@ public class NodeDeviceSyncService {
             for (LegacyDevice device : devices) {
                 upsert(device, resolveAppOwner(device));
             }
+            releaseStaleForUser(appUserId, devices);
         } catch (RuntimeException error) {
             // Legacy DB is optional; APP requests must keep working when it is unavailable.
             log.warn("legacy device sync failed for APP user {}", appUserId, error);
@@ -99,8 +102,15 @@ public class NodeDeviceSyncService {
                     """, rs -> rs.next() ? mapLegacyDevice(rs, 0) : null, code);
             if (device == null) return null;
             Long appOwner = resolveAppOwner(device);
+            LegacyLookup lookup = new LegacyLookup(device, appOwner);
+            if (device.legacyUserId() != null && appOwner == null) {
+                // Bound in the 二开后台 to a legacy account that has no APP
+                // account; leave app_node untouched so bind() can reject it as
+                // taken instead of silently clearing an existing owner.
+                return lookup;
+            }
             upsert(device, appOwner);
-            return new LegacyLookup(device, appOwner);
+            return lookup;
         } catch (RuntimeException error) {
             log.warn("legacy device sync-by-code failed for {}", code, error);
             return null;
@@ -152,20 +162,11 @@ public class NodeDeviceSyncService {
         String status = device.status() == 1 ? "online" : "offline";
         Timestamp now = Timestamp.from(Instant.now());
         Timestamp boundAt = appOwnerUserId == null ? null : now;
-        Long existingOwner = existingOwner(code);
-        if (existingOwner != null && !existingOwner.equals(appOwnerUserId)) {
-            // Never let a legacy binding-code collision reassign an APP node
-            // that is already owned by another account.
-            return;
-        }
-        if (existingOwner != null || rowExists(code)) {
-            appJdbc.update("""
-                    UPDATE app_node
-                       SET owner_user_id = ?, name = ?, status = ?, hashrate = ?,
-                           last_reported_at = ?, bound_at = COALESCE(bound_at, ?), updated_at = ?
-                     WHERE binding_code = ?
-                    """, appOwnerUserId, name, status, device.hashrate(),
-                    device.lastHeartbeat(), boundAt, now, code);
+        if (rowExists(code)) {
+            // The 二开后台 is authoritative: always apply the resolved owner so
+            // a rebind (or unbind) there is reflected here, even when the APP
+            // node was previously owned by a different account.
+            updateRow(code, appOwnerUserId, name, status, device.hashrate(), device.lastHeartbeat(), boundAt, now);
             return;
         }
         try {
@@ -178,16 +179,42 @@ public class NodeDeviceSyncService {
                     device.lastHeartbeat(), boundAt, now, now);
         } catch (DuplicateKeyException duplicate) {
             // A concurrent request may have inserted the same binding code.
-            Long ownerAfterRace = existingOwner(code);
-            if (ownerAfterRace == null || ownerAfterRace.equals(appOwnerUserId)) {
-                appJdbc.update("""
-                        UPDATE app_node
-                           SET owner_user_id = ?, name = ?, status = ?, hashrate = ?,
-                               last_reported_at = ?, bound_at = COALESCE(bound_at, ?), updated_at = ?
-                         WHERE binding_code = ?
-                        """, appOwnerUserId, name, status, device.hashrate(),
-                        device.lastHeartbeat(), boundAt, now, code);
-            }
+            updateRow(code, appOwnerUserId, name, status, device.hashrate(), device.lastHeartbeat(), boundAt, now);
+        }
+    }
+
+    private void updateRow(String code, Long appOwnerUserId, String name, String status,
+                           int hashrate, Timestamp lastHeartbeat, Timestamp boundAt, Timestamp now) {
+        appJdbc.update("""
+                UPDATE app_node
+                   SET owner_user_id = ?, name = ?, status = ?, hashrate = ?,
+                       last_reported_at = ?, bound_at = COALESCE(bound_at, ?), updated_at = ?
+                 WHERE UPPER(binding_code) = UPPER(?)
+                """, appOwnerUserId, name, status, hashrate, lastHeartbeat, boundAt, now, code);
+    }
+
+    /**
+     * Release APP nodes owned by {@code appUserId} whose code is no longer
+     * assigned to that user in the 二开后台 (rebound to another account, unbound,
+     * or deleted there).  This keeps the APP mirror exactly in line with the
+     * authoritative backend.
+     */
+    private void releaseStaleForUser(long appUserId, List<LegacyDevice> devices) {
+        Set<String> authoritative = new HashSet<>();
+        for (LegacyDevice device : devices) {
+            authoritative.add(normalizeBindCode(device));
+        }
+        List<String> owned = appJdbc.query(
+                "SELECT binding_code FROM app_node WHERE owner_user_id = ?",
+                (rs, i) -> rs.getString(1), appUserId);
+        for (String raw : owned) {
+            String code = normalizeRawCode(raw);
+            if (code == null || authoritative.contains(code)) continue;
+            appJdbc.update("""
+                    UPDATE app_node
+                       SET owner_user_id = NULL, bound_at = NULL
+                     WHERE owner_user_id = ? AND UPPER(binding_code) = UPPER(?)
+                    """, appUserId, code);
         }
     }
 
@@ -210,11 +237,6 @@ public class NodeDeviceSyncService {
         if (phone == null || phone.isBlank()) return null;
         return appJdbc.query("SELECT id FROM app_user_account WHERE phone = ? LIMIT 1",
                 rs -> rs.next() ? rs.getLong(1) : null, phone);
-    }
-
-    private Long existingOwner(String code) {
-        return appJdbc.query("SELECT owner_user_id FROM app_node WHERE binding_code = ? LIMIT 1",
-                rs -> rs.next() && rs.getObject(1) != null ? rs.getLong(1) : null, code);
     }
 
     private boolean rowExists(String code) {
@@ -245,7 +267,12 @@ public class NodeDeviceSyncService {
     private static String normalizeName(LegacyDevice device) {
         String name = device.name();
         if (name == null || name.isBlank()) {
-            name = device.type() == 1 ? "虚拟设备" : "聚芯节点";
+            // Match the 二开后台 device-type labels (实体设备 / 挂靠设备 / 聚芯节点).
+            name = switch (device.type()) {
+                case 0 -> "实体设备";
+                case 1 -> "挂靠设备";
+                default -> "聚芯节点";
+            };
         }
         name = name.trim();
         if (name.length() > 80) name = name.substring(0, 80);
