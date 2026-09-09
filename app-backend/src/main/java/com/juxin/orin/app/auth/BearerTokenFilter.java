@@ -32,6 +32,9 @@ public class BearerTokenFilter extends OncePerRequestFilter {
                 || path.equals("/api/health")
                 || path.equals("/api/mobile-app/update")
                 || path.startsWith("/api/app/update/")
+                // The 二开后台 sends its own admin JWT to the shared update routes.
+                // AppUpdateController validates that token with the node-admin secret.
+                || path.startsWith("/api/admin/app-updates")
                 || path.startsWith("/api/edge/")
                 || path.equals("/error");
     }
