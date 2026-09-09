@@ -30,7 +30,8 @@ services:
       APP_DB_URL: jdbc:mysql://mysql:3306/orin_app?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
       APP_DB_USERNAME: ${APP_DB_USERNAME:-orin_app}
       APP_DB_PASSWORD: ${APP_DB_PASSWORD}
-      # Read-only access to the二开库 is used to mirror virtual devices by phone.
+      # The二开库 is the source of truth for binding codes; APP devices are
+      # mirrored (and binding owners written back) through this connection.
       APP_NODE_DB_URL: ${APP_NODE_DB_URL:-jdbc:mysql://juxin-node-mysql:3306/juxin_node?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true}
       APP_NODE_DB_USERNAME: ${APP_NODE_DB_USERNAME:-juxin_node}
       APP_NODE_DB_PASSWORD: ${APP_NODE_DB_PASSWORD:-}

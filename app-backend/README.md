@@ -1,9 +1,10 @@
 # Independent APP Backend
 
-This service keeps APP accounts and counters in its own database. When the
-optional legacy database connection is configured, virtual devices assigned in
-the二开后台 are mirrored into the APP node table by matching the user's phone
-number.
+This service keeps APP accounts and counters in its own database. The二开后台
+is the single source of truth for device binding codes: when the optional
+legacy database connection is configured, every device (physical RK3588 nodes
+and virtual devices) is mirrored into the APP node table by matching the user's
+phone number.
 
 ## Run locally
 
@@ -85,13 +86,13 @@ POST /api/edge/tasks/submit device task result JSON
 
 ## APP device data
 
-`app_node` is the APP-facing node table. An RK3588S enrollment creates the
-pending row and its unique binding code; a user can then claim it from the APP.
-When `APP_NODE_DB_URL`, `APP_NODE_DB_USERNAME`, and `APP_NODE_DB_PASSWORD` are
-set, each authenticated device refresh also imports type-1 virtual devices
-from the二开后台 by matching phone number and assigns the verified APP account
-as owner. The mobile API still cannot create an arbitrary node or supply
-`owner_user_id`.
+`app_node` is the APP-facing node table. The二开后台 is the primary source for
+binding codes: `POST /api/app/devices/bind` first mirrors the code's device from
+the二开后台 (any device type) and then claims it, writing the owner back to the
+二开后台 so both systems stay in sync. When `APP_NODE_DB_URL`,
+`APP_NODE_DB_USERNAME`, and `APP_NODE_DB_PASSWORD` are set, each authenticated
+device refresh also imports every device assigned to the matching phone number.
+The mobile API still cannot create an arbitrary node or supply `owner_user_id`.
 
 For example, provision a fresh node directly in the new APP database (use a
 random code in real deployments):

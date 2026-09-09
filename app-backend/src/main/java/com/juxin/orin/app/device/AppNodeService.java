@@ -51,9 +51,22 @@ public class AppNodeService {
     public AppNode bind(long ownerUserId, String rawCode, String rawName) {
         requirePositiveUserId(ownerUserId);
         String code = normalizeCode(rawCode);
+        // The 二开后台 is the primary source for binding codes: mirror the
+        // device into app_node before looking it up so physical nodes are
+        // always resolvable.
+        NodeDeviceSyncService.LegacyLookup legacy = syncByCode(code);
         AppNode node = repository.findByCode(code)
                 .orElseThrow(() -> new ApiException(404, "设备绑定码不存在"));
         if (node.ownerUserId() != null) {
+            if (node.ownerUserId() == ownerUserId) {
+                // Already bound to this account; binding is idempotent.
+                return node;
+            }
+            throw new ApiException(409, "设备已被绑定");
+        }
+        if (legacy != null && legacy.device().legacyUserId() != null
+                && legacy.appOwnerUserId() == null) {
+            // Bound in the 二开后台 to a legacy account that has no APP account.
             throw new ApiException(409, "设备已被绑定");
         }
 
@@ -62,6 +75,9 @@ public class AppNodeService {
         if (!repository.claim(node.id(), ownerUserId, name, now)) {
             // Another request may have claimed the row after the initial read.
             throw new ApiException(409, "设备已被绑定");
+        }
+        if (legacy != null) {
+            nodeDeviceSyncService.recordBindBack(legacy.device(), ownerUserId);
         }
         return repository.findById(node.id())
                 .orElseThrow(() -> new ApiException(500, "绑定后无法读取设备"));
@@ -73,9 +89,18 @@ public class AppNodeService {
         if (nodeId <= 0) {
             throw new ApiException(404, "设备不存在");
         }
+        AppNode node = repository.findById(nodeId)
+                .orElseThrow(() -> new ApiException(404, "设备不存在"));
         if (!repository.release(nodeId, ownerUserId, Instant.now(clock))) {
             throw new ApiException(404, "设备不存在");
         }
+        if (nodeDeviceSyncService != null) {
+            nodeDeviceSyncService.releaseLegacy(node.code(), ownerUserId);
+        }
+    }
+
+    private NodeDeviceSyncService.LegacyLookup syncByCode(String code) {
+        return nodeDeviceSyncService == null ? null : nodeDeviceSyncService.syncByCode(code);
     }
 
     public AppNodeRepository.DashboardAggregate summary(long ownerUserId) {
