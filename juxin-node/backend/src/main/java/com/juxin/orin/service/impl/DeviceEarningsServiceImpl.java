@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.juxin.orin.entity.AppUser;
 import com.juxin.orin.entity.Device;
 import com.juxin.orin.entity.DeviceEarnings;
+import com.juxin.orin.entity.DeviceOfflinePeriod;
 import com.juxin.orin.entity.ApiMerchant;
 import com.juxin.orin.mapper.DeviceEarningsMapper;
 import com.juxin.orin.service.IDeviceEarningsService;
@@ -98,6 +99,11 @@ public class DeviceEarningsServiceImpl extends ServiceImpl<DeviceEarningsMapper,
     @Override
     public void generateDailyEarnings() {
         LocalDateTime now = LocalDateTime.now();
+        // 收益统一在每天中午 12:00 结算前一个自然日；12 点前不触发。
+        // 采用“12 点后任一时刻均可补结算”的方式，服务在 12 点后重启也能自动补上当日结算。
+        if (now.getHour() < 12) {
+            return;
+        }
         LocalDate settlementDate = now.toLocalDate().minusDays(1);
         LocalDateTime dayStart = settlementDate.atStartOfDay();
         LocalDateTime dayEnd = settlementDate.plusDays(1).atStartOfDay();
@@ -137,7 +143,7 @@ public class DeviceEarningsServiceImpl extends ServiceImpl<DeviceEarningsMapper,
                 }
             }
 
-            log.info("========== 每日收益结算完成: date={}, 入账={}台, 离线超限={}台, 失败={}台 ==========",
+            log.info("========== 每日收益结算完成: date={}, 入账={}台, 零在线={}台, 失败={}台 ==========",
                     settlementDate, successCount, deniedCount, errorCount);
 
         } catch (Exception e) {
@@ -182,7 +188,7 @@ public class DeviceEarningsServiceImpl extends ServiceImpl<DeviceEarningsMapper,
                 return SettlementResult.skipped();
             }
 
-            if (exceedsDailyOfflineLimit(device, dayStart, dayEnd)) {
+            if (countFullyOnlineHours(device, settlementDate) == 0) {
                 recordZeroEarnings(device, now, settlementDate);
                 return SettlementResult.denied();
             }
@@ -209,7 +215,7 @@ public class DeviceEarningsServiceImpl extends ServiceImpl<DeviceEarningsMapper,
             return BigDecimal.ZERO;
         }
 
-        BigDecimal baseEarnings = calculateDailyBaseEarnings(device.getId(), today, user);
+        BigDecimal baseEarnings = calculateHourlyTotalEarnings(device, today, user);
         BigDecimal earnings = baseEarnings;
         BigDecimal rate = BigDecimal.ZERO;
 
@@ -426,19 +432,46 @@ public class DeviceEarningsServiceImpl extends ServiceImpl<DeviceEarningsMapper,
         return result;
     }
 
-    boolean exceedsDailyOfflineLimit(
-            Device device,
-            LocalDateTime dayStart,
-            LocalDateTime dayEnd) {
+    /**
+     * 统计设备在结算自然日内完整在线的整点小时数。
+     * 挂靠/虚拟设备（type=1）恒在线，记 24 小时；真实设备按离线区间逐小时判定，
+     * 任一小时只要与离线区间有交集即不累积（不足一小时无收益）。
+     */
+    int countFullyOnlineHours(Device device, LocalDate settlementDate) {
         if (device.getType() != null && device.getType() == 1) {
-            return false;
+            return 24;
         }
-        BigDecimal maxOfflineHours = getMaxDailyOfflineHours();
-        long offlineSeconds = device.getLastHeartbeatTime() == null
-                ? java.time.Duration.between(dayStart, dayEnd).getSeconds()
-                : offlinePeriodService.getOfflineSeconds(device.getId(), dayStart, dayEnd);
-        BigDecimal maxOfflineSeconds = maxOfflineHours.multiply(BigDecimal.valueOf(3600));
-        return BigDecimal.valueOf(offlineSeconds).compareTo(maxOfflineSeconds) > 0;
+        if (device.getLastHeartbeatTime() == null) {
+            return 0;
+        }
+        LocalDateTime dayStart = settlementDate.atStartOfDay();
+        LocalDateTime dayEnd = settlementDate.plusDays(1).atStartOfDay();
+        List<DeviceOfflinePeriod> periods = offlinePeriodService.getOfflinePeriods(device.getId(), dayStart, dayEnd);
+        int onlineHours = 0;
+        for (int hour = 0; hour < 24; hour++) {
+            LocalDateTime hourStart = dayStart.plusHours(hour);
+            LocalDateTime hourEnd = hourStart.plusHours(1);
+            if (!hourHasOffline(periods, hourStart, hourEnd)) {
+                onlineHours++;
+            }
+        }
+        return onlineHours;
+    }
+
+    private boolean hourHasOffline(
+            List<DeviceOfflinePeriod> periods,
+            LocalDateTime hourStart,
+            LocalDateTime hourEnd) {
+        for (DeviceOfflinePeriod period : periods) {
+            if (period == null || period.getOfflineStart() == null) {
+                continue;
+            }
+            LocalDateTime end = period.getOnlineAt() == null ? hourEnd : period.getOnlineAt();
+            if (period.getOfflineStart().isBefore(hourEnd) && end.isAfter(hourStart)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private void recordZeroEarnings(Device device, LocalDateTime now, LocalDate settlementDate) {
@@ -452,20 +485,7 @@ public class DeviceEarningsServiceImpl extends ServiceImpl<DeviceEarningsMapper,
 
         device.setLastPayTime(now);
         deviceService.updateById(device);
-        log.info("设备当日累计离线超限，收益记为0: deviceId={}, date={}", device.getId(), settlementDate);
-    }
-
-    private BigDecimal getMaxDailyOfflineHours() {
-        BigDecimal hours;
-        try {
-            hours = new BigDecimal(configService.getConfig("earnings.maxDailyOfflineHours", "24"));
-        } catch (NumberFormatException e) {
-            return BigDecimal.valueOf(24);
-        }
-        if (hours.compareTo(BigDecimal.ZERO) < 0 || hours.compareTo(BigDecimal.valueOf(24)) > 0) {
-            return BigDecimal.valueOf(24);
-        }
-        return hours;
+        log.info("设备当日无完整在线小时，收益记为0: deviceId={}, date={}", device.getId(), settlementDate);
     }
 
     private int getOfflineThresholdSeconds() {
@@ -476,43 +496,79 @@ public class DeviceEarningsServiceImpl extends ServiceImpl<DeviceEarningsMapper,
         }
     }
 
-    BigDecimal calculateDailyBaseEarnings(Long deviceId, LocalDate settlementDate) {
-        return calculateDailyBaseEarnings(deviceId, settlementDate, null);
+    /**
+     * 汇总结算自然日内每个完整在线小时的收益，作为当日基础收益（2 位小数）。
+     */
+    BigDecimal calculateHourlyTotalEarnings(Device device, LocalDate settlementDate, AppUser user) {
+        LocalDateTime dayStart = settlementDate.atStartOfDay();
+        List<DeviceOfflinePeriod> periods = (device.getType() != null && device.getType() == 1)
+                ? List.of()
+                : offlinePeriodService.getOfflinePeriods(
+                        device.getId(), dayStart, settlementDate.plusDays(1).atStartOfDay());
+        BigDecimal total = BigDecimal.ZERO;
+        for (int hour = 0; hour < 24; hour++) {
+            LocalDateTime hourStart = dayStart.plusHours(hour);
+            LocalDateTime hourEnd = hourStart.plusHours(1);
+            if (device.getType() != null && device.getType() == 1) {
+                total = total.add(calculateHourlyBaseEarnings(device.getId(), settlementDate, hour, user));
+                continue;
+            }
+            if (device.getLastHeartbeatTime() != null && !hourHasOffline(periods, hourStart, hourEnd)) {
+                total = total.add(calculateHourlyBaseEarnings(device.getId(), settlementDate, hour, user));
+            }
+        }
+        return total.setScale(2, java.math.RoundingMode.HALF_UP);
     }
 
-    BigDecimal calculateDailyBaseEarnings(Long deviceId, LocalDate settlementDate, AppUser user) {
+    /**
+     * 计算单个完整在线小时的收益（4 位小数精度，避免小面额按小时截断）。
+     */
+    BigDecimal calculateHourlyBaseEarnings(Long deviceId, LocalDate settlementDate, int hour) {
+        return calculateHourlyBaseEarnings(deviceId, settlementDate, hour, null);
+    }
+
+    BigDecimal calculateHourlyBaseEarnings(Long deviceId, LocalDate settlementDate, int hour, AppUser user) {
         boolean useUserRange = user != null
                 && user.getDailyEarningsMin() != null
                 && user.getDailyEarningsMax() != null;
         BigDecimal minRate = useUserRange
-                ? user.getDailyEarningsMin().setScale(2, java.math.RoundingMode.HALF_UP)
-                : getDailyRangeRate("earnings.dailyMinRate");
+                ? user.getDailyEarningsMin().setScale(4, java.math.RoundingMode.HALF_UP)
+                : getHourlyRangeRate("earnings.hourlyMinRate", "earnings.dailyMinRate");
         BigDecimal maxRate = useUserRange
-                ? user.getDailyEarningsMax().setScale(2, java.math.RoundingMode.HALF_UP)
-                : getDailyRangeRate("earnings.dailyMaxRate");
+                ? user.getDailyEarningsMax().setScale(4, java.math.RoundingMode.HALF_UP)
+                : getHourlyRangeRate("earnings.hourlyMaxRate", "earnings.dailyMaxRate");
         if (minRate.compareTo(BigDecimal.ZERO) < 0 || maxRate.compareTo(BigDecimal.ZERO) < 0) {
-            throw new IllegalStateException("每天收益金额不能小于 0");
+            throw new IllegalStateException("每小时收益金额不能小于 0");
         }
         if (minRate.compareTo(maxRate) > 0) {
-            throw new IllegalStateException("每天收益最低金额不能大于最高金额");
+            throw new IllegalStateException("每小时收益最低金额不能大于最高金额");
         }
 
-        long minHundredths = minRate.movePointRight(2).longValueExact();
-        long maxHundredths = maxRate.movePointRight(2).longValueExact();
-        long selectedHundredths = minHundredths;
-        if (maxHundredths > minHundredths) {
+        long minTenThousandths = minRate.movePointRight(4).longValueExact();
+        long maxTenThousandths = maxRate.movePointRight(4).longValueExact();
+        long selected = minTenThousandths;
+        if (maxTenThousandths > minTenThousandths) {
             long deviceSeed = deviceId == null ? 0L : deviceId;
-            long seed = (deviceSeed * 0x9E3779B97F4A7C15L) ^ settlementDate.toEpochDay();
-            selectedHundredths = new SplittableRandom(seed).nextLong(minHundredths, maxHundredths + 1);
+            long seed = (deviceSeed * 0x9E3779B97F4A7C15L)
+                    ^ (settlementDate.toEpochDay() * 0x9E3779B97F4A7C15L)
+                    ^ (hour * 0x5DEECE66DL);
+            selected = new SplittableRandom(seed).nextLong(minTenThousandths, maxTenThousandths + 1);
         }
 
-        return BigDecimal.valueOf(selectedHundredths, 2);
+        return BigDecimal.valueOf(selected, 4);
     }
 
-    private BigDecimal getDailyRangeRate(String key) {
+    /**
+     * 读取每小时收益区间。优先读取每小时配置；未配置时回退到旧的每日配置并按 24 小时折算。
+     */
+    private BigDecimal getHourlyRangeRate(String hourlyKey, String legacyDailyKey) {
+        String hourlyValue = configService.getConfig(hourlyKey);
+        if (hourlyValue != null && !hourlyValue.isBlank()) {
+            return new BigDecimal(hourlyValue).setScale(4, java.math.RoundingMode.HALF_UP);
+        }
         String legacyHourlyRate = configService.getConfig("earnings.hourlyRate", "2.4");
-        String legacyDailyRate = configService.getConfig("earnings.dailyRate", legacyHourlyRate);
-        return new BigDecimal(configService.getConfig(key, legacyDailyRate))
-                .setScale(2, java.math.RoundingMode.HALF_UP);
+        String legacyDailyRate = configService.getConfig(legacyDailyKey, legacyHourlyRate);
+        return new BigDecimal(legacyDailyRate)
+                .divide(BigDecimal.valueOf(24), 4, java.math.RoundingMode.HALF_UP);
     }
 }

@@ -206,7 +206,7 @@
                 <label class="form-label">操作说明</label>
                 <div class="form-desc">
                   <p><el-icon><CircleCheck /></el-icon> 将为 <strong>所有已绑定且在线的设备</strong> 补发 <strong>{{ compensateDays }}</strong> 天的收益</p>
-                  <p><el-icon><CircleCheck /></el-icon> 每台设备每天收益 = 基础收益 × 用户等级费率</p>
+                  <p><el-icon><CircleCheck /></el-icon> 每台设备收益 = 每小时基础收益 × 完整在线小时数 × 用户等级费率</p>
                   <p><el-icon><CircleCheck /></el-icon> 同时会增加对应的算力值（每天 +100）</p>
                   <p><el-icon><CircleCheck /></el-icon> 邀请人的级差分润也会同步计算</p>
                 </div>

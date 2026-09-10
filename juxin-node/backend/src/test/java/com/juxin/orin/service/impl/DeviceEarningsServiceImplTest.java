@@ -1,6 +1,7 @@
 package com.juxin.orin.service.impl;
 
 import com.juxin.orin.entity.Device;
+import com.juxin.orin.entity.DeviceOfflinePeriod;
 import com.juxin.orin.entity.AppUser;
 import com.juxin.orin.mapper.DeviceEarningsMapper;
 import com.juxin.orin.service.IAppUserService;
@@ -10,8 +11,6 @@ import com.juxin.orin.service.IInviteService;
 import com.juxin.orin.service.ISystemConfigService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -19,9 +18,9 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -29,6 +28,8 @@ import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class DeviceEarningsServiceImplTest {
+
+    private static final LocalDate SETTLEMENT_DATE = LocalDate.of(2026, 7, 31);
 
     @Mock
     private IAppUserService appUserService;
@@ -70,127 +71,133 @@ class DeviceEarningsServiceImplTest {
     }
 
     @Test
-    void dailyBaseEarningsShouldStayInsideConfiguredAmountRange() {
-        when(configService.getConfig("earnings.hourlyRate", "2.4")).thenReturn("2.4");
-        when(configService.getConfig("earnings.dailyRate", "2.4")).thenReturn("2.4");
-        when(configService.getConfig("earnings.dailyMinRate", "2.4")).thenReturn("40");
-        when(configService.getConfig("earnings.dailyMaxRate", "2.4")).thenReturn("50");
+    void hourlyBaseEarningsShouldStayInsideConfiguredAmountRange() {
+        when(configService.getConfig("earnings.hourlyMinRate")).thenReturn("0.40");
+        when(configService.getConfig("earnings.hourlyMaxRate")).thenReturn("0.50");
 
-        LocalDate settlementDate = LocalDate.of(2026, 7, 31);
-        BigDecimal first = service.calculateDailyBaseEarnings(7L, settlementDate);
-        BigDecimal repeated = service.calculateDailyBaseEarnings(7L, settlementDate);
+        BigDecimal first = service.calculateHourlyBaseEarnings(7L, SETTLEMENT_DATE, 0);
+        BigDecimal repeated = service.calculateHourlyBaseEarnings(7L, SETTLEMENT_DATE, 0);
 
-        assertTrue(first.compareTo(new BigDecimal("40.00")) >= 0);
-        assertTrue(first.compareTo(new BigDecimal("50.00")) <= 0);
+        assertTrue(first.compareTo(new BigDecimal("0.4000")) >= 0);
+        assertTrue(first.compareTo(new BigDecimal("0.5000")) <= 0);
         assertEquals(first, repeated);
     }
 
     @Test
-    void userDailyRangeShouldOverrideGlobalRange() {
+    void userHourlyRangeShouldOverrideGlobalRange() {
         AppUser user = new AppUser();
-        user.setDailyEarningsMin(new BigDecimal("70"));
-        user.setDailyEarningsMax(new BigDecimal("80"));
+        user.setDailyEarningsMin(new BigDecimal("0.70"));
+        user.setDailyEarningsMax(new BigDecimal("0.80"));
 
-        BigDecimal earnings = service.calculateDailyBaseEarnings(
-                7L,
-                LocalDate.of(2026, 8, 11),
-                user);
+        BigDecimal earnings = service.calculateHourlyBaseEarnings(7L, SETTLEMENT_DATE, 0, user);
 
-        assertTrue(earnings.compareTo(new BigDecimal("70.00")) >= 0);
-        assertTrue(earnings.compareTo(new BigDecimal("80.00")) <= 0);
+        assertTrue(earnings.compareTo(new BigDecimal("0.7000")) >= 0);
+        assertTrue(earnings.compareTo(new BigDecimal("0.8000")) <= 0);
         verifyNoInteractions(configService);
     }
 
     @Test
-    void incompleteUserDailyRangeShouldFallBackToGlobalRange() {
+    void incompleteUserHourlyRangeShouldFallBackToGlobalRange() {
         AppUser user = new AppUser();
-        user.setDailyEarningsMin(new BigDecimal("70"));
-        when(configService.getConfig("earnings.hourlyRate", "2.4")).thenReturn("2.4");
-        when(configService.getConfig("earnings.dailyRate", "2.4")).thenReturn("2.4");
-        when(configService.getConfig("earnings.dailyMinRate", "2.4")).thenReturn("40");
-        when(configService.getConfig("earnings.dailyMaxRate", "2.4")).thenReturn("50");
+        user.setDailyEarningsMin(new BigDecimal("0.70"));
+        when(configService.getConfig("earnings.hourlyMinRate")).thenReturn("0.40");
+        when(configService.getConfig("earnings.hourlyMaxRate")).thenReturn("0.50");
 
-        BigDecimal earnings = service.calculateDailyBaseEarnings(
-                7L,
-                LocalDate.of(2026, 8, 11),
-                user);
+        BigDecimal earnings = service.calculateHourlyBaseEarnings(7L, SETTLEMENT_DATE, 0, user);
 
-        assertTrue(earnings.compareTo(new BigDecimal("40.00")) >= 0);
-        assertTrue(earnings.compareTo(new BigDecimal("50.00")) <= 0);
+        assertTrue(earnings.compareTo(new BigDecimal("0.4000")) >= 0);
+        assertTrue(earnings.compareTo(new BigDecimal("0.5000")) <= 0);
     }
 
     @Test
-    void offlineSecondsEqualToConfiguredLimitShouldStillAllowEarnings() {
-        Device device = realDevice();
-        LocalDateTime dayStart = LocalDateTime.of(2026, 7, 31, 0, 0);
-        LocalDateTime dayEnd = dayStart.plusDays(1);
-        when(offlinePeriodService.getOfflineSeconds(7L, dayStart, dayEnd)).thenReturn(3 * 60 * 60L);
-        when(configService.getConfig("earnings.maxDailyOfflineHours", "24")).thenReturn("3");
-
-        boolean exceeded = service.exceedsDailyOfflineLimit(device, dayStart, dayEnd);
-
-        assertFalse(exceeded);
-    }
-
-    @Test
-    void offlineSecondsOneSecondOverConfiguredLimitShouldRejectEarnings() {
-        Device device = realDevice();
-        LocalDateTime dayStart = LocalDateTime.of(2026, 7, 31, 0, 0);
-        LocalDateTime dayEnd = dayStart.plusDays(1);
-        when(offlinePeriodService.getOfflineSeconds(7L, dayStart, dayEnd)).thenReturn(3 * 60 * 60L + 1);
-        when(configService.getConfig("earnings.maxDailyOfflineHours", "24")).thenReturn("3");
-
-        boolean exceeded = service.exceedsDailyOfflineLimit(device, dayStart, dayEnd);
-
-        assertTrue(exceeded);
-    }
-
-    @Test
-    void virtualDeviceShouldBeExemptFromDailyOfflineLimit() {
+    void virtualDeviceShouldCountTwentyFourOnlineHours() {
         Device device = realDevice();
         device.setType(1);
 
-        boolean exceeded = service.exceedsDailyOfflineLimit(
-                device,
-                LocalDateTime.of(2026, 7, 31, 0, 0),
-                LocalDateTime.of(2026, 8, 1, 0, 0));
+        int onlineHours = service.countFullyOnlineHours(device, SETTLEMENT_DATE);
 
-        assertFalse(exceeded);
-        verifyNoInteractions(offlinePeriodService, configService);
-    }
-
-    @Test
-    void realDeviceWithoutHeartbeatShouldCountAsOfflineForTheWholeDay() {
-        Device device = realDevice();
-        device.setLastHeartbeatTime(null);
-        LocalDateTime dayStart = LocalDateTime.of(2026, 7, 31, 0, 0);
-        when(configService.getConfig("earnings.maxDailyOfflineHours", "24")).thenReturn("3");
-
-        boolean exceeded = service.exceedsDailyOfflineLimit(device, dayStart, dayStart.plusDays(1));
-
-        assertTrue(exceeded);
+        assertEquals(24, onlineHours);
         verifyNoInteractions(offlinePeriodService);
     }
 
-    @ParameterizedTest
-    @ValueSource(strings = { "invalid", "-1", "25" })
-    void invalidOfflineLimitConfigurationShouldFallBackToTwentyFourHours(String configuredValue) {
+    @Test
+    void realDeviceWithoutHeartbeatShouldCountZeroOnlineHours() {
         Device device = realDevice();
-        LocalDateTime dayStart = LocalDateTime.of(2026, 7, 31, 0, 0);
-        LocalDateTime dayEnd = dayStart.plusDays(1);
-        when(offlinePeriodService.getOfflineSeconds(7L, dayStart, dayEnd)).thenReturn(24 * 60 * 60L);
-        when(configService.getConfig("earnings.maxDailyOfflineHours", "24")).thenReturn(configuredValue);
+        device.setLastHeartbeatTime(null);
 
-        boolean exceeded = service.exceedsDailyOfflineLimit(device, dayStart, dayEnd);
+        int onlineHours = service.countFullyOnlineHours(device, SETTLEMENT_DATE);
 
-        assertFalse(exceeded);
+        assertEquals(0, onlineHours);
+        verifyNoInteractions(offlinePeriodService);
+    }
+
+    @Test
+    void realDeviceFullyOnlineDayShouldCountTwentyFourHours() {
+        Device device = realDevice();
+        when(offlinePeriodService.getOfflinePeriods(
+                7L, SETTLEMENT_DATE.atStartOfDay(), SETTLEMENT_DATE.plusDays(1).atStartOfDay()))
+                .thenReturn(List.of());
+
+        int onlineHours = service.countFullyOnlineHours(device, SETTLEMENT_DATE);
+
+        assertEquals(24, onlineHours);
+    }
+
+    @Test
+    void wholeOfflineHourShouldNotAccrue() {
+        Device device = realDevice();
+        LocalDateTime dayStart = SETTLEMENT_DATE.atStartOfDay();
+        when(offlinePeriodService.getOfflinePeriods(
+                7L, dayStart, SETTLEMENT_DATE.plusDays(1).atStartOfDay()))
+                .thenReturn(List.of(offlinePeriod(10, 0, 11, 0)));
+
+        int onlineHours = service.countFullyOnlineHours(device, SETTLEMENT_DATE);
+
+        assertEquals(23, onlineHours);
+    }
+
+    @Test
+    void partialOfflineHourShouldNotAccrue() {
+        Device device = realDevice();
+        LocalDateTime dayStart = SETTLEMENT_DATE.atStartOfDay();
+        when(offlinePeriodService.getOfflinePeriods(
+                7L, dayStart, SETTLEMENT_DATE.plusDays(1).atStartOfDay()))
+                .thenReturn(List.of(offlinePeriod(10, 30, 11, 30)));
+
+        int onlineHours = service.countFullyOnlineHours(device, SETTLEMENT_DATE);
+
+        assertEquals(22, onlineHours);
+    }
+
+    @Test
+    void hourlyTotalShouldSumOnlyFullyOnlineHours() {
+        Device device = realDevice();
+        LocalDateTime dayStart = SETTLEMENT_DATE.atStartOfDay();
+        when(offlinePeriodService.getOfflinePeriods(
+                7L, dayStart, SETTLEMENT_DATE.plusDays(1).atStartOfDay()))
+                .thenReturn(List.of(offlinePeriod(10, 0, 11, 0)));
+        when(configService.getConfig("earnings.hourlyMinRate")).thenReturn("0.40");
+        when(configService.getConfig("earnings.hourlyMaxRate")).thenReturn("0.40");
+
+        BigDecimal total = service.calculateHourlyTotalEarnings(device, SETTLEMENT_DATE, null);
+
+        // 24 小时中 1 小时离线，23 小时 × 0.40 = 9.20
+        assertEquals(new BigDecimal("9.20"), total);
     }
 
     private Device realDevice() {
         Device device = new Device();
         device.setId(7L);
         device.setType(2);
-        device.setLastHeartbeatTime(LocalDateTime.of(2026, 7, 31, 12, 0));
+        device.setLastHeartbeatTime(SETTLEMENT_DATE.atTime(12, 0));
         return device;
+    }
+
+    private DeviceOfflinePeriod offlinePeriod(int startHour, int startMinute, int endHour, int endMinute) {
+        DeviceOfflinePeriod period = new DeviceOfflinePeriod();
+        period.setDeviceId(7L);
+        period.setOfflineStart(SETTLEMENT_DATE.atTime(startHour, startMinute));
+        period.setOnlineAt(SETTLEMENT_DATE.atTime(endHour, endMinute));
+        return period;
     }
 }

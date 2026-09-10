@@ -15,8 +15,8 @@ public class EarningsTask {
     private IDeviceEarningsService earningsService;
 
     /**
-     * 每分钟检查一次，结算已结束的上一个自然日。
-     * 服务在零点后启动时也能自动补上当日结算。
+     * 每分钟检查一次，每天中午 12:00 结算已结束的前一个自然日。
+     * 服务在 12 点后启动时也能自动补上当日结算（12 点前不结算）。
      */
     @Scheduled(fixedRate = 60000)
     public void calculateDailyEarnings() {

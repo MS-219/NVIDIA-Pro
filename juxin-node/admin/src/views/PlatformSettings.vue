@@ -34,34 +34,24 @@
             <span class="card-title"><el-icon><Coin /></el-icon> 收益设置</span>
           </template>
           <el-form :model="earningsSettings" label-width="140px">
-            <el-form-item label="每天收益区间 (￥)">
+            <el-form-item label="每小时收益区间 (￥)">
               <div class="earning-range-row">
                 <el-input-number
-                  v-model="earningsSettings.dailyMinRate"
+                  v-model="earningsSettings.hourlyMinRate"
                   :min="0"
-                  :precision="2"
-                  :step="0.1"
+                  :precision="4"
+                  :step="0.01"
                 />
                 <span class="range-text">至</span>
                 <el-input-number
-                  v-model="earningsSettings.dailyMaxRate"
+                  v-model="earningsSettings.hourlyMaxRate"
                   :min="0"
-                  :precision="2"
-                  :step="0.1"
+                  :precision="4"
+                  :step="0.01"
                 />
-                <span class="unit">元 / 天</span>
+                <span class="unit">元 / 小时</span>
               </div>
-            </el-form-item>
-            <el-form-item label="每日累计离线上限">
-              <el-input-number
-                v-model="earningsSettings.maxDailyOfflineHours"
-                :min="0"
-                :max="24"
-                :precision="1"
-                :step="0.5"
-              />
-              <span class="unit">小时 / 天</span>
-              <div class="hint">累计离线超过该时长，当天收益为 0</div>
+              <div class="hint">每小时完整在线累积该小时收益，凌晨 0 点统一发放前一日累计</div>
             </el-form-item>
             <el-form-item label="提现起付金额">
               <el-input-number v-model="earningsSettings.minWithdraw" :min="0.01" :max="0.01" :precision="2" disabled />
@@ -257,9 +247,8 @@ const uploadHeaders = {
 }
 
 const earningsSettings = reactive({
-  dailyMinRate: 2.4,
-  dailyMaxRate: 2.4,
-  maxDailyOfflineHours: 24,
+  hourlyMinRate: 0.41,
+  hourlyMaxRate: 0.43,
   minWithdraw: 0.01,
   withdrawFee: 1,
   hashratePerYuan: 100  // 多少聚芯算力值=1元
@@ -433,18 +422,12 @@ const validateInviteLevels = () => {
 }
 
 const validateEarningsSettings = () => {
-  const dailyMinRate = Number(earningsSettings.dailyMinRate)
-  const dailyMaxRate = Number(earningsSettings.dailyMaxRate)
-  const maxDailyOfflineHours = Number(earningsSettings.maxDailyOfflineHours)
+  const hourlyMinRate = Number(earningsSettings.hourlyMinRate)
+  const hourlyMaxRate = Number(earningsSettings.hourlyMaxRate)
 
-  if (!Number.isFinite(dailyMinRate) || dailyMinRate < 0) return '每天收益最低金额不能小于 0'
-  if (!Number.isFinite(dailyMaxRate) || dailyMaxRate < 0) return '每天收益最高金额不能小于 0'
-  if (dailyMinRate > dailyMaxRate) return '每天收益最低金额不能大于最高金额'
-  if (!Number.isFinite(maxDailyOfflineHours)
-      || maxDailyOfflineHours < 0
-      || maxDailyOfflineHours > 24) {
-    return '每日累计离线上限必须在 0 到 24 小时之间'
-  }
+  if (!Number.isFinite(hourlyMinRate) || hourlyMinRate < 0) return '每小时收益最低金额不能小于 0'
+  if (!Number.isFinite(hourlyMaxRate) || hourlyMaxRate < 0) return '每小时收益最高金额不能小于 0'
+  if (hourlyMinRate > hourlyMaxRate) return '每小时收益最低金额不能大于最高金额'
   return ''
 }
 

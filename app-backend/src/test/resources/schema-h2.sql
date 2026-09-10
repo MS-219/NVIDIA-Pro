@@ -30,6 +30,7 @@ CREATE TABLE IF NOT EXISTS app_node (
     owner_user_id BIGINT NULL,
     name VARCHAR(80) NOT NULL DEFAULT '聚芯节点',
     status VARCHAR(16) NOT NULL DEFAULT 'pending',
+    device_type TINYINT NOT NULL DEFAULT 2,
     hashrate DECIMAL(18,3) NOT NULL DEFAULT 0,
     temperature DECIMAL(6,2) NULL,
     daily_earnings DECIMAL(18,8) NOT NULL DEFAULT 0,

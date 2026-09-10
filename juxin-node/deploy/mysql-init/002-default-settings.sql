@@ -1,7 +1,6 @@
 INSERT INTO system_config (config_key, config_value, description) VALUES
-    ('earnings.dailyMinRate', '2.4', '每台设备每天收益最低金额'),
-    ('earnings.dailyMaxRate', '2.4', '每台设备每天收益最高金额'),
-    ('earnings.maxDailyOfflineHours', '24', '每天累计离线超过该小时数时收益为零'),
+    ('earnings.hourlyMinRate', '0.1', '每台设备每小时收益最低金额'),
+    ('earnings.hourlyMaxRate', '0.1', '每台设备每小时收益最高金额'),
     ('earnings.hashratePerYuan', '100', '每元对应的聚芯算力值'),
     ('earnings.minWithdraw', '10', '最低提现金额'),
     ('earnings.withdrawFee', '1', '提现手续费百分比'),

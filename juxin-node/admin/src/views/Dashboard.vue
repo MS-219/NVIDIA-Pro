@@ -98,6 +98,16 @@
           <el-icon><Download /></el-icon>
           <span>APP 更新</span>
         </el-menu-item>
+
+        <div class="nav-label">APP 独立数据</div>
+        <el-menu-item index="/app-payment-applies">
+          <el-icon><Wallet /></el-icon>
+          <span>APP 收款方式</span>
+        </el-menu-item>
+        <el-menu-item index="/app-device-earnings">
+          <el-icon><Money /></el-icon>
+          <span>APP 设备收益</span>
+        </el-menu-item>
         <el-menu-item index="/terminal">
           <el-icon><Platform /></el-icon>
           <span>终端会话</span>

@@ -98,10 +98,15 @@ public class DeviceOfflinePeriodServiceImpl
 
     @Override
     public long getOfflineSeconds(Long deviceId, LocalDateTime rangeStart, LocalDateTime rangeEnd) {
+        return calculateOfflineSeconds(getOfflinePeriods(deviceId, rangeStart, rangeEnd), rangeStart, rangeEnd);
+    }
+
+    @Override
+    public List<DeviceOfflinePeriod> getOfflinePeriods(Long deviceId, LocalDateTime rangeStart, LocalDateTime rangeEnd) {
         if (deviceId == null || rangeStart == null || rangeEnd == null || !rangeEnd.isAfter(rangeStart)) {
-            return 0;
+            return List.of();
         }
-        List<DeviceOfflinePeriod> periods = lambdaQuery()
+        return lambdaQuery()
                 .eq(DeviceOfflinePeriod::getDeviceId, deviceId)
                 .lt(DeviceOfflinePeriod::getOfflineStart, rangeEnd)
                 .and(wrapper -> wrapper.isNull(DeviceOfflinePeriod::getOnlineAt)
@@ -109,7 +114,6 @@ public class DeviceOfflinePeriodServiceImpl
                         .gt(DeviceOfflinePeriod::getOnlineAt, rangeStart))
                 .orderByAsc(DeviceOfflinePeriod::getOfflineStart)
                 .list();
-        return calculateOfflineSeconds(periods, rangeStart, rangeEnd);
     }
 
     static long calculateOfflineSeconds(

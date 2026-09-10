@@ -524,7 +524,7 @@
             <el-descriptions-item label="聚芯算力值"><el-icon><Lightning /></el-icon> {{ currentUser.quota ?? 0 }}</el-descriptions-item>
             <el-descriptions-item label="收益规则">
               <span v-if="currentUser.dailyEarningsMin != null && currentUser.dailyEarningsMax != null">
-                个人区间 ¥{{ Number(currentUser.dailyEarningsMin).toFixed(2) }} - {{ Number(currentUser.dailyEarningsMax).toFixed(2) }} / 天
+                个人区间 ¥{{ Number(currentUser.dailyEarningsMin).toFixed(2) }} - {{ Number(currentUser.dailyEarningsMax).toFixed(2) }} / 小时
               </span>
               <span v-else>系统全局设置</span>
             </el-descriptions-item>
@@ -647,25 +647,25 @@
                 inactive-text="使用系统全局设置"
               />
             </el-form-item>
-            <el-form-item v-if="editForm.customEarningsEnabled" label="每天收益">
+            <el-form-item v-if="editForm.customEarningsEnabled" label="每小时收益">
               <div class="earnings-range-inputs">
                 <el-input-number
                   v-model="editForm.dailyEarningsMin"
                   :min="0"
-                  :precision="2"
-                  :step="0.1"
+                  :precision="4"
+                  :step="0.01"
                   controls-position="right"
                 />
                 <span>至</span>
                 <el-input-number
                   v-model="editForm.dailyEarningsMax"
                   :min="0"
-                  :precision="2"
-                  :step="0.1"
+                  :precision="4"
+                  :step="0.01"
                   controls-position="right"
                 />
               </div>
-              <div class="form-tip warning"><el-icon><WarningFilled /></el-icon> 该区间替代系统基础收益，最终仍按用户等级费率计算</div>
+              <div class="form-tip warning"><el-icon><WarningFilled /></el-icon> 该区间为每小时收益，替代系统基础收益，最终仍按用户等级费率计算</div>
             </el-form-item>
           </div>
 

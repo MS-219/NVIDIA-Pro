@@ -30,6 +30,7 @@ class NodeDeviceSyncServiceTest {
                   owner_user_id BIGINT,
                   name VARCHAR(80),
                   status VARCHAR(16),
+                  device_type TINYINT,
                   hashrate DECIMAL(18,3),
                   temperature DECIMAL(6,2),
                   daily_earnings DECIMAL(18,8),
@@ -140,7 +141,7 @@ class NodeDeviceSyncServiceTest {
     }
 
     @Test
-    void virtualDeviceFallsBackToAffiliatedLabel() {
+    void virtualDeviceFallsBackToJuxinNodeLabel() {
         nodeJdbc.update("""
                 INSERT INTO device (id, bind_code, name, status, hashrate, type, user_id)
                 VALUES (50, 'JDVIRT01', NULL, 1, 100, 1, NULL)
@@ -150,7 +151,7 @@ class NodeDeviceSyncServiceTest {
 
         String name = appJdbc.queryForObject(
                 "SELECT name FROM app_node WHERE binding_code = 'JDVIRT01'", String.class);
-        assertEquals("挂靠设备", name);
+        assertEquals("聚芯节点", name);
     }
 
     @Test

@@ -63,8 +63,9 @@ public class JdbcAppNodeRepository implements AppNodeRepository {
         return jdbc.queryForObject("""
                 SELECT COUNT(*) AS total,
                        COALESCE(SUM(CASE WHEN LOWER(n.status) = 'online'
-                              AND n.last_reported_at IS NOT NULL
-                              AND n.last_reported_at >= TIMESTAMPADD(SECOND, -%d, CURRENT_TIMESTAMP)
+                              AND (n.device_type = 1
+                                   OR (n.last_reported_at IS NOT NULL
+                                       AND n.last_reported_at >= TIMESTAMPADD(SECOND, -%d, CURRENT_TIMESTAMP)))
                             THEN 1 ELSE 0 END), 0) AS online,
                        COALESCE(SUM(n.hashrate), 0) AS total_hashrate,
                        COALESCE(SUM(n.daily_earnings), 0) AS today_earnings,
@@ -100,8 +101,9 @@ public class JdbcAppNodeRepository implements AppNodeRepository {
                 SELECT id, binding_code, owner_user_id, name,
                        CASE
                          WHEN LOWER(status) = 'online'
-                              AND last_reported_at IS NOT NULL
-                              AND last_reported_at >= TIMESTAMPADD(SECOND, -%d, CURRENT_TIMESTAMP)
+                              AND (device_type = 1
+                                   OR (last_reported_at IS NOT NULL
+                                       AND last_reported_at >= TIMESTAMPADD(SECOND, -%d, CURRENT_TIMESTAMP)))
                            THEN 'online'
                          WHEN LOWER(status) = 'online' THEN 'offline'
                          ELSE status

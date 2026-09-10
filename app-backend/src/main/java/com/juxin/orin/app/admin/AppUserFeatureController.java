@@ -58,17 +58,33 @@ public class AppUserFeatureController {
         String key = "withdraw:" + UUID.randomUUID(); BigDecimal after = current.subtract(body.amount());
         jdbc.update("INSERT INTO app_wallet_ledger(user_id,amount,balance_after,direction,entry_type,idempotency_key,description) VALUES(?,?,?,'debit','withdraw',?,?)",uid,body.amount(),after,key,"提现申请");
         var id = jdbc.queryForObject("SELECT COALESCE(MAX(id),0) FROM app_wallet_ledger WHERE idempotency_key=?",Long.class,key);
-        jdbc.update("INSERT INTO app_withdrawal(user_id,amount,method,account_name,account_no) VALUES(?,?,?,?,?)",uid,body.amount(),body.method(),body.accountName(),body.accountNo());
+        jdbc.update("INSERT INTO app_withdrawal(user_id,amount,method,account_name,account_no,qr_code_url) VALUES(?,?,?,?,?,?)",uid,body.amount(),body.method(),blankToNull(body.accountName()),blankToNull(body.accountNo()),blankToNull(body.qrCodeUrl()));
         return ApiResponse.success(Map.of("ledgerId",id,"balance",after,"status","pending"));
     }
 
     @GetMapping("/withdrawals")
-    public ApiResponse<List<Map<String,Object>>> withdrawals(HttpServletRequest request) { return ApiResponse.success(jdbc.query("SELECT id,amount,method,account_name,account_no,status,review_note,created_at,reviewed_at FROM app_withdrawal WHERE user_id=? ORDER BY created_at DESC",(rs,row)->map(rs,"id","amount","method","account_name","account_no","status","review_note","created_at","reviewed_at"),userId(request))); }
+    public ApiResponse<List<Map<String,Object>>> withdrawals(HttpServletRequest request) { return ApiResponse.success(jdbc.query("SELECT id,amount,method,account_name,account_no,qr_code_url,status,review_note,created_at,reviewed_at FROM app_withdrawal WHERE user_id=? ORDER BY created_at DESC",(rs,row)->map(rs,"id","amount","method","account_name","account_no","qr_code_url","status","review_note","created_at","reviewed_at"),userId(request))); }
 
     @PostMapping("/payment-applies")
-    public ApiResponse<Void> paymentApply(@Valid @RequestBody Payment body,HttpServletRequest request){jdbc.update("INSERT INTO app_payment_apply(user_id,method,account_name,account_no) VALUES(?,?,?,?)",userId(request),body.method(),body.accountName(),body.accountNo());return ApiResponse.success();}
+    public ApiResponse<Void> paymentApply(@Valid @RequestBody Payment body,HttpServletRequest request){
+        String method = body.method() == null ? "" : body.method().trim();
+        String accountName = trimToEmpty(body.accountName());
+        String accountNo = trimToEmpty(body.accountNo());
+        String qrCodeUrl = trimToEmpty(body.qrCodeUrl());
+        if ("bank_card".equals(method)) {
+            if (accountName.isEmpty() || accountNo.isEmpty()) throw new ApiException(400, "银行卡方式需填写持卡人姓名和卡号");
+            qrCodeUrl = "";
+        } else if ("wechat".equals(method) || "alipay".equals(method)) {
+            if (qrCodeUrl.isEmpty()) throw new ApiException(400, "请上传微信或支付宝收款码");
+            accountName = ""; accountNo = "";
+        } else {
+            throw new ApiException(400, "收款方式不正确");
+        }
+        jdbc.update("INSERT INTO app_payment_apply(user_id,method,account_name,account_no,qr_code_url) VALUES(?,?,?,?,?)",userId(request),method,accountName,accountNo,qrCodeUrl);
+        return ApiResponse.success();
+    }
     @GetMapping("/payment-applies")
-    public ApiResponse<List<Map<String,Object>>> myPayments(HttpServletRequest request){return ApiResponse.success(jdbc.query("SELECT id,method,account_name,account_no,status,review_note,created_at,reviewed_at FROM app_payment_apply WHERE user_id=? ORDER BY created_at DESC",(rs,row)->map(rs,"id","method","account_name","account_no","status","review_note","created_at","reviewed_at"),userId(request)));}
+    public ApiResponse<List<Map<String,Object>>> myPayments(HttpServletRequest request){return ApiResponse.success(jdbc.query("SELECT id,method,account_name,account_no,qr_code_url,status,review_note,created_at,reviewed_at FROM app_payment_apply WHERE user_id=? ORDER BY created_at DESC",(rs,row)->map(rs,"id","method","account_name","account_no","qr_code_url","status","review_note","created_at","reviewed_at"),userId(request)));}
 
     @GetMapping("/invites")
     public ApiResponse<Map<String,Object>> invites(HttpServletRequest request){long uid=userId(request);Map<String,Object> out=new LinkedHashMap<>();out.put("inviteCode","JX"+String.format("%08d",uid));out.put("members",jdbc.query("SELECT r.invitee_user_id,u.phone,u.nickname,r.created_at FROM app_invite_relation r JOIN app_user_account u ON u.id=r.invitee_user_id WHERE r.inviter_user_id=? ORDER BY r.created_at DESC",(rs,row)->map(rs,"invitee_user_id","phone","nickname","created_at"),uid));out.put("rewards",jdbc.query("SELECT id,amount,description,created_at FROM app_reward_record WHERE user_id=? ORDER BY created_at DESC",(rs,row)->map(rs,"id","amount","description","created_at"),uid));return ApiResponse.success(out);}
@@ -87,7 +103,10 @@ public class AppUserFeatureController {
     private Map<String,Object> one(String sql,Object...a){List<Map<String,Object>> l=jdbc.queryForList(sql,a);return l.isEmpty()?Map.of():l.get(0);}
     private static Map<String,Object> map(java.sql.ResultSet rs,String... cols)throws java.sql.SQLException{Map<String,Object> m=new LinkedHashMap<>();for(String c:cols){Object v=rs.getObject(c);if(v instanceof java.sql.Clob clob)v=clob.getSubString(1,(int)Math.min(clob.length(),32768));m.put(c,v);}return m;}
     public record Feedback(@Size(max=40) String category,@NotBlank @Size(max=4000) String content){}
-    public record Withdraw(@NotNull @Positive BigDecimal amount,@NotBlank String method,@Size(max=80) String accountName,@NotBlank @Size(max=128) String accountNo){}
-    public record Payment(@NotBlank String method,@NotBlank @Size(max=80) String accountName,@NotBlank @Size(max=128) String accountNo){}
+    public record Withdraw(@NotNull @Positive BigDecimal amount,@NotBlank String method,@Size(max=80) String accountName,@NotBlank @Size(max=128) String accountNo,@Size(max=500) String qrCodeUrl){}
+    public record Payment(@NotBlank String method,@Size(max=80) String accountName,@Size(max=128) String accountNo,@Size(max=500) String qrCodeUrl){}
     public record Order(@NotNull Long productId,@NotNull @Positive Integer quantity,@Size(max=2000) String addressSnapshot){}
+
+    private static String blankToNull(String v){return v==null||v.isBlank()?null:v.trim();}
+    private static String trimToEmpty(String v){return v==null?"":v.trim();}
 }

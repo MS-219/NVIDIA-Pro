@@ -160,37 +160,41 @@ public class NodeDeviceSyncService {
         String code = normalizeBindCode(device);
         String name = normalizeName(device);
         String status = device.status() == 1 ? "online" : "offline";
+        int deviceType = normalizeType(device);
         Timestamp now = Timestamp.from(Instant.now());
         Timestamp boundAt = appOwnerUserId == null ? null : now;
         if (rowExists(code)) {
             // The 二开后台 is authoritative: always apply the resolved owner so
             // a rebind (or unbind) there is reflected here, even when the APP
             // node was previously owned by a different account.
-            updateRow(code, appOwnerUserId, name, status, device.hashrate(), device.lastHeartbeat(), boundAt, now);
+            updateRow(code, appOwnerUserId, name, status, deviceType, device.hashrate(),
+                    device.lastHeartbeat(), boundAt, now);
             return;
         }
         try {
             appJdbc.update("""
                     INSERT INTO app_node
-                        (binding_code, owner_user_id, name, status, hashrate,
+                        (binding_code, owner_user_id, name, status, device_type, hashrate,
                          last_reported_at, bound_at, created_at, updated_at)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-                    """, code, appOwnerUserId, name, status, device.hashrate(),
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """, code, appOwnerUserId, name, status, deviceType, device.hashrate(),
                     device.lastHeartbeat(), boundAt, now, now);
         } catch (DuplicateKeyException duplicate) {
             // A concurrent request may have inserted the same binding code.
-            updateRow(code, appOwnerUserId, name, status, device.hashrate(), device.lastHeartbeat(), boundAt, now);
+            updateRow(code, appOwnerUserId, name, status, deviceType, device.hashrate(),
+                    device.lastHeartbeat(), boundAt, now);
         }
     }
 
     private void updateRow(String code, Long appOwnerUserId, String name, String status,
-                           int hashrate, Timestamp lastHeartbeat, Timestamp boundAt, Timestamp now) {
+                           int deviceType, int hashrate, Timestamp lastHeartbeat,
+                           Timestamp boundAt, Timestamp now) {
         appJdbc.update("""
                 UPDATE app_node
-                   SET owner_user_id = ?, name = ?, status = ?, hashrate = ?,
+                   SET owner_user_id = ?, name = ?, status = ?, device_type = ?, hashrate = ?,
                        last_reported_at = ?, bound_at = COALESCE(bound_at, ?), updated_at = ?
                  WHERE UPPER(binding_code) = UPPER(?)
-                """, appOwnerUserId, name, status, hashrate, lastHeartbeat, boundAt, now, code);
+                """, appOwnerUserId, name, status, deviceType, hashrate, lastHeartbeat, boundAt, now, code);
     }
 
     /**
@@ -264,15 +268,20 @@ public class NodeDeviceSyncService {
         return code.trim().toUpperCase(Locale.ROOT);
     }
 
+    /**
+     * Normalize the 二开后台 {@code device.type} into the APP mirror's
+     * {@code device_type} (1=挂靠/虚拟, 2=真实 RK3588).  A 挂靠 device never
+     * goes offline, so the APP must keep it online regardless of heartbeat age.
+     */
+    private static int normalizeType(LegacyDevice device) {
+        return device.type() == 1 ? 1 : 2;
+    }
+
     private static String normalizeName(LegacyDevice device) {
         String name = device.name();
         if (name == null || name.isBlank()) {
-            // Match the 二开后台 device-type labels (实体设备 / 挂靠设备 / 聚芯节点).
-            name = switch (device.type()) {
-                case 0 -> "实体设备";
-                case 1 -> "挂靠设备";
-                default -> "聚芯节点";
-            };
+            // 客户可见名称统一为「聚芯节点」，不再暴露「挂靠设备」等内部类型标签。
+            name = "聚芯节点";
         }
         name = name.trim();
         if (name.length() > 80) name = name.substring(0, 80);

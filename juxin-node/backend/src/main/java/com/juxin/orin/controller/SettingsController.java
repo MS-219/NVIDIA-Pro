@@ -34,11 +34,11 @@ public class SettingsController {
     private IAppUserService appUserService;
 
     // 配置键常量
-    private static final String KEY_DAILY_MIN_RATE = "earnings.dailyMinRate";
-    private static final String KEY_DAILY_MAX_RATE = "earnings.dailyMaxRate";
-    private static final String KEY_MAX_DAILY_OFFLINE_HOURS = "earnings.maxDailyOfflineHours";
-    private static final String LEGACY_KEY_DAILY_RATE = "earnings.dailyRate";
+    private static final String KEY_HOURLY_MIN_RATE = "earnings.hourlyMinRate";
+    private static final String KEY_HOURLY_MAX_RATE = "earnings.hourlyMaxRate";
     private static final String LEGACY_KEY_HOURLY_RATE = "earnings.hourlyRate";
+    private static final String LEGACY_KEY_DAILY_MIN_RATE = "earnings.dailyMinRate";
+    private static final String LEGACY_KEY_DAILY_MAX_RATE = "earnings.dailyMaxRate";
     private static final String KEY_HASHRATE_PER_YUAN = "earnings.hashratePerYuan";
     private static final String KEY_MIN_WITHDRAW = "earnings.minWithdraw";
     private static final String KEY_WITHDRAW_FEE = "earnings.withdrawFee";
@@ -108,10 +108,8 @@ public class SettingsController {
 
         // 收益设置
         Map<String, Object> earnings = new HashMap<>();
-        earnings.put("dailyMinRate", getDailyRangeRate(KEY_DAILY_MIN_RATE));
-        earnings.put("dailyMaxRate", getDailyRangeRate(KEY_DAILY_MAX_RATE));
-        earnings.put("maxDailyOfflineHours",
-                Double.parseDouble(configService.getConfig(KEY_MAX_DAILY_OFFLINE_HOURS, "24")));
+        earnings.put("hourlyMinRate", getHourlyRangeRate(KEY_HOURLY_MIN_RATE, LEGACY_KEY_DAILY_MIN_RATE));
+        earnings.put("hourlyMaxRate", getHourlyRangeRate(KEY_HOURLY_MAX_RATE, LEGACY_KEY_DAILY_MAX_RATE));
         earnings.put("hashratePerYuan", Integer.parseInt(configService.getConfig(KEY_HASHRATE_PER_YUAN, "100")));
         earnings.put("minWithdraw", 0.01D);
         earnings.put("withdrawFee", Double.parseDouble(configService.getConfig(KEY_WITHDRAW_FEE, "1")));
@@ -197,65 +195,48 @@ public class SettingsController {
             }
         }
 
-        Object dailyMinRate = params.get("dailyMinRate");
-        Object dailyMaxRate = params.get("dailyMaxRate");
-        Object maxDailyOfflineHours = params.get("maxDailyOfflineHours");
-        Object legacyRate = params.get("dailyRate") != null ? params.get("dailyRate") : params.get("hourlyRate");
-        if (dailyMinRate == null && dailyMaxRate == null && legacyRate != null) {
-            dailyMinRate = legacyRate;
-            dailyMaxRate = legacyRate;
-        }
+        Object hourlyMinRate = params.get("hourlyMinRate");
+        Object hourlyMaxRate = params.get("hourlyMaxRate");
 
-        BigDecimal dailyMinRateValue;
-        BigDecimal dailyMaxRateValue;
-        BigDecimal maxDailyOfflineHoursValue;
+        BigDecimal hourlyMinRateValue;
+        BigDecimal hourlyMaxRateValue;
         try {
-            dailyMinRateValue = parseOptionalDecimal(dailyMinRate, "每天收益最低金额");
-            dailyMaxRateValue = parseOptionalDecimal(dailyMaxRate, "每天收益最高金额");
-            maxDailyOfflineHoursValue = parseOptionalDecimal(maxDailyOfflineHours, "每日累计离线上限");
+            hourlyMinRateValue = parseOptionalDecimal(hourlyMinRate, "每小时收益最低金额");
+            hourlyMaxRateValue = parseOptionalDecimal(hourlyMaxRate, "每小时收益最高金额");
         } catch (IllegalArgumentException e) {
             return Result.error(e.getMessage());
         }
 
-        if (dailyMinRateValue != null) {
-            dailyMinRateValue = dailyMinRateValue.setScale(2, java.math.RoundingMode.HALF_UP);
+        if (hourlyMinRateValue != null) {
+            hourlyMinRateValue = hourlyMinRateValue.setScale(4, java.math.RoundingMode.HALF_UP);
         }
-        if (dailyMaxRateValue != null) {
-            dailyMaxRateValue = dailyMaxRateValue.setScale(2, java.math.RoundingMode.HALF_UP);
-        }
-        if (maxDailyOfflineHoursValue != null
-                && (maxDailyOfflineHoursValue.compareTo(BigDecimal.ZERO) < 0
-                        || maxDailyOfflineHoursValue.compareTo(BigDecimal.valueOf(24)) > 0)) {
-            return Result.error("每日累计离线上限必须在 0 到 24 小时之间");
+        if (hourlyMaxRateValue != null) {
+            hourlyMaxRateValue = hourlyMaxRateValue.setScale(4, java.math.RoundingMode.HALF_UP);
         }
 
-        if (dailyMinRateValue != null || dailyMaxRateValue != null) {
-            BigDecimal effectiveMin = dailyMinRateValue != null
-                    ? dailyMinRateValue
-                    : BigDecimal.valueOf(getDailyRangeRate(KEY_DAILY_MIN_RATE));
-            BigDecimal effectiveMax = dailyMaxRateValue != null
-                    ? dailyMaxRateValue
-                    : BigDecimal.valueOf(getDailyRangeRate(KEY_DAILY_MAX_RATE));
+        if (hourlyMinRateValue != null || hourlyMaxRateValue != null) {
+            BigDecimal effectiveMin = hourlyMinRateValue != null
+                    ? hourlyMinRateValue
+                    : BigDecimal.valueOf(getHourlyRangeRate(KEY_HOURLY_MIN_RATE, LEGACY_KEY_DAILY_MIN_RATE));
+            BigDecimal effectiveMax = hourlyMaxRateValue != null
+                    ? hourlyMaxRateValue
+                    : BigDecimal.valueOf(getHourlyRangeRate(KEY_HOURLY_MAX_RATE, LEGACY_KEY_DAILY_MAX_RATE));
             if (effectiveMin.compareTo(BigDecimal.ZERO) < 0) {
-                return Result.error("每天收益最低金额不能小于 0");
+                return Result.error("每小时收益最低金额不能小于 0");
             }
             if (effectiveMax.compareTo(BigDecimal.ZERO) < 0) {
-                return Result.error("每天收益最高金额不能小于 0");
+                return Result.error("每小时收益最高金额不能小于 0");
             }
             if (effectiveMin.compareTo(effectiveMax) > 0) {
-                return Result.error("每天收益最低金额不能大于最高金额");
+                return Result.error("每小时收益最低金额不能大于最高金额");
             }
         }
 
-        if (dailyMinRateValue != null) {
-            configService.setConfig(KEY_DAILY_MIN_RATE, dailyMinRateValue.stripTrailingZeros().toPlainString());
+        if (hourlyMinRateValue != null) {
+            configService.setConfig(KEY_HOURLY_MIN_RATE, hourlyMinRateValue.stripTrailingZeros().toPlainString());
         }
-        if (dailyMaxRateValue != null) {
-            configService.setConfig(KEY_DAILY_MAX_RATE, dailyMaxRateValue.stripTrailingZeros().toPlainString());
-        }
-        if (maxDailyOfflineHoursValue != null) {
-            configService.setConfig(KEY_MAX_DAILY_OFFLINE_HOURS,
-                    maxDailyOfflineHoursValue.stripTrailingZeros().toPlainString());
+        if (hourlyMaxRateValue != null) {
+            configService.setConfig(KEY_HOURLY_MAX_RATE, hourlyMaxRateValue.stripTrailingZeros().toPlainString());
         }
         if (params.get("hashratePerYuan") != null) {
             configService.setConfig(KEY_HASHRATE_PER_YUAN, params.get("hashratePerYuan").toString());
@@ -501,17 +482,19 @@ public class SettingsController {
         config.put("hashratePerYuan", Integer.parseInt(configService.getConfig(KEY_HASHRATE_PER_YUAN, "100")));
         config.put("minWithdraw", 0.01D);
         config.put("withdrawFee", Double.parseDouble(configService.getConfig(KEY_WITHDRAW_FEE, "1")));
-        config.put("dailyMinRate", getDailyRangeRate(KEY_DAILY_MIN_RATE));
-        config.put("dailyMaxRate", getDailyRangeRate(KEY_DAILY_MAX_RATE));
-        config.put("maxDailyOfflineHours",
-                Double.parseDouble(configService.getConfig(KEY_MAX_DAILY_OFFLINE_HOURS, "24")));
+        config.put("hourlyMinRate", getHourlyRangeRate(KEY_HOURLY_MIN_RATE, LEGACY_KEY_DAILY_MIN_RATE));
+        config.put("hourlyMaxRate", getHourlyRangeRate(KEY_HOURLY_MAX_RATE, LEGACY_KEY_DAILY_MAX_RATE));
         return Result.success(config);
     }
 
-    private double getDailyRangeRate(String key) {
+    private double getHourlyRangeRate(String key, String legacyDailyKey) {
+        String value = configService.getConfig(key);
+        if (value != null && !value.isBlank()) {
+            return Double.parseDouble(value);
+        }
         String legacyHourlyRate = configService.getConfig(LEGACY_KEY_HOURLY_RATE, "2.4");
-        String legacyDailyRate = configService.getConfig(LEGACY_KEY_DAILY_RATE, legacyHourlyRate);
-        return Double.parseDouble(configService.getConfig(key, legacyDailyRate));
+        String legacyDailyRate = configService.getConfig(legacyDailyKey, legacyHourlyRate);
+        return Double.parseDouble(legacyDailyRate) / 24.0;
     }
 
     private BigDecimal parseOptionalDecimal(Object value, String label) {

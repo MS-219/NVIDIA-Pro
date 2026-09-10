@@ -68,6 +68,18 @@ const routes = [
                 meta: { title: 'APP 自动更新' }
             },
             {
+                path: 'app-payment-applies',
+                name: 'AppPaymentApplies',
+                component: () => import('../views/AppPaymentApplies.vue'),
+                meta: { title: 'APP 收款方式' }
+            },
+            {
+                path: 'app-device-earnings',
+                name: 'AppDeviceEarnings',
+                component: () => import('../views/AppDeviceEarnings.vue'),
+                meta: { title: 'APP 设备收益' }
+            },
+            {
                 path: 'terminal',
                 name: 'Terminal',
                 component: Terminal,

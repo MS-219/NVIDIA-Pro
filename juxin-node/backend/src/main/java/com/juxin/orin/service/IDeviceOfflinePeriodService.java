@@ -6,6 +6,7 @@ import com.juxin.orin.entity.DeviceOfflinePeriod;
 
 import java.time.LocalDateTime;
 import java.util.Collection;
+import java.util.List;
 
 public interface IDeviceOfflinePeriodService extends IService<DeviceOfflinePeriod> {
 
@@ -16,4 +17,6 @@ public interface IDeviceOfflinePeriodService extends IService<DeviceOfflinePerio
     void recordHeartbeat(Device device, int offlineThresholdSeconds, LocalDateTime heartbeatAt);
 
     long getOfflineSeconds(Long deviceId, LocalDateTime rangeStart, LocalDateTime rangeEnd);
+
+    List<DeviceOfflinePeriod> getOfflinePeriods(Long deviceId, LocalDateTime rangeStart, LocalDateTime rangeEnd);
 }

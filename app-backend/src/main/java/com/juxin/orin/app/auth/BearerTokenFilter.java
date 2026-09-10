@@ -35,6 +35,11 @@ public class BearerTokenFilter extends OncePerRequestFilter {
                 // The 二开后台 sends its own admin JWT to the shared update routes.
                 // AppUpdateController validates that token with the node-admin secret.
                 || path.startsWith("/api/admin/app-updates")
+                // 二开后台通过自己的 node-admin JWT 访问 APP 钱包/收款方式/设备收益，
+                // 由 AppAdminWalletController 用 node-admin 密钥做二次校验。
+                || path.startsWith("/api/admin/app/")
+                // 收款码图片对后台浏览器公开（<img> 不携带 Authorization）。
+                || path.startsWith("/api/app/files/")
                 || path.startsWith("/api/edge/")
                 || path.equals("/error");
     }
