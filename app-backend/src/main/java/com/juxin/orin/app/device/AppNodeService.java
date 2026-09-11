@@ -1,6 +1,7 @@
 package com.juxin.orin.app.device;
 
 import com.juxin.orin.app.common.ApiException;
+import com.juxin.orin.app.wallet.WalletSyncService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -19,25 +20,30 @@ public class AppNodeService {
 
     private final AppNodeRepository repository;
     private final NodeDeviceSyncService nodeDeviceSyncService;
+    private final WalletSyncService walletSync;
     private final Clock clock;
 
     @Autowired
-    public AppNodeService(AppNodeRepository repository, NodeDeviceSyncService nodeDeviceSyncService) {
-        this(repository, nodeDeviceSyncService, Clock.systemUTC());
+    public AppNodeService(AppNodeRepository repository,
+                          NodeDeviceSyncService nodeDeviceSyncService,
+                          WalletSyncService walletSync) {
+        this(repository, nodeDeviceSyncService, walletSync, Clock.systemUTC());
     }
 
     /** Compatibility constructor for lightweight callers and unit tests. */
     public AppNodeService(AppNodeRepository repository) {
-        this(repository, null, Clock.systemUTC());
+        this(repository, null, null, Clock.systemUTC());
     }
 
     AppNodeService(AppNodeRepository repository, Clock clock) {
-        this(repository, null, clock);
+        this(repository, null, null, clock);
     }
 
-    AppNodeService(AppNodeRepository repository, NodeDeviceSyncService nodeDeviceSyncService, Clock clock) {
+    AppNodeService(AppNodeRepository repository, NodeDeviceSyncService nodeDeviceSyncService,
+                   WalletSyncService walletSync, Clock clock) {
         this.repository = repository;
         this.nodeDeviceSyncService = nodeDeviceSyncService;
+        this.walletSync = walletSync;
         this.clock = clock;
     }
 
@@ -119,11 +125,14 @@ public class AppNodeService {
         BigDecimal total = snapshots.stream()
                 .map(AppNodeRepository.EarningSnapshot::totalEarnings)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal walletBalance = walletSync != null ? walletSync.getWalletBalance(ownerUserId) : total;
+        List<WalletSyncService.DailyEarning> daily = walletSync != null
+                ? walletSync.dailyEarnings(ownerUserId) : List.of();
         List<EarningItem> items = snapshots.stream()
-                .map(item -> new EarningItem(item.deviceId(), item.deviceName(), item.todayEarnings(),
-                        item.totalEarnings(), item.updatedAt()))
+                .map(item -> new EarningItem(item.deviceId(), item.deviceCode(), item.deviceName(),
+                        item.todayEarnings(), item.totalEarnings(), item.updatedAt()))
                 .toList();
-        return new EarningsSummary(items, today, total);
+        return new EarningsSummary(items, today, total, walletBalance, daily);
     }
 
     static String normalizeCode(String rawCode) {
@@ -156,6 +165,7 @@ public class AppNodeService {
 
     public record EarningItem(
             long deviceId,
+            String deviceCode,
             String deviceName,
             BigDecimal todayEarnings,
             BigDecimal totalEarnings,
@@ -165,6 +175,8 @@ public class AppNodeService {
     public record EarningsSummary(
             List<EarningItem> items,
             BigDecimal todayEarnings,
-            BigDecimal totalEarnings) {
+            BigDecimal totalEarnings,
+            BigDecimal walletBalance,
+            List<WalletSyncService.DailyEarning> dailyEarnings) {
     }
 }

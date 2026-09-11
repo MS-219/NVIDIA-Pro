@@ -83,13 +83,14 @@ public class JdbcAppNodeRepository implements AppNodeRepository {
     @Override
     public List<EarningSnapshot> earningsOwnedBy(long ownerUserId) {
         return jdbc.query("""
-                SELECT id, name, daily_earnings, total_earnings, updated_at
+                SELECT id, binding_code, name, daily_earnings, total_earnings, updated_at
                   FROM app_node
                  WHERE owner_user_id = ?
                    AND (daily_earnings <> 0 OR total_earnings <> 0)
                  ORDER BY updated_at DESC, id ASC
                 """, (rs, rowNum) -> new EarningSnapshot(
                 rs.getLong("id"),
+                rs.getString("binding_code"),
                 rs.getString("name"),
                 decimal(rs.getBigDecimal("daily_earnings")),
                 decimal(rs.getBigDecimal("total_earnings")),

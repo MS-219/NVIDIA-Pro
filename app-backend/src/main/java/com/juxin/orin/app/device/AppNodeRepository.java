@@ -37,6 +37,7 @@ public interface AppNodeRepository {
     /** Current per-node earning counters until a historical ledger is added. */
     record EarningSnapshot(
             long deviceId,
+            String deviceCode,
             String deviceName,
             BigDecimal todayEarnings,
             BigDecimal totalEarnings,

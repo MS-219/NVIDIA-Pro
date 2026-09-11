@@ -10,8 +10,12 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Mirrors settled daily earnings ({@code device_earnings} in the 二开后台) into
@@ -115,4 +119,49 @@ public class WalletSyncService {
                 Object.class, appUserId);
         return v == null ? BigDecimal.ZERO : new BigDecimal(v.toString());
     }
+
+    /** Wallet balance for one user. */
+    public BigDecimal getWalletBalance(long appUserId) {
+        return appUserId <= 0 ? BigDecimal.ZERO : currentBalance(appUserId);
+    }
+
+    /** Daily earnings grouped by date from the 二开 backend, newest first. */
+    public List<DailyEarning> dailyEarnings(long appUserId) {
+        if (!enabled || appUserId <= 0) return List.of();
+        try {
+            String phone = appJdbc.query("SELECT phone FROM app_user_account WHERE id = ? LIMIT 1",
+                    rs -> rs.next() ? rs.getString(1) : null, appUserId);
+            if (phone == null || phone.isBlank()) return List.of();
+
+            // Fetch raw rows then aggregate by date in memory.
+            record Row(BigDecimal amount, LocalDate date) {}
+            List<Row> rows = nodeJdbc.query("""
+                    SELECT de.amount, de.date AS earning_date
+                      FROM device_earnings de
+                      JOIN app_user u ON u.id = de.user_id
+                     WHERE u.phone = ? AND (u.deleted = 0 OR u.deleted IS NULL)
+                     ORDER BY de.date DESC, de.id ASC
+                    """, (rs, i) -> new Row(
+                    rs.getBigDecimal("amount") == null ? BigDecimal.ZERO : rs.getBigDecimal("amount"),
+                    rs.getDate("earning_date") == null ? null : rs.getDate("earning_date").toLocalDate()),
+                    phone);
+
+            // Merge by date (newest first).
+            Map<LocalDate, BigDecimal> byDate = new LinkedHashMap<>();
+            for (Row r : rows) {
+                LocalDate d = r.date != null ? r.date : LocalDate.ofEpochDay(0);
+                byDate.merge(d, r.amount, BigDecimal::add);
+            }
+            List<DailyEarning> result = new ArrayList<>();
+            for (var e : byDate.entrySet()) {
+                result.add(new DailyEarning(e.getKey().toString(), e.getValue().setScale(2, RoundingMode.HALF_UP)));
+            }
+            return result;
+        } catch (RuntimeException error) {
+            log.warn("daily earnings query failed for APP user {}", appUserId, error);
+            return List.of();
+        }
+    }
+
+    public record DailyEarning(String date, BigDecimal amount) {}
 }
