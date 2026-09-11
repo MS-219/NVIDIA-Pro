@@ -1,7 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
 import { Stack, useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Image, Pressable, RefreshControl, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusPill } from '../components/StatusPill';
 import { colors, radii, shadow } from '../components/theme';
@@ -29,6 +30,8 @@ export default function WalletScreen() {
   const [method, setMethod] = useState<Method>('bank_card');
   const [accountName, setAccountName] = useState('');
   const [accountNo, setAccountNo] = useState('');
+  const [qrUrl, setQrUrl] = useState('');
+  const [qrUploading, setQrUploading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState('');
 
@@ -55,8 +58,13 @@ export default function WalletScreen() {
     const amt = parseFloat(amount);
     if (!Number.isFinite(amt) || amt <= 0) { setMessage('请输入正确的提现金额'); return; }
     if (amt > balance) { setMessage('可用余额不足'); return; }
-    if (!accountNo.trim()) { setMessage(method === 'bank_card' ? '请填写银行卡号' : '请填写收款账号'); return; }
-    if (method === 'bank_card' && !accountName.trim()) { setMessage('请填写持卡人姓名'); return; }
+    if (method === 'bank_card') {
+      if (!accountName.trim()) { setMessage('请填写持卡人姓名'); return; }
+      if (!accountNo.trim()) { setMessage('请填写银行卡号'); return; }
+    } else if (!qrUrl) {
+      setMessage('请上传微信/支付宝收款码');
+      return;
+    }
     try {
       setSubmitting(true);
       setMessage('');
@@ -64,17 +72,45 @@ export default function WalletScreen() {
         amount: amt,
         method,
         accountName: method === 'bank_card' ? accountName.trim() : undefined,
-        accountNo: accountNo.trim(),
+        accountNo: method === 'bank_card' ? accountNo.trim() : undefined,
+        qrCodeUrl: method === 'bank_card' ? undefined : qrUrl,
       });
       setMessage('提现申请已提交，等待审核');
       setAmount('');
       setAccountNo('');
       setAccountName('');
+      setQrUrl('');
       await load();
     } catch (e) {
       setMessage(e instanceof Error ? e.message : '提交失败，请重试');
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const pickQr = async () => {
+    try {
+      const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!perm.granted) { setMessage('需要相册权限才能选择收款码'); return; }
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: false,
+        quality: 0.85,
+      });
+      if (result.canceled || !result.assets?.length) return;
+      const asset = result.assets[0];
+      setQrUploading(true);
+      setMessage('');
+      const ext = (asset.fileName?.split('.').pop() || asset.uri.split('.').pop() || 'jpg').toLowerCase();
+      const name = asset.fileName || `qr.${ext}`;
+      const type = asset.mimeType || (ext === 'png' ? 'image/png' : 'image/jpeg');
+      const data = await api.uploadQr(token!, asset.uri, name, type);
+      setQrUrl(data.url);
+      setMessage('收款码已上传');
+    } catch (e) {
+      setMessage(e instanceof Error ? e.message : '上传失败，请重试');
+    } finally {
+      setQrUploading(false);
     }
   };
 
@@ -129,14 +165,29 @@ export default function WalletScreen() {
             ))}
           </View>
 
-          {method === 'bank_card' && (
+          {method === 'bank_card' ? (
             <>
               <Text style={styles.fieldLabel}>持卡人姓名</Text>
               <TextInput style={styles.input} value={accountName} onChangeText={setAccountName} placeholder="请输入持卡人姓名" placeholderTextColor={colors.inkFaint} editable={!submitting} />
+              <Text style={styles.fieldLabel}>银行卡号</Text>
+              <TextInput style={styles.input} value={accountNo} onChangeText={setAccountNo} keyboardType="number-pad" placeholder="请输入银行卡号" placeholderTextColor={colors.inkFaint} editable={!submitting} />
+            </>
+          ) : (
+            <>
+              <Text style={styles.fieldLabel}>收款码</Text>
+              {qrUrl ? (
+                <View style={styles.qrPreview}>
+                  <Image source={{ uri: qrUrl }} style={styles.qrImage} resizeMode="contain" />
+                  <Pressable onPress={pickQr} disabled={qrUploading} style={styles.qrChangeBtn} accessibilityRole="button"><Text style={styles.qrChangeText}>重新上传</Text></Pressable>
+                </View>
+              ) : (
+                <Pressable onPress={pickQr} disabled={qrUploading} style={styles.qrUploadBtn} accessibilityRole="button" accessibilityLabel="上传收款码">
+                  {qrUploading ? <ActivityIndicator color={colors.forest} /> : <><Ionicons name="image-outline" size={22} color={colors.forest} /><Text style={styles.qrUploadText}>上传{method === 'wechat' ? '微信' : '支付宝'}收款码</Text></>}
+                </Pressable>
+              )}
+              <Text style={styles.qrHint}>请上传清晰的收款码图片，打款时将扫码转账。</Text>
             </>
           )}
-          <Text style={styles.fieldLabel}>{method === 'bank_card' ? '银行卡号' : '收款账号'}</Text>
-          <TextInput style={styles.input} value={accountNo} onChangeText={setAccountNo} keyboardType={method === 'bank_card' ? 'number-pad' : 'default'} placeholder={method === 'bank_card' ? '请输入银行卡号' : '请输入微信号 / 支付宝账号'} placeholderTextColor={colors.inkFaint} editable={!submitting} />
 
           {!!message && <Text style={[styles.message, message.includes('成功') || message.includes('提交') ? styles.messageOk : styles.messageErr]}>{message}</Text>}
 
@@ -225,6 +276,13 @@ const styles = StyleSheet.create({
   form: { backgroundColor: colors.surface, borderRadius: radii.md, borderWidth: 1, borderColor: colors.line, padding: 16, gap: 11 },
   fieldLabel: { color: colors.inkSoft, fontSize: 12, fontWeight: '600', marginTop: 2 },
   input: { minHeight: 48, borderWidth: 1, borderColor: colors.line, borderRadius: 12, paddingHorizontal: 14, color: colors.ink, fontSize: 15, backgroundColor: colors.canvas },
+  qrUploadBtn: { minHeight: 96, borderRadius: 14, borderWidth: 1.5, borderStyle: 'dashed', borderColor: colors.leaf, backgroundColor: '#f3f7ef', alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 8 },
+  qrUploadText: { color: colors.forest, fontSize: 14, fontWeight: '700' },
+  qrHint: { color: colors.inkFaint, fontSize: 11, lineHeight: 16 },
+  qrPreview: { alignItems: 'center', gap: 10 },
+  qrImage: { width: 160, height: 160, borderRadius: 12, backgroundColor: colors.canvas, borderWidth: 1, borderColor: colors.line },
+  qrChangeBtn: { minHeight: 34, paddingHorizontal: 18, borderRadius: 10, borderWidth: 1, borderColor: colors.line, backgroundColor: '#f3f7ef', alignItems: 'center', justifyContent: 'center' },
+  qrChangeText: { color: colors.forest, fontSize: 12, fontWeight: '600' },
   quickRow: { flexDirection: 'row', gap: 8 },
   quickBtn: { flex: 1, minHeight: 34, borderRadius: 10, borderWidth: 1, borderColor: colors.line, backgroundColor: '#f3f7ef', alignItems: 'center', justifyContent: 'center' },
   quickText: { color: colors.forest, fontSize: 11, fontWeight: '600' },

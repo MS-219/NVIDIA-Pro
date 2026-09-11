@@ -82,12 +82,13 @@ const request = async <T>(path: string, init: RequestInit = {}, token?: string):
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), appConfig.requestTimeoutMs);
   try {
+    const isFormData = typeof FormData !== 'undefined' && init.body instanceof FormData;
     const response = await fetch(`${API_BASE_URL}${path}`, {
       ...init,
       signal: controller.signal,
       headers: {
         Accept: 'application/json',
-        'Content-Type': 'application/json',
+        ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
         ...(init.headers || {}),
       },
@@ -158,4 +159,12 @@ export const api = {
       method: 'POST',
       body: JSON.stringify(body),
     }, token),
+  uploadQr: (token: string, uri: string, name: string, type: string) => {
+    const form = new FormData();
+    form.append('file', { uri, name, type } as unknown as Blob);
+    return request<{ url: string; path: string }>('/api/app/upload/qr', {
+      method: 'POST',
+      body: form,
+    }, token);
+  },
 };

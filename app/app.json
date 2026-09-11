@@ -3,7 +3,7 @@
     "name": "聚芯节点",
     "slug": "juxin-orin-app",
     "scheme": "juxinorin",
-    "version": "1.0.4",
+    "version": "1.0.5",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -13,7 +13,7 @@
     },
     "android": {
       "package": "cn.juxin.orin.app",
-      "versionCode": 6,
+      "versionCode": 7,
       "adaptiveIcon": {
         "backgroundColor": "#294b35",
         "foregroundImage": "./assets/android-icon-foreground.png",
@@ -38,7 +38,13 @@
       ],
       "expo-secure-store",
       "expo-font",
-      "expo-splash-screen"
+      "expo-splash-screen",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "允许访问相册以选择收款码图片"
+        }
+      ]
     ],
     "extra": {
       "router": {},

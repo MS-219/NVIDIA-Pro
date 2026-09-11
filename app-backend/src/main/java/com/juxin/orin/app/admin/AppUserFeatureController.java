@@ -55,7 +55,16 @@ public class AppUserFeatureController {
     @PostMapping("/withdrawals")
     @Transactional
     public ApiResponse<Map<String,Object>> withdraw(@Valid @RequestBody Withdraw body, HttpServletRequest request) {
-        long uid = userId(request); walletSync.syncForUser(uid); BigDecimal current = balance(uid);
+        long uid = userId(request); walletSync.syncForUser(uid);
+        String method = body.method() == null ? "" : body.method().trim();
+        if ("bank_card".equals(method)) {
+            if (blankToNull(body.accountName()) == null || blankToNull(body.accountNo()) == null) throw new ApiException(400, "银行卡方式需填写持卡人姓名和卡号");
+        } else if ("wechat".equals(method) || "alipay".equals(method)) {
+            if (blankToNull(body.qrCodeUrl()) == null) throw new ApiException(400, "请上传微信或支付宝收款码");
+        } else {
+            throw new ApiException(400, "收款方式不正确");
+        }
+        BigDecimal current = balance(uid);
         if (body.amount().compareTo(BigDecimal.ZERO) <= 0 || current.compareTo(body.amount()) < 0) throw new ApiException(409,"可用余额不足");
         String key = "withdraw:" + UUID.randomUUID(); BigDecimal after = current.subtract(body.amount());
         jdbc.update("INSERT INTO app_wallet_ledger(user_id,amount,balance_after,direction,entry_type,idempotency_key,description) VALUES(?,?,?,'debit','withdraw',?,?)",uid,body.amount(),after,key,"提现申请");
@@ -105,7 +114,7 @@ public class AppUserFeatureController {
     private Map<String,Object> one(String sql,Object...a){List<Map<String,Object>> l=jdbc.queryForList(sql,a);return l.isEmpty()?Map.of():l.get(0);}
     private static Map<String,Object> map(java.sql.ResultSet rs,String... cols)throws java.sql.SQLException{Map<String,Object> m=new LinkedHashMap<>();for(String c:cols){Object v=rs.getObject(c);if(v instanceof java.sql.Clob clob)v=clob.getSubString(1,(int)Math.min(clob.length(),32768));m.put(c,v);}return m;}
     public record Feedback(@Size(max=40) String category,@NotBlank @Size(max=4000) String content){}
-    public record Withdraw(@NotNull @Positive BigDecimal amount,@NotBlank String method,@Size(max=80) String accountName,@NotBlank @Size(max=128) String accountNo,@Size(max=500) String qrCodeUrl){}
+    public record Withdraw(@NotNull @Positive BigDecimal amount,@NotBlank String method,@Size(max=80) String accountName,@Size(max=128) String accountNo,@Size(max=500) String qrCodeUrl){}
     public record Payment(@NotBlank String method,@Size(max=80) String accountName,@Size(max=128) String accountNo,@Size(max=500) String qrCodeUrl){}
     public record Order(@NotNull Long productId,@NotNull @Positive Integer quantity,@Size(max=2000) String addressSnapshot){}
 
