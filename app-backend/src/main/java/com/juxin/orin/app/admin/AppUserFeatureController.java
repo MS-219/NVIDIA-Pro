@@ -47,7 +47,7 @@ public class AppUserFeatureController {
     @GetMapping("/wallet")
     public ApiResponse<Map<String,Object>> wallet(HttpServletRequest request) {
         long uid = userId(request); walletSync.syncForUser(uid); Map<String,Object> result = new LinkedHashMap<>();
-        result.put("balance", balance(uid));
+        result.put("balance", walletSync.getWalletBalance(uid));
         result.put("ledger", jdbc.query("SELECT id,amount,balance_after,direction,entry_type,description,created_at FROM app_wallet_ledger WHERE user_id=? ORDER BY created_at DESC LIMIT 100", (rs,row)->map(rs,"id","amount","balance_after","direction","entry_type","description","created_at"), uid));
         return ApiResponse.success(result);
     }
@@ -57,25 +57,28 @@ public class AppUserFeatureController {
     public ApiResponse<Map<String,Object>> withdraw(@Valid @RequestBody Withdraw body, HttpServletRequest request) {
         long uid = userId(request); walletSync.syncForUser(uid);
         String method = body.method() == null ? "" : body.method().trim();
-        if ("bank_card".equals(method)) {
+        int type = switch (method) { case "wechat" -> 1; case "alipay" -> 2; case "bank_card" -> 3; default -> -1; };
+        if (type < 0) throw new ApiException(400, "收款方式不正确");
+        if (type == 3) {
             if (blankToNull(body.accountName()) == null || blankToNull(body.accountNo()) == null) throw new ApiException(400, "银行卡方式需填写持卡人姓名和卡号");
-        } else if ("wechat".equals(method) || "alipay".equals(method)) {
+        } else {
             if (blankToNull(body.qrCodeUrl()) == null) throw new ApiException(400, "请上传微信或支付宝收款码");
             if (blankToNull(body.accountName()) == null) throw new ApiException(400, "请填写收款人姓名");
-        } else {
-            throw new ApiException(400, "收款方式不正确");
         }
+        String account = type == 3 ? blankToNull(body.accountNo()) : null;
+        String qrCode = type == 3 ? null : blankToNull(body.qrCodeUrl());
+        String error = walletSync.applyWithdraw(uid, body.amount(), type, account, blankToNull(body.accountName()), qrCode);
+        if (error != null) throw new ApiException(400, error);
+        // 同步记账到 APP 自己的账本,保持钱包明细展示一致
         BigDecimal current = balance(uid);
-        if (body.amount().compareTo(BigDecimal.ZERO) <= 0 || current.compareTo(body.amount()) < 0) throw new ApiException(409,"可用余额不足");
-        String key = "withdraw:" + UUID.randomUUID(); BigDecimal after = current.subtract(body.amount());
+        BigDecimal after = current.subtract(body.amount());
+        String key = "withdraw:" + UUID.randomUUID();
         jdbc.update("INSERT INTO app_wallet_ledger(user_id,amount,balance_after,direction,entry_type,idempotency_key,description) VALUES(?,?,?,'debit','withdraw',?,?)",uid,body.amount(),after,key,"提现申请");
-        var id = jdbc.queryForObject("SELECT COALESCE(MAX(id),0) FROM app_wallet_ledger WHERE idempotency_key=?",Long.class,key);
-        jdbc.update("INSERT INTO app_withdrawal(user_id,amount,method,account_name,account_no,qr_code_url) VALUES(?,?,?,?,?,?)",uid,body.amount(),body.method(),blankToNull(body.accountName()),blankToNull(body.accountNo()),blankToNull(body.qrCodeUrl()));
-        return ApiResponse.success(Map.of("ledgerId",id,"balance",after,"status","pending"));
+        return ApiResponse.success(Map.of("balance", walletSync.getWalletBalance(uid), "status", "pending"));
     }
 
     @GetMapping("/withdrawals")
-    public ApiResponse<List<Map<String,Object>>> withdrawals(HttpServletRequest request) { return ApiResponse.success(jdbc.query("SELECT id,amount,method,account_name,account_no,qr_code_url,status,review_note,created_at,reviewed_at FROM app_withdrawal WHERE user_id=? ORDER BY created_at DESC",(rs,row)->map(rs,"id","amount","method","account_name","account_no","qr_code_url","status","review_note","created_at","reviewed_at"),userId(request))); }
+    public ApiResponse<List<Map<String,Object>>> withdrawals(HttpServletRequest request) { return ApiResponse.success(walletSync.listWithdrawals(userId(request))); }
 
     @PostMapping("/payment-applies")
     public ApiResponse<Void> paymentApply(@Valid @RequestBody Payment body,HttpServletRequest request){

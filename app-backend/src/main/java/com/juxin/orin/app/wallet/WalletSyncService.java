@@ -120,9 +120,100 @@ public class WalletSyncService {
         return v == null ? BigDecimal.ZERO : new BigDecimal(v.toString());
     }
 
-    /** Wallet balance for one user. */
+    /** Wallet balance for one user (source of truth: 二开后台 app_user.balance). */
     public BigDecimal getWalletBalance(long appUserId) {
-        return appUserId <= 0 ? BigDecimal.ZERO : currentBalance(appUserId);
+        if (!enabled || appUserId <= 0) return BigDecimal.ZERO;
+        try {
+            Long uid = nodeUserId(appUserId);
+            if (uid == null) return BigDecimal.ZERO;
+            Object v = nodeJdbc.queryForObject("SELECT balance FROM app_user WHERE id=?", Object.class, uid);
+            return v == null ? BigDecimal.ZERO : new BigDecimal(v.toString());
+        } catch (RuntimeException error) {
+            log.warn("read node balance failed for APP user {}", appUserId, error);
+            return BigDecimal.ZERO;
+        }
+    }
+
+    /** Map an APP account to the 二开后台 user id by phone number. */
+    private Long nodeUserId(long appUserId) {
+        String phone = appJdbc.query("SELECT phone FROM app_user_account WHERE id=? LIMIT 1",
+                rs -> rs.next() ? rs.getString(1) : null, appUserId);
+        if (phone == null || phone.isBlank()) return null;
+        return nodeJdbc.query("SELECT id FROM app_user WHERE phone=? AND (deleted=0 OR deleted IS NULL) LIMIT 1",
+                rs -> rs.next() ? rs.getLong(1) : null, phone);
+    }
+
+    /**
+     * Submit a withdrawal into the 二开后台 (deduct {@code app_user.balance} + quota, insert a
+     * {@code withdraw} row) so the existing admin 提现管理 sees it directly.
+     *
+     * @return error message, or {@code null} on success.
+     */
+    public String applyWithdraw(long appUserId, BigDecimal amount, int type, String account, String realName, String qrCode) {
+        if (!enabled || appUserId <= 0) return "提现服务暂不可用";
+        if (amount == null || amount.compareTo(new BigDecimal("0.01")) < 0) return "提现金额最低为 0.01 元";
+        try {
+            Long uid = nodeUserId(appUserId);
+            if (uid == null) return "用户未同步到后台，请稍后再试";
+            Object balanceObj = nodeJdbc.queryForObject("SELECT balance FROM app_user WHERE id=?", Object.class, uid);
+            BigDecimal balance = balanceObj == null ? BigDecimal.ZERO : new BigDecimal(balanceObj.toString());
+            if (balance.compareTo(amount) < 0) return "可用余额不足";
+            String rateStr = nodeJdbc.query("SELECT config_value FROM system_config WHERE config_key='earnings.hashratePerYuan' LIMIT 1",
+                    rs -> rs.next() ? rs.getString(1) : null);
+            int rate = 100;
+            try { if (rateStr != null && !rateStr.isBlank()) rate = Integer.parseInt(rateStr.trim()); } catch (NumberFormatException ignore) {}
+            String mobile = nodeJdbc.query("SELECT phone FROM app_user WHERE id=? LIMIT 1", rs -> rs.next() ? rs.getString(1) : null, uid);
+            BigDecimal after = balance.subtract(amount);
+            int quotaChange = amount.multiply(BigDecimal.valueOf(rate)).intValue();
+            nodeJdbc.update("UPDATE app_user SET balance=?, quota=GREATEST(COALESCE(quota,0)-?,0) WHERE id=?", after, quotaChange, uid);
+            nodeJdbc.update("""
+                    INSERT INTO withdraw(user_id, amount, fee, actual_amount, type, account, real_name, qr_code, status, mobile, create_time, update_time)
+                    VALUES (?,?,0,?,?,?,?,?,0,?,NOW(),NOW())
+                    """, uid, amount, amount, type, account, realName, qrCode, mobile);
+            return null;
+        } catch (RuntimeException error) {
+            log.warn("apply withdraw failed for APP user {}", appUserId, error);
+            return "提现提交失败，请重试";
+        }
+    }
+
+    /** Withdrawal history from the 二开后台, mapped to the APP shape (snake_case). */
+    public List<Map<String, Object>> listWithdrawals(long appUserId) {
+        if (!enabled || appUserId <= 0) return List.of();
+        try {
+            Long uid = nodeUserId(appUserId);
+            if (uid == null) return List.of();
+            return nodeJdbc.query("""
+                    SELECT id, amount, type, account, real_name, qr_code, status, remark, reject_reason, create_time, audit_time, process_time
+                      FROM withdraw WHERE user_id=? ORDER BY create_time DESC
+                    """, (rs, i) -> {
+                Map<String, Object> m = new LinkedHashMap<>();
+                int type = rs.getInt("type");
+                int status = rs.getInt("status");
+                m.put("id", rs.getLong("id"));
+                m.put("amount", rs.getBigDecimal("amount"));
+                m.put("method", switch (type) { case 1 -> "wechat"; case 2 -> "alipay"; case 3 -> "bank_card"; default -> String.valueOf(type); });
+                m.put("account_name", rs.getString("real_name"));
+                m.put("account_no", type == 3 ? rs.getString("account") : null);
+                m.put("qr_code_url", rs.getString("qr_code"));
+                m.put("status", switch (status) { case 0 -> "pending"; case 1 -> "approved"; case 2 -> "rejected"; case 3 -> "paid"; case 4 -> "failed"; default -> "pending"; });
+                String note = rs.getString("remark");
+                if (note == null || note.isBlank()) note = rs.getString("reject_reason");
+                m.put("review_note", note);
+                m.put("created_at", ts(rs, "create_time"));
+                java.sql.Timestamp reviewed = rs.getTimestamp("audit_time") != null ? rs.getTimestamp("audit_time") : rs.getTimestamp("process_time");
+                m.put("reviewed_at", reviewed == null ? null : reviewed.toLocalDateTime().toString());
+                return m;
+            }, uid);
+        } catch (RuntimeException error) {
+            log.warn("list withdrawals failed for APP user {}", appUserId, error);
+            return List.of();
+        }
+    }
+
+    private static String ts(java.sql.ResultSet rs, String col) throws java.sql.SQLException {
+        java.sql.Timestamp t = rs.getTimestamp(col);
+        return t == null ? null : t.toLocalDateTime().toString();
     }
 
     /** Daily earnings grouped by date from the 二开 backend, newest first. */
