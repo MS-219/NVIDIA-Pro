@@ -35,6 +35,8 @@ app:
     url: ${APP_NODE_DB_URL:}
     username: ${APP_NODE_DB_USERNAME:}
     password: ${APP_NODE_DB_PASSWORD:}
+  node-backend:
+    url: ${APP_NODE_BACKEND_URL:http://juxin-node-backend:8090}
   update:
     storage-dir: ${APP_UPDATE_STORAGE_DIR:./uploads/app-releases}
     max-file-bytes: ${APP_UPDATE_MAX_FILE_BYTES:524288000}

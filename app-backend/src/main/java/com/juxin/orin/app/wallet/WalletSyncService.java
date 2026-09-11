@@ -9,8 +9,17 @@ import org.springframework.jdbc.datasource.DriverManagerDataSource;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -30,17 +39,25 @@ import java.util.Map;
 public class WalletSyncService {
     private static final Logger log = LoggerFactory.getLogger(WalletSyncService.class);
 
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+    private static final HttpClient HTTP_CLIENT = HttpClient.newBuilder()
+            .connectTimeout(Duration.ofSeconds(5))
+            .build();
+
     private final JdbcTemplate appJdbc;
     private final JdbcTemplate nodeJdbc;
     private final boolean enabled;
+    private final String nodeBackendUrl;
 
     public WalletSyncService(
             JdbcTemplate appJdbc,
             @Value("${app.node-db.url:}") String url,
             @Value("${app.node-db.username:}") String username,
             @Value("${app.node-db.password:}") String password,
-            @Value("${app.node-db.driver-class-name:com.mysql.cj.jdbc.Driver}") String driverClassName) {
+            @Value("${app.node-db.driver-class-name:com.mysql.cj.jdbc.Driver}") String driverClassName,
+            @Value("${app.node-backend.url:http://juxin-node-backend:8090}") String nodeBackendUrl) {
         this.appJdbc = appJdbc;
+        this.nodeBackendUrl = nodeBackendUrl;
         this.enabled = url != null && !url.isBlank() && username != null && !username.isBlank();
         if (enabled) {
             DriverManagerDataSource dataSource = new DriverManagerDataSource(url, username, password);
@@ -155,25 +172,29 @@ public class WalletSyncService {
         try {
             Long uid = nodeUserId(appUserId);
             if (uid == null) return "用户未同步到后台，请稍后再试";
-            Object balanceObj = nodeJdbc.queryForObject("SELECT balance FROM app_user WHERE id=?", Object.class, uid);
-            BigDecimal balance = balanceObj == null ? BigDecimal.ZERO : new BigDecimal(balanceObj.toString());
-            if (balance.compareTo(amount) < 0) return "可用余额不足";
-            String rateStr = nodeJdbc.query("SELECT config_value FROM system_config WHERE config_key='earnings.hashratePerYuan' LIMIT 1",
-                    rs -> rs.next() ? rs.getString(1) : null);
-            int rate = 100;
-            try { if (rateStr != null && !rateStr.isBlank()) rate = Integer.parseInt(rateStr.trim()); } catch (NumberFormatException ignore) {}
-            String mobile = nodeJdbc.query("SELECT phone FROM app_user WHERE id=? LIMIT 1", rs -> rs.next() ? rs.getString(1) : null, uid);
-            BigDecimal after = balance.subtract(amount);
-            int quotaChange = amount.multiply(BigDecimal.valueOf(rate)).intValue();
-            nodeJdbc.update("UPDATE app_user SET balance=?, quota=GREATEST(COALESCE(quota,0)-?,0) WHERE id=?", after, quotaChange, uid);
-            nodeJdbc.update("""
-                    INSERT INTO withdraw(user_id, amount, fee, actual_amount, type, account, real_name, qr_code, status, mobile, create_time, update_time)
-                    VALUES (?,?,0,?,?,?,?,?,0,?,NOW(),NOW())
-                    """, uid, amount, amount, type, account, realName, qrCode, mobile);
-            return null;
-        } catch (RuntimeException error) {
+            // 调用二开后台 /apply，由二开后台统一执行提现日/签约/余额等规则，保证两套系统规则一致。
+            Map<String, Object> payload = new LinkedHashMap<>();
+            payload.put("userId", uid);
+            payload.put("amount", amount);
+            payload.put("type", type);
+            payload.put("account", account);
+            payload.put("realName", realName);
+            payload.put("qrCode", qrCode);
+            String json = OBJECT_MAPPER.writeValueAsString(payload);
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(nodeBackendUrl + "/api/withdraw/apply"))
+                    .header("Content-Type", "application/json")
+                    .timeout(Duration.ofSeconds(10))
+                    .POST(HttpRequest.BodyPublishers.ofString(json, StandardCharsets.UTF_8))
+                    .build();
+            HttpResponse<String> response = HTTP_CLIENT.send(request, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
+            JsonNode node = OBJECT_MAPPER.readTree(response.body());
+            if (node.path("code").asInt(-1) == 200) return null;
+            String msg = node.path("msg").asText(null);
+            return (msg == null || msg.isBlank()) ? "提现申请失败，请重试" : msg;
+        } catch (Exception error) {
             log.warn("apply withdraw failed for APP user {}", appUserId, error);
-            return "提现提交失败，请重试";
+            return "提现服务暂不可用，请稍后再试";
         }
     }
 
