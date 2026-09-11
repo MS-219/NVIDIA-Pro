@@ -1,4 +1,6 @@
 import * as Application from 'expo-application';
+import { File, Paths } from 'expo-file-system';
+import * as IntentLauncher from 'expo-intent-launcher';
 import { Platform } from 'react-native';
 import { API_BASE_URL, appConfig } from './config';
 
@@ -56,4 +58,28 @@ export function formatFileSize(bytes: number): string {
   if (!Number.isFinite(bytes) || bytes <= 0) return '';
   if (bytes < 1024 * 1024) return `${Math.max(1, Math.round(bytes / 1024))} KB`;
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+/**
+ * 在 APP 内下载 APK 并调起系统安装器（不经过浏览器）。
+ * 下载到缓存目录，通过 FileProvider 以 content:// URI 暴露给系统 PackageInstaller。
+ * @param onProgress 下载进度回调，参数为 0~1 的完成比例。
+ */
+export async function downloadAndInstallApk(url: string, onProgress?: (ratio: number) => void): Promise<void> {
+  if (Platform.OS !== 'android') throw new Error('仅支持在 Android 上安装更新');
+  const applicationId = Application.applicationId || 'cn.juxin.orin.app';
+  const file = new File(Paths.cache, 'app-update.apk');
+  if (file.exists) { try { file.delete(); } catch { /* ignore */ } }
+  const task = File.createDownloadTask(url, file, {
+    onProgress: ({ bytesWritten, totalBytes }) => {
+      if (totalBytes > 0) onProgress?.(Math.min(1, bytesWritten / totalBytes));
+    },
+  });
+  await task.downloadAsync();
+  const contentUri = `content://${applicationId}.fileprovider/cache/app-update.apk`;
+  await IntentLauncher.startActivityAsync('android.intent.action.VIEW', {
+    data: contentUri,
+    type: 'application/vnd.android.package-archive',
+    flags: 1, // FLAG_GRANT_READ_URI_PERMISSION
+  });
 }
