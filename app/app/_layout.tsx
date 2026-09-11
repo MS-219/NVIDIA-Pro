@@ -19,6 +19,7 @@ export default function RootLayout() {
             <Stack.Screen name="profile/edit" options={{ animation: 'slide_from_right' }} />
             <Stack.Screen name="security" options={{ animation: 'slide_from_right' }} />
             <Stack.Screen name="notifications" options={{ animation: 'slide_from_right' }} />
+            <Stack.Screen name="wallet" options={{ animation: 'slide_from_right' }} />
           </Stack>
         </DeviceProvider>
       </AuthProvider>

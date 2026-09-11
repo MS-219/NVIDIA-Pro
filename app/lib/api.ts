@@ -52,6 +52,32 @@ export type EarningsPayload = {
   totalEarnings: number;
 };
 
+export type WalletPayload = {
+  balance: number;
+  ledger: Array<{
+    id: number;
+    amount: number;
+    balance_after: number;
+    direction: string;
+    entry_type: string;
+    description: string | null;
+    created_at: string;
+  }>;
+};
+
+export type WithdrawalPayload = {
+  id: number;
+  amount: number;
+  method: string;
+  account_name: string | null;
+  account_no: string | null;
+  qr_code_url: string | null;
+  status: string;
+  review_note: string | null;
+  created_at: string;
+  reviewed_at: string | null;
+};
+
 const request = async <T>(path: string, init: RequestInit = {}, token?: string): Promise<T> => {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), appConfig.requestTimeoutMs);
@@ -123,4 +149,13 @@ export const api = {
     request<DashboardPayload>('/api/app/dashboard/summary', {}, token),
   getEarnings: (token: string) =>
     request<EarningsPayload>('/api/app/earnings', {}, token),
+  getWallet: (token: string) =>
+    request<WalletPayload>('/api/app/wallet', {}, token),
+  listWithdrawals: (token: string) =>
+    request<WithdrawalPayload[]>('/api/app/withdrawals', {}, token),
+  withdraw: (token: string, body: { amount: number; method: string; accountName?: string; accountNo?: string; qrCodeUrl?: string }) =>
+    request<{ ledgerId: number; balance: number; status: string }>('/api/app/withdrawals', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }, token),
 };

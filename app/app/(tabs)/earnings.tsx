@@ -31,6 +31,7 @@ export default function EarningsScreen() {
         <Text style={styles.balanceHint}>{hasRecords ? '来自新 APP 节点账本' : devices.length ? '节点首次结算后更新' : '绑定并上线节点后开始累计'}</Text>
         <View style={styles.balanceDivider} />
         <View style={styles.balanceMeta}><View><Text style={styles.metaLabel}>今日收益</Text><Text style={styles.metaValue} selectable>{formatCurrency(today)}</Text></View><View><Text style={styles.metaLabel}>结算节点</Text><Text style={styles.metaValue}>{earnings.items.length || devices.length}</Text></View><View><Text style={styles.metaLabel}>账本状态</Text><Text style={styles.metaValue}>{hasRecords ? '已同步' : '待开始'}</Text></View></View>
+        <Link href="/wallet" asChild><Pressable style={styles.withdrawButton} accessibilityRole="button" accessibilityLabel="去提现"><Ionicons name="wallet-outline" size={16} color={colors.forest} /><Text style={styles.withdrawText}>去提现</Text><Ionicons name="arrow-forward" size={15} color={colors.forest} /></Pressable></Link>
       </View>
 
       {!!error && <View style={styles.errorBanner}><Ionicons name="cloud-offline-outline" size={17} color={colors.coral} /><Text style={styles.errorText}>暂时无法同步收益数据，下拉页面重试。</Text></View>}
@@ -90,6 +91,8 @@ const styles = StyleSheet.create({
   balanceMeta: { flexDirection: 'row', justifyContent: 'space-between' },
   metaLabel: { color: '#9fb89a', fontSize: 10 },
   metaValue: { color: colors.white, fontSize: 13, fontWeight: '700', marginTop: 5 },
+  withdrawButton: { minHeight: 46, borderRadius: 13, backgroundColor: colors.lime, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 8, marginTop: 18 },
+  withdrawText: { color: colors.forest, fontSize: 14, fontWeight: '700' },
   errorBanner: { backgroundColor: '#fff7f5', borderColor: '#efd8d3', borderWidth: 1, borderRadius: 12, padding: 11, flexDirection: 'row', alignItems: 'center', gap: 7 },
   errorText: { color: colors.coral, fontSize: 11, flex: 1 },
   recordList: { backgroundColor: colors.surface, borderRadius: radii.md, borderWidth: 1, borderColor: colors.line, paddingHorizontal: 14 },
