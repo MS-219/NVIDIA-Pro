@@ -46,9 +46,9 @@ public class AppUserFeatureController {
 
     @GetMapping("/wallet")
     public ApiResponse<Map<String,Object>> wallet(HttpServletRequest request) {
-        long uid = userId(request); walletSync.syncForUser(uid); Map<String,Object> result = new LinkedHashMap<>();
+        long uid = userId(request); Map<String,Object> result = new LinkedHashMap<>();
         result.put("balance", walletSync.getWalletBalance(uid));
-        result.put("ledger", jdbc.query("SELECT id,amount,balance_after,direction,entry_type,description,created_at FROM app_wallet_ledger WHERE user_id=? ORDER BY created_at DESC LIMIT 100", (rs,row)->map(rs,"id","amount","balance_after","direction","entry_type","description","created_at"), uid));
+        result.put("ledger", walletSync.ledger(uid));
         return ApiResponse.success(result);
     }
 
@@ -69,11 +69,6 @@ public class AppUserFeatureController {
         String qrCode = type == 3 ? null : blankToNull(body.qrCodeUrl());
         String error = walletSync.applyWithdraw(uid, body.amount(), type, account, blankToNull(body.accountName()), qrCode);
         if (error != null) throw new ApiException(400, error);
-        // 同步记账到 APP 自己的账本,保持钱包明细展示一致
-        BigDecimal current = balance(uid);
-        BigDecimal after = current.subtract(body.amount());
-        String key = "withdraw:" + UUID.randomUUID();
-        jdbc.update("INSERT INTO app_wallet_ledger(user_id,amount,balance_after,direction,entry_type,idempotency_key,description) VALUES(?,?,?,'debit','withdraw',?,?)",uid,body.amount(),after,key,"提现申请");
         return ApiResponse.success(Map.of("balance", walletSync.getWalletBalance(uid), "status", "pending"));
     }
 

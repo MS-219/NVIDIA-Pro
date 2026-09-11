@@ -22,6 +22,8 @@ import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -231,6 +233,52 @@ public class WalletSyncService {
             return List.of();
         }
     }
+
+    /** 钱包明细(以二开后台为准: 设备收益 + 提现), 已驳回的提现不计入(金额已退回). */
+    public List<Map<String, Object>> ledger(long appUserId) {
+        if (!enabled || appUserId <= 0) return List.of();
+        try {
+            Long uid = nodeUserId(appUserId);
+            if (uid == null) return List.of();
+            List<LedgerRow> rows = new ArrayList<>();
+            nodeJdbc.query("SELECT id, amount, date FROM device_earnings WHERE user_id=? ORDER BY date ASC, id ASC", rs -> {
+                java.sql.Date d = rs.getDate("date");
+                java.sql.Timestamp at = d == null ? new java.sql.Timestamp(0L)
+                        : java.sql.Timestamp.valueOf(d.toLocalDate().atStartOfDay());
+                rows.add(new LedgerRow(at, rs.getLong("id"), rs.getBigDecimal("amount"), "credit", "earnings",
+                        "设备收益结算 " + (d == null ? "" : d.toLocalDate())));
+            }, uid);
+            nodeJdbc.query("SELECT id, amount, status, create_time FROM withdraw WHERE user_id=? ORDER BY create_time ASC", rs -> {
+                int status = rs.getInt("status");
+                if (status == 2) return; // 已驳回: 金额已退回, 净额为零, 不在明细中体现
+                java.sql.Timestamp at = rs.getTimestamp("create_time");
+                String desc = status == 3 ? "提现打款" : "提现申请";
+                rows.add(new LedgerRow(at, rs.getLong("id") + 100000000L, rs.getBigDecimal("amount"), "debit", "withdraw", desc));
+            }, uid);
+            rows.sort(Comparator.comparing(LedgerRow::at));
+            List<Map<String, Object>> out = new ArrayList<>();
+            BigDecimal running = BigDecimal.ZERO;
+            for (LedgerRow r : rows) {
+                running = "credit".equals(r.direction()) ? running.add(r.amount()) : running.subtract(r.amount());
+                Map<String, Object> m = new LinkedHashMap<>();
+                m.put("id", r.id());
+                m.put("amount", r.amount());
+                m.put("balance_after", running.setScale(2, RoundingMode.HALF_UP));
+                m.put("direction", r.direction());
+                m.put("entry_type", r.entryType());
+                m.put("description", r.description());
+                m.put("created_at", r.at().toLocalDateTime().toString());
+                out.add(m);
+            }
+            Collections.reverse(out); // 最新在前
+            return out;
+        } catch (RuntimeException error) {
+            log.warn("ledger query failed for APP user {}", appUserId, error);
+            return List.of();
+        }
+    }
+
+    private record LedgerRow(java.sql.Timestamp at, long id, BigDecimal amount, String direction, String entryType, String description) {}
 
     private static String ts(java.sql.ResultSet rs, String col) throws java.sql.SQLException {
         java.sql.Timestamp t = rs.getTimestamp(col);
