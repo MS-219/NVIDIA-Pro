@@ -61,6 +61,7 @@ public class AppUserFeatureController {
             if (blankToNull(body.accountName()) == null || blankToNull(body.accountNo()) == null) throw new ApiException(400, "银行卡方式需填写持卡人姓名和卡号");
         } else if ("wechat".equals(method) || "alipay".equals(method)) {
             if (blankToNull(body.qrCodeUrl()) == null) throw new ApiException(400, "请上传微信或支付宝收款码");
+            if (blankToNull(body.accountName()) == null) throw new ApiException(400, "请填写收款人姓名");
         } else {
             throw new ApiException(400, "收款方式不正确");
         }

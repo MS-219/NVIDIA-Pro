@@ -61,9 +61,9 @@ export default function WalletScreen() {
     if (method === 'bank_card') {
       if (!accountName.trim()) { setMessage('请填写持卡人姓名'); return; }
       if (!accountNo.trim()) { setMessage('请填写银行卡号'); return; }
-    } else if (!qrUrl) {
-      setMessage('请上传微信/支付宝收款码');
-      return;
+    } else {
+      if (!accountName.trim()) { setMessage('请填写收款人姓名'); return; }
+      if (!qrUrl) { setMessage('请上传微信/支付宝收款码'); return; }
     }
     try {
       setSubmitting(true);
@@ -71,7 +71,7 @@ export default function WalletScreen() {
       await api.withdraw(token!, {
         amount: amt,
         method,
-        accountName: method === 'bank_card' ? accountName.trim() : undefined,
+        accountName: accountName.trim() || undefined,
         accountNo: method === 'bank_card' ? accountNo.trim() : undefined,
         qrCodeUrl: method === 'bank_card' ? undefined : qrUrl,
       });
@@ -101,10 +101,7 @@ export default function WalletScreen() {
       const asset = result.assets[0];
       setQrUploading(true);
       setMessage('');
-      const ext = (asset.fileName?.split('.').pop() || asset.uri.split('.').pop() || 'jpg').toLowerCase();
-      const name = asset.fileName || `qr.${ext}`;
-      const type = asset.mimeType || (ext === 'png' ? 'image/png' : 'image/jpeg');
-      const data = await api.uploadQr(token!, asset.uri, name, type);
+      const data = await api.uploadQr(token!, asset.uri);
       setQrUrl(data.url);
       setMessage('收款码已上传');
     } catch (e) {
@@ -174,6 +171,8 @@ export default function WalletScreen() {
             </>
           ) : (
             <>
+              <Text style={styles.fieldLabel}>收款人姓名</Text>
+              <TextInput style={styles.input} value={accountName} onChangeText={setAccountName} placeholder="请输入收款人姓名" placeholderTextColor={colors.inkFaint} editable={!submitting} />
               <Text style={styles.fieldLabel}>收款码</Text>
               {qrUrl ? (
                 <View style={styles.qrPreview}>

@@ -1,3 +1,4 @@
+import { File } from 'expo-file-system';
 import { API_BASE_URL, appConfig } from './config';
 
 export type ApiEnvelope<T> = {
@@ -165,9 +166,10 @@ export const api = {
       method: 'POST',
       body: JSON.stringify(body),
     }, token),
-  uploadQr: (token: string, uri: string, name: string, type: string) => {
+  uploadQr: (token: string, uri: string) => {
+    const file = new File(uri);
     const form = new FormData();
-    form.append('file', { uri, name, type } as unknown as Blob);
+    form.append('file', file);
     return request<{ url: string; path: string }>('/api/app/upload/qr', {
       method: 'POST',
       body: form,
