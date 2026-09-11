@@ -10,8 +10,9 @@ import { useDevices } from '../../context/DeviceContext';
 export default function EarningsScreen() {
   const { devices, earnings, loading, error, refresh } = useDevices();
   const hasRecords = earnings.items.length > 0;
+  const hasDaily = earnings.dailyEarnings?.length > 0;
   const today = Number(earnings.todayEarnings || 0);
-  const total = Number(earnings.totalEarnings || 0);
+  const total = Number(earnings.walletBalance ?? earnings.totalEarnings ?? 0);
 
   return (
     <ScrollView
@@ -27,8 +28,8 @@ export default function EarningsScreen() {
       </View>
 
       <View style={styles.balanceHero}>
-        <View style={styles.balanceTop}><View><Text style={styles.balanceLabel}>累计结算收益</Text><Text style={styles.balanceValue} selectable>{formatCurrency(total)}</Text></View><View style={styles.balanceIcon}><Ionicons name="wallet-outline" size={22} color={colors.lime} /></View></View>
-        <Text style={styles.balanceHint}>{hasRecords ? '来自新 APP 节点账本' : devices.length ? '节点首次结算后更新' : '绑定并上线节点后开始累计'}</Text>
+        <View style={styles.balanceTop}><View><Text style={styles.balanceLabel}>钱包可用余额</Text><Text style={styles.balanceValue} selectable>{formatCurrency(total)}</Text></View><View style={styles.balanceIcon}><Ionicons name="wallet-outline" size={22} color={colors.lime} /></View></View>
+        <Text style={styles.balanceHint}>{hasRecords ? '已与提现钱包同步' : devices.length ? '节点首次结算后更新' : '绑定并上线节点后开始累计'}</Text>
         <View style={styles.balanceDivider} />
         <View style={styles.balanceMeta}><View><Text style={styles.metaLabel}>今日收益</Text><Text style={styles.metaValue} selectable>{formatCurrency(today)}</Text></View><View><Text style={styles.metaLabel}>结算节点</Text><Text style={styles.metaValue}>{earnings.items.length || devices.length}</Text></View><View><Text style={styles.metaLabel}>账本状态</Text><Text style={styles.metaValue}>{hasRecords ? '已同步' : '待开始'}</Text></View></View>
         <Link href="/wallet" asChild><Pressable style={styles.withdrawButton} accessibilityRole="button" accessibilityLabel="去提现"><Ionicons name="wallet-outline" size={16} color={colors.forest} /><Text style={styles.withdrawText}>去提现</Text><Ionicons name="arrow-forward" size={15} color={colors.forest} /></Pressable></Link>
@@ -39,7 +40,7 @@ export default function EarningsScreen() {
       <SectionHeader title="收益明细" subtitle={hasRecords ? '按节点查看最新结算快照' : '所有数据来自新 APP 后端'} />
       {hasRecords ? (
         <View style={styles.recordList}>
-          {earnings.items.map((item) => <EarningRow key={item.deviceId} name={item.deviceName} today={item.todayEarnings} total={item.totalEarnings} updatedAt={item.updatedAt} />)}
+          {earnings.items.map((item) => <EarningRow key={item.deviceId} code={item.deviceCode} today={item.todayEarnings} total={item.totalEarnings} updatedAt={item.updatedAt} />)}
         </View>
       ) : (
         <View style={styles.empty}>
@@ -50,17 +51,35 @@ export default function EarningsScreen() {
         </View>
       )}
 
+      {hasDaily && (
+        <>
+          <SectionHeader title="每日收益" subtitle="按结算日期汇总" />
+          <View style={styles.dailyList}>
+            {earnings.dailyEarnings.map((item) => <DailyRow key={item.date} date={item.date} amount={item.amount} />)}
+          </View>
+        </>
+      )}
+
       <View style={styles.note}><Ionicons name="lock-closed-outline" size={16} color={colors.leaf} /><Text style={styles.noteText}>这是全新的收益账本，与旧小程序余额和记录相互独立。</Text></View>
     </ScrollView>
   );
 }
 
-function EarningRow({ name, today, total, updatedAt }: { name: string; today: number; total: number; updatedAt: string | null }) {
+function EarningRow({ code, today, total, updatedAt }: { code: string; today: number; total: number; updatedAt: string | null }) {
   return (
     <View style={styles.recordRow}>
       <View style={styles.recordIcon}><Ionicons name="hardware-chip-outline" size={18} color={colors.forest} /></View>
-      <View style={styles.recordCopy}><Text style={styles.recordName}>{name}</Text><Text style={styles.recordDate}>{updatedAt ? `更新于 ${formatDate(updatedAt)}` : '等待节点上报'}</Text></View>
+      <View style={styles.recordCopy}><Text style={styles.recordName}>设备 {code}</Text><Text style={styles.recordDate}>{updatedAt ? `更新于 ${formatDate(updatedAt)}` : '等待节点上报'}</Text></View>
       <View style={styles.recordAmount}><Text style={styles.recordToday} selectable>{formatCurrency(today)}</Text><Text style={styles.recordTotal}>累计 {formatCurrency(total)}</Text></View>
+    </View>
+  );
+}
+
+function DailyRow({ date, amount }: { date: string; amount: number }) {
+  return (
+    <View style={styles.dailyRow}>
+      <Text style={styles.dailyDate}>{date}</Text>
+      <Text style={styles.dailyAmount} selectable>{formatCurrency(amount)}</Text>
     </View>
   );
 }
@@ -105,6 +124,10 @@ const styles = StyleSheet.create({
   recordAmount: { alignItems: 'flex-end' },
   recordToday: { color: colors.forest, fontSize: 13, fontWeight: '700', fontVariant: ['tabular-nums'] },
   recordTotal: { color: colors.inkFaint, fontSize: 10, marginTop: 4, fontVariant: ['tabular-nums'] },
+  dailyList: { backgroundColor: colors.surface, borderRadius: radii.md, borderWidth: 1, borderColor: colors.line, paddingHorizontal: 14 },
+  dailyRow: { minHeight: 54, borderBottomWidth: 1, borderBottomColor: '#edf1eb', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  dailyDate: { color: colors.ink, fontSize: 13, fontWeight: '700' },
+  dailyAmount: { color: colors.forest, fontSize: 14, fontWeight: '700', fontVariant: ['tabular-nums'] },
   empty: { alignItems: 'center', backgroundColor: colors.surface, borderRadius: radii.md, borderWidth: 1, borderColor: colors.line, paddingHorizontal: 25, paddingVertical: 31 },
   emptyIcon: { width: 58, height: 58, borderRadius: 19, backgroundColor: '#e5efdc', alignItems: 'center', justifyContent: 'center', marginBottom: 15 },
   emptyTitle: { color: colors.ink, fontSize: 17, fontWeight: '700' },

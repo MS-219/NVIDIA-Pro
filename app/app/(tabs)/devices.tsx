@@ -66,16 +66,16 @@ export default function DevicesScreen() {
 }
 
 function DeviceCard({ device }: { device: AppDevice }) {
-  const { name, code, status } = device;
+  const { code, status } = device;
   const statusLabel = status === 'online' ? '在线' : status === 'offline' ? '离线' : '待上线';
   const statusIcon = status === 'online' ? 'checkmark-circle-outline' : status === 'offline' ? 'close-circle-outline' : 'time-outline';
-  const temperature = device.temperature === null || Number.isNaN(device.temperature) ? '--' : `${formatNumber(device.temperature)}°`;
+  const bindTime = device.boundAt ? formatDate(device.boundAt) : '--';
   return (
     <Link href={`/device/${device.id}` as never} asChild>
-      <Pressable style={styles.deviceCard} accessibilityRole="button" accessibilityLabel={`查看${name}详情`}>
-        <View style={styles.deviceTop}><View style={styles.deviceIcon}><Ionicons name="hardware-chip" size={21} color={colors.forest} /></View><View style={styles.deviceCopy}><Text style={styles.deviceName}>{name}</Text><Text style={styles.deviceCode}>设备码 {code}</Text></View><StatusPill label={statusLabel} tone={status === 'online' ? 'positive' : status === 'offline' ? 'danger' : 'pending'} icon={statusIcon} /></View>
+      <Pressable style={styles.deviceCard} accessibilityRole="button" accessibilityLabel={`查看设备 ${code} 详情`}>
+        <View style={styles.deviceTop}><View style={styles.deviceIcon}><Ionicons name="hardware-chip" size={21} color={colors.forest} /></View><View style={styles.deviceCopy}><Text style={styles.deviceName}>设备 {code}</Text></View><StatusPill label={statusLabel} tone={status === 'online' ? 'positive' : status === 'offline' ? 'danger' : 'pending'} icon={statusIcon} /></View>
         <View style={styles.deviceDivider} />
-        <View style={styles.deviceMeta}><View><Text style={styles.metaLabel}>温度</Text><Text style={styles.metaValue}>{temperature}</Text></View><View><Text style={styles.metaLabel}>今日收益</Text><Text style={styles.metaValue}>{formatCurrency(device.dailyEarnings)}</Text></View><Ionicons name="chevron-forward" size={17} color={colors.inkFaint} /></View>
+        <View style={styles.deviceMeta}><View><Text style={styles.metaLabel}>绑定时间</Text><Text style={styles.metaValue}>{bindTime}</Text></View><View><Text style={styles.metaLabel}>今日收益</Text><Text style={styles.metaValue}>{formatCurrency(device.dailyEarnings)}</Text></View><Ionicons name="chevron-forward" size={17} color={colors.inkFaint} /></View>
       </Pressable>
     </Link>
   );
@@ -83,6 +83,12 @@ function DeviceCard({ device }: { device: AppDevice }) {
 
 function formatNumber(value: number): string {
   return new Intl.NumberFormat('zh-CN', { maximumFractionDigits: 2 }).format(value);
+}
+
+function formatDate(value: string): string {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value.slice(0, 16).replace('T', ' ');
+  return date.toLocaleString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit' });
 }
 
 function formatCurrency(value: number): string {
@@ -114,7 +120,6 @@ const styles = StyleSheet.create({
   deviceIcon: { width: 42, height: 42, borderRadius: 13, backgroundColor: '#e5efdc', alignItems: 'center', justifyContent: 'center' },
   deviceCopy: { flex: 1, marginLeft: 11 },
   deviceName: { color: colors.ink, fontSize: 14, fontWeight: '700' },
-  deviceCode: { color: colors.inkFaint, fontSize: 11, marginTop: 5, letterSpacing: 0.6 },
   deviceDivider: { height: 1, backgroundColor: '#edf1eb', marginVertical: 14 },
   deviceMeta: { flexDirection: 'row', alignItems: 'center', gap: 22 },
   metaLabel: { color: colors.inkFaint, fontSize: 10 },

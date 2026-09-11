@@ -43,6 +43,7 @@ export type DashboardPayload = {
 export type EarningsPayload = {
   items: Array<{
     deviceId: number;
+    deviceCode: string;
     deviceName: string;
     todayEarnings: number;
     totalEarnings: number;
@@ -50,6 +51,11 @@ export type EarningsPayload = {
   }>;
   todayEarnings: number;
   totalEarnings: number;
+  walletBalance: number;
+  dailyEarnings: Array<{
+    date: string;
+    amount: number;
+  }>;
 };
 
 export type WalletPayload = {
