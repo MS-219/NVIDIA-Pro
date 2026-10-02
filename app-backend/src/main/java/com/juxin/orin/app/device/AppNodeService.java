@@ -131,13 +131,14 @@ public class AppNodeService {
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
         BigDecimal total = walletSync != null ? walletSync.totalEarnings(ownerUserId) : snapshotsTotal;
         BigDecimal walletBalance = walletSync != null ? walletSync.getWalletBalance(ownerUserId) : total;
+        BigDecimal yesterdayEarnings = walletSync != null ? walletSync.yesterdayEarnings(ownerUserId) : BigDecimal.ZERO;
         List<WalletSyncService.DailyEarning> daily = walletSync != null
                 ? walletSync.dailyEarnings(ownerUserId) : List.of();
         List<EarningItem> items = snapshots.stream()
                 .map(item -> new EarningItem(item.deviceId(), item.deviceCode(), item.deviceName(),
                         item.todayEarnings(), item.totalEarnings(), item.updatedAt()))
                 .toList();
-        return new EarningsSummary(items, today, total, walletBalance, daily);
+        return new EarningsSummary(items, today, total, walletBalance, yesterdayEarnings, daily);
     }
 
     static String normalizeCode(String rawCode) {
@@ -182,6 +183,7 @@ public class AppNodeService {
             BigDecimal todayEarnings,
             BigDecimal totalEarnings,
             BigDecimal walletBalance,
+            BigDecimal yesterdayEarnings,
             List<WalletSyncService.DailyEarning> dailyEarnings) {
     }
 }

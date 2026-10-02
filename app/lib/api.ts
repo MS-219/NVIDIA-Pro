@@ -53,6 +53,7 @@ export type EarningsPayload = {
   todayEarnings: number;
   totalEarnings: number;
   walletBalance: number;
+  yesterdayEarnings: number;
   dailyEarnings: Array<{
     date: string;
     amount: number;

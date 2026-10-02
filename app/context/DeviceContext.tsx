@@ -31,7 +31,7 @@ type DeviceContextValue = {
   removeDevice: (id: number) => Promise<void>;
 };
 
-const EMPTY_EARNINGS: EarningsPayload = { items: [], todayEarnings: 0, totalEarnings: 0, walletBalance: 0, dailyEarnings: [] };
+const EMPTY_EARNINGS: EarningsPayload = { items: [], todayEarnings: 0, totalEarnings: 0, walletBalance: 0, yesterdayEarnings: 0, dailyEarnings: [] };
 const DeviceContext = createContext<DeviceContextValue | undefined>(undefined);
 
 function mapDevice(payload: DevicePayload): AppDevice {
