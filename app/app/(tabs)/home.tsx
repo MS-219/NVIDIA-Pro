@@ -16,7 +16,6 @@ export default function HomeScreen() {
   const { devices, summary, earnings, loading, error, refresh } = useDevices();
   const nickname = session?.user.nickname || '用户';
   const activeDevices = summary?.online ?? devices.filter((device) => device.status === 'online').length;
-  const todayEarnings = summary?.todayEarnings ?? earnings.todayEarnings;
   const totalEarnings = summary?.totalEarnings ?? earnings.totalEarnings;
   const hasDevices = devices.length > 0;
 
@@ -53,11 +52,6 @@ export default function HomeScreen() {
           <View style={styles.heroStat}>
             <Text style={styles.heroStatLabel}>在线节点</Text>
             <Text style={styles.heroStatValue} selectable>{summary ? activeDevices : '--'}</Text>
-          </View>
-          <View style={styles.heroStatLine} />
-          <View style={styles.heroStat}>
-            <Text style={styles.heroStatLabel}>今日收益</Text>
-            <Text style={styles.heroStatValue} selectable>{summary !== null || earnings.todayEarnings > 0 ? formatCurrency(todayEarnings) : '--'}</Text>
           </View>
         </View>
         <View style={styles.heroFooter}>
@@ -168,7 +162,6 @@ const styles = StyleSheet.create({
   heroDivider: { height: 1, backgroundColor: 'rgba(255,255,255,0.14)', marginTop: 21, marginBottom: 17 },
   heroStats: { flexDirection: 'row', alignItems: 'center' },
   heroStat: { flex: 1 },
-  heroStatLine: { width: 1, height: 35, backgroundColor: 'rgba(255,255,255,0.15)', marginHorizontal: 10 },
   heroStatLabel: { color: '#abc1a4', fontSize: 11 },
   heroStatValue: { color: colors.white, fontSize: 19, fontWeight: '700', marginTop: 6, fontVariant: ['tabular-nums'] },
   heroFooter: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 20 },

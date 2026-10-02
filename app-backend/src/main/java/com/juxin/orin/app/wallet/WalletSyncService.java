@@ -153,6 +153,20 @@ public class WalletSyncService {
         }
     }
 
+    /** 累计收益(二开后台 device_earnings 总和). */
+    public BigDecimal totalEarnings(long appUserId) {
+        if (!enabled || appUserId <= 0) return BigDecimal.ZERO;
+        try {
+            Long uid = nodeUserId(appUserId);
+            if (uid == null) return BigDecimal.ZERO;
+            Object v = nodeJdbc.queryForObject("SELECT COALESCE(SUM(amount),0) FROM device_earnings WHERE user_id=?", Object.class, uid);
+            return v == null ? BigDecimal.ZERO : new BigDecimal(v.toString());
+        } catch (RuntimeException error) {
+            log.warn("total earnings query failed for APP user {}", appUserId, error);
+            return BigDecimal.ZERO;
+        }
+    }
+
     /** Map an APP account to the 二开后台 user id by phone number. */
     private Long nodeUserId(long appUserId) {
         String phone = appJdbc.query("SELECT phone FROM app_user_account WHERE id=? LIMIT 1",

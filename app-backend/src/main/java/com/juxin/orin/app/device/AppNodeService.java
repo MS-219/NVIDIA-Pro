@@ -112,7 +112,11 @@ public class AppNodeService {
     public AppNodeRepository.DashboardAggregate summary(long ownerUserId) {
         requirePositiveUserId(ownerUserId);
         if (nodeDeviceSyncService != null) nodeDeviceSyncService.syncForUser(ownerUserId);
-        return repository.aggregateOwnedBy(ownerUserId);
+        AppNodeRepository.DashboardAggregate aggregate = repository.aggregateOwnedBy(ownerUserId);
+        BigDecimal totalEarnings = walletSync != null ? walletSync.totalEarnings(ownerUserId) : aggregate.totalEarnings();
+        return new AppNodeRepository.DashboardAggregate(
+                aggregate.total(), aggregate.online(), aggregate.totalHashrate(),
+                aggregate.todayEarnings(), totalEarnings);
     }
 
     public EarningsSummary earnings(long ownerUserId) {
@@ -122,9 +126,10 @@ public class AppNodeService {
         BigDecimal today = snapshots.stream()
                 .map(AppNodeRepository.EarningSnapshot::todayEarnings)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
-        BigDecimal total = snapshots.stream()
+        BigDecimal snapshotsTotal = snapshots.stream()
                 .map(AppNodeRepository.EarningSnapshot::totalEarnings)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal total = walletSync != null ? walletSync.totalEarnings(ownerUserId) : snapshotsTotal;
         BigDecimal walletBalance = walletSync != null ? walletSync.getWalletBalance(ownerUserId) : total;
         List<WalletSyncService.DailyEarning> daily = walletSync != null
                 ? walletSync.dailyEarnings(ownerUserId) : List.of();
