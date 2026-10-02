@@ -37,7 +37,7 @@ export default function DeviceDetailScreen() {
         contentContainerStyle={styles.content}
         contentInsetAdjustmentBehavior="automatic"
         showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl refreshing={loading} onRefresh={refresh} tintColor={colors.leaf} />}
+        refreshControl={<RefreshControl refreshing={loading} onRefresh={refresh} tintColor={colors.accent} />}
       >
         <View style={styles.nav}><Pressable onPress={() => router.back()} style={styles.navButton} accessibilityRole="button" accessibilityLabel="返回"><Ionicons name="chevron-back" size={22} color={colors.ink} /></Pressable><Text style={styles.navTitle}>节点详情</Text><Pressable onPress={handleRemove} style={styles.navButton} accessibilityRole="button" accessibilityLabel="解绑节点" disabled={!device || mutating}><Ionicons name="ellipsis-horizontal" size={21} color={device ? colors.ink : colors.inkFaint} /></Pressable></View>
 
@@ -54,9 +54,9 @@ function DeviceDetails({ device, onRemove, removing }: { device: AppDevice; onRe
   return (
     <>
       <View style={styles.hero}>
-        <View style={styles.heroTop}><View style={styles.heroIcon}><Ionicons name="hardware-chip" size={30} color={colors.lime} /></View><StatusPill label={statusLabel} tone={statusTone} icon={online ? 'pulse-outline' : device.status === 'offline' ? 'close-circle-outline' : 'time-outline'} /></View>
+        <View style={styles.heroTop}><View style={styles.heroIcon}><Ionicons name="hardware-chip" size={30} color={colors.highlight} /></View><StatusPill label={statusLabel} tone={statusTone} icon={online ? 'pulse-outline' : device.status === 'offline' ? 'close-circle-outline' : 'time-outline'} /></View>
         <Text style={styles.heroName}>设备 {device.code}</Text>
-        <View style={styles.heroRule} /><View style={styles.heroFooter}><Ionicons name="calendar-outline" size={14} color="#b6cbb0" /><Text style={styles.heroFooterText}>{device.boundAt ? `绑定于 ${formatDate(device.boundAt)}` : '绑定时间待同步'}</Text></View>
+        <View style={styles.heroRule} /><View style={styles.heroFooter}><Ionicons name="calendar-outline" size={14} color="#A9BBD4" /><Text style={styles.heroFooterText}>{device.boundAt ? `绑定于 ${formatDate(device.boundAt)}` : '绑定时间待同步'}</Text></View>
       </View>
 
       <Text style={styles.sectionTitle}>实时遥测</Text>
@@ -65,10 +65,10 @@ function DeviceDetails({ device, onRemove, removing }: { device: AppDevice; onRe
       <Text style={styles.sectionTitle}>收益快照</Text>
       <View style={styles.earningsCard}><View style={styles.earningMain}><Text style={styles.earningLabel}>今日收益</Text><Text style={styles.earningValue} selectable>{formatCurrency(device.dailyEarnings)}</Text></View><View style={styles.earningDivider} /><View style={styles.earningMain}><Text style={styles.earningLabel}>累计收益</Text><Text style={styles.earningValue} selectable>{formatCurrency(device.totalEarnings)}</Text></View></View>
 
-      <View style={styles.notice}><Ionicons name="information-circle-outline" size={18} color={colors.leaf} /><Text style={styles.noticeText}>节点数据由新 APP 后端同步，和旧小程序设备完全独立。</Text></View>
+      <View style={styles.notice}><Ionicons name="information-circle-outline" size={18} color={colors.accent} /><Text style={styles.noticeText}>节点数据由新 APP 后端同步，和旧小程序设备完全独立。</Text></View>
 
       <Pressable onPress={onRemove} disabled={removing} style={[styles.unbind, removing && styles.unbindDisabled]} accessibilityRole="button" accessibilityLabel="解绑节点">
-        <Ionicons name="unlink-outline" size={18} color={colors.coral} />
+        <Ionicons name="unlink-outline" size={18} color={colors.danger} />
         <Text style={styles.unbindText}>{removing ? '解绑中…' : '解绑节点'}</Text>
       </Pressable>
     </>
@@ -76,11 +76,11 @@ function DeviceDetails({ device, onRemove, removing }: { device: AppDevice; onRe
 }
 
 function Telemetry({ icon, label, value }: { icon: keyof typeof Ionicons.glyphMap; label: string; value: string }) {
-  return <View style={styles.telemetry}><View style={styles.telemetryIcon}><Ionicons name={icon} size={18} color={colors.forest} /></View><Text style={styles.telemetryLabel}>{label}</Text><Text style={styles.telemetryValue} selectable>{value}</Text></View>;
+  return <View style={styles.telemetry}><View style={styles.telemetryIcon}><Ionicons name={icon} size={18} color={colors.brand} /></View><Text style={styles.telemetryLabel}>{label}</Text><Text style={styles.telemetryValue} selectable>{value}</Text></View>;
 }
 
 function MissingDevice() {
-  return <View style={styles.missing}><Ionicons name="search-outline" size={28} color={colors.forest} /><Text style={styles.missingTitle}>节点不存在</Text><Text style={styles.missingText}>它可能已经解绑，返回设备列表重新同步。</Text></View>;
+  return <View style={styles.missing}><Ionicons name="search-outline" size={28} color={colors.brand} /><Text style={styles.missingTitle}>节点不存在</Text><Text style={styles.missingText}>它可能已经解绑，返回设备列表重新同步。</Text></View>;
 }
 
 function formatNumber(value: number): string {
@@ -103,31 +103,31 @@ const styles = StyleSheet.create({
   nav: { minHeight: 58, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   navButton: { width: 40, height: 40, borderRadius: 13, backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: colors.line },
   navTitle: { color: colors.ink, fontSize: 16, fontWeight: '700' },
-  hero: { backgroundColor: colors.forest, borderRadius: radii.lg, padding: 20, ...shadow.soft },
+  hero: { backgroundColor: colors.brand, borderRadius: radii.lg, padding: 20, ...shadow.soft },
   heroTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  heroIcon: { width: 58, height: 58, borderRadius: 19, backgroundColor: 'rgba(214,237,155,0.16)', alignItems: 'center', justifyContent: 'center' },
+  heroIcon: { width: 58, height: 58, borderRadius: 19, backgroundColor: 'rgba(255,255,255,0.14)', alignItems: 'center', justifyContent: 'center' },
   heroName: { color: colors.white, fontSize: 23, fontWeight: '700', marginTop: 19 },
-  heroCode: { color: '#b9cdb3', fontSize: 12, letterSpacing: 0.7, marginTop: 6 },
+  heroCode: { color: '#A9BBD4', fontSize: 12, letterSpacing: 0.7, marginTop: 6 },
   heroRule: { height: 1, backgroundColor: 'rgba(255,255,255,0.14)', marginVertical: 17 },
   heroFooter: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  heroFooterText: { color: '#b6cbb0', fontSize: 11 },
+  heroFooterText: { color: '#A9BBD4', fontSize: 11 },
   sectionTitle: { color: colors.ink, fontSize: 16, fontWeight: '700', marginTop: 1 },
   telemetryGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
-  telemetry: { width: '48%', minHeight: 112, backgroundColor: colors.surface, borderRadius: radii.md, padding: 14, borderWidth: 1, borderColor: colors.line },
-  telemetryIcon: { width: 34, height: 34, borderRadius: 11, backgroundColor: '#e5efdc', alignItems: 'center', justifyContent: 'center', marginBottom: 11 },
+  telemetry: { width: '48%', minHeight: 112, backgroundColor: colors.surface, borderRadius: radii.md, padding: 14, ...shadow.card },
+  telemetryIcon: { width: 34, height: 34, borderRadius: 11, backgroundColor: '#E8EEF7', alignItems: 'center', justifyContent: 'center', marginBottom: 11 },
   telemetryLabel: { color: colors.inkFaint, fontSize: 10 },
   telemetryValue: { color: colors.ink, fontSize: 14, fontWeight: '700', marginTop: 5, fontVariant: ['tabular-nums'] },
-  earningsCard: { backgroundColor: colors.surface, borderRadius: radii.md, borderWidth: 1, borderColor: colors.line, padding: 17, flexDirection: 'row', alignItems: 'center' },
+  earningsCard: { backgroundColor: colors.surface, borderRadius: radii.md, ...shadow.card, padding: 17, flexDirection: 'row', alignItems: 'center' },
   earningMain: { flex: 1 },
   earningLabel: { color: colors.inkFaint, fontSize: 11 },
-  earningValue: { color: colors.forest, fontSize: 21, fontWeight: '700', marginTop: 7, fontVariant: ['tabular-nums'] },
+  earningValue: { color: colors.brand, fontSize: 21, fontWeight: '700', marginTop: 7, fontVariant: ['tabular-nums'] },
   earningDivider: { width: 1, height: 40, backgroundColor: colors.line, marginHorizontal: 17 },
-  notice: { backgroundColor: '#e9f1e4', borderRadius: 14, padding: 13, flexDirection: 'row', alignItems: 'flex-start', gap: 8 },
+  notice: { backgroundColor: '#E8EEF7', borderRadius: 14, padding: 13, flexDirection: 'row', alignItems: 'flex-start', gap: 8 },
   noticeText: { color: colors.inkSoft, fontSize: 11, lineHeight: 17, flex: 1 },
-  missing: { backgroundColor: colors.surface, borderRadius: radii.md, borderWidth: 1, borderColor: colors.line, minHeight: 220, alignItems: 'center', justifyContent: 'center', padding: 24 },
+  missing: { backgroundColor: colors.surface, borderRadius: radii.md, ...shadow.card, minHeight: 220, alignItems: 'center', justifyContent: 'center', padding: 24 },
   missingTitle: { color: colors.ink, fontSize: 17, fontWeight: '700', marginTop: 13 },
   missingText: { color: colors.inkSoft, fontSize: 12, textAlign: 'center', marginTop: 7 },
-  unbind: { minHeight: 54, borderRadius: radii.md, borderWidth: 1, borderColor: '#ecc9c2', backgroundColor: '#fff6f4', alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 8 },
+  unbind: { minHeight: 54, borderRadius: radii.md, borderWidth: 1, borderColor: '#F4D3D0', backgroundColor: '#FDF1F0', alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 8 },
   unbindDisabled: { opacity: 0.6 },
-  unbindText: { color: colors.coral, fontSize: 15, fontWeight: '700' },
+  unbindText: { color: colors.danger, fontSize: 15, fontWeight: '700' },
 });

@@ -118,7 +118,7 @@ export default function WalletScreen() {
         contentContainerStyle={styles.content}
         contentInsetAdjustmentBehavior="automatic"
         showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl refreshing={loading} onRefresh={load} tintColor={colors.leaf} />}
+        refreshControl={<RefreshControl refreshing={loading} onRefresh={load} tintColor={colors.accent} />}
       >
         <View style={styles.nav}>
           <Pressable onPress={() => router.back()} style={styles.navButton} accessibilityRole="button" accessibilityLabel="返回"><Ionicons name="chevron-back" size={22} color={colors.ink} /></Pressable>
@@ -127,12 +127,12 @@ export default function WalletScreen() {
         </View>
 
         <View style={styles.hero}>
-          <View style={styles.heroTop}><Text style={styles.heroLabel}>可提现余额 (元)</Text><View style={styles.heroIcon}><Ionicons name="wallet-outline" size={20} color={colors.lime} /></View></View>
+          <View style={styles.heroTop}><Text style={styles.heroLabel}>可提现余额 (元)</Text><View style={styles.heroIcon}><Ionicons name="wallet-outline" size={20} color={colors.highlight} /></View></View>
           <Text style={styles.heroValue} selectable>{formatCurrency(balance)}</Text>
           <Text style={styles.heroHint}>余额 = 已结算收益 − 已提现/兑换</Text>
         </View>
 
-        {!!error && <View style={styles.banner}><Ionicons name="cloud-offline-outline" size={16} color={colors.coral} /><Text style={styles.bannerText}>{error}</Text></View>}
+        {!!error && <View style={styles.banner}><Ionicons name="cloud-offline-outline" size={16} color={colors.danger} /><Text style={styles.bannerText}>{error}</Text></View>}
 
         <Text style={styles.sectionTitle}>申请提现</Text>
         <View style={styles.form}>
@@ -156,7 +156,7 @@ export default function WalletScreen() {
           <View style={styles.segment}>
             {METHODS.map((m) => (
               <Pressable key={m.key} onPress={() => setMethod(m.key)} style={[styles.segmentItem, method === m.key && styles.segmentItemActive]} accessibilityRole="button">
-                <Ionicons name={m.icon} size={16} color={method === m.key ? colors.forest : colors.inkFaint} />
+                <Ionicons name={m.icon} size={16} color={method === m.key ? colors.brand : colors.inkFaint} />
                 <Text style={[styles.segmentText, method === m.key && styles.segmentTextActive]}>{m.label}</Text>
               </Pressable>
             ))}
@@ -181,7 +181,7 @@ export default function WalletScreen() {
                 </View>
               ) : (
                 <Pressable onPress={pickQr} disabled={qrUploading} style={styles.qrUploadBtn} accessibilityRole="button" accessibilityLabel="上传收款码">
-                  {qrUploading ? <ActivityIndicator color={colors.forest} /> : <><Ionicons name="image-outline" size={22} color={colors.forest} /><Text style={styles.qrUploadText}>上传{method === 'wechat' ? '微信' : '支付宝'}收款码</Text></>}
+                  {qrUploading ? <ActivityIndicator color={colors.brand} /> : <><Ionicons name="image-outline" size={22} color={colors.brand} /><Text style={styles.qrUploadText}>上传{method === 'wechat' ? '微信' : '支付宝'}收款码</Text></>}
                 </Pressable>
               )}
               <Text style={styles.qrHint}>请上传清晰的收款码图片，打款时将扫码转账。</Text>
@@ -210,7 +210,7 @@ export default function WalletScreen() {
           <View style={styles.list}>
             {wallet.ledger.slice(0, 20).map((l, i) => (
               <View key={l.id} style={[styles.ledgerRow, i === Math.min(wallet.ledger.length, 20) - 1 && styles.rowLast]}>
-                <View style={styles.ledgerIcon}><Ionicons name={l.direction === 'credit' ? 'arrow-down' : 'arrow-up'} size={15} color={l.direction === 'credit' ? colors.forest : colors.coral} /></View>
+                <View style={styles.ledgerIcon}><Ionicons name={l.direction === 'credit' ? 'arrow-down' : 'arrow-up'} size={15} color={l.direction === 'credit' ? colors.brand : colors.danger} /></View>
                 <View style={styles.ledgerCopy}><Text style={styles.ledgerTitle}>{l.description || l.entry_type}</Text><Text style={styles.ledgerDate}>{formatDate(l.created_at)}</Text></View>
                 <Text style={[styles.ledgerAmount, l.direction === 'credit' ? styles.credit : styles.debit]} selectable>{l.direction === 'credit' ? '+' : '-'}{formatCurrency(Number(l.amount))}</Text>
               </View>
@@ -231,7 +231,7 @@ function QuickAmount({ label, onPress }: { label: string; onPress: () => void })
 function WithdrawalRow({ withdrawal: w, last }: { withdrawal: WithdrawalPayload; last: boolean }) {
   return (
     <View style={[styles.ledgerRow, last && styles.rowLast]}>
-      <View style={styles.ledgerIcon}><Ionicons name="paper-plane-outline" size={15} color={colors.forest} /></View>
+      <View style={styles.ledgerIcon}><Ionicons name="paper-plane-outline" size={15} color={colors.brand} /></View>
       <View style={styles.ledgerCopy}><Text style={styles.ledgerTitle}>提现 · {methodLabel(w.method)}</Text><Text style={styles.ledgerDate}>{formatDate(w.created_at)}</Text></View>
       <View style={styles.ledgerAmountWrap}><Text style={styles.ledgerAmount} selectable>{formatCurrency(Number(w.amount))}</Text><StatusPill label={statusLabel(w.status)} tone={w.status === 'pending' ? 'pending' : w.status === 'approved' || w.status === 'paid' ? 'positive' : 'danger'} /></View>
     </View>
@@ -263,51 +263,51 @@ const styles = StyleSheet.create({
   navButton: { width: 40, height: 40, borderRadius: 13, backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: colors.line },
   navSpacer: { width: 40, height: 40 },
   navTitle: { color: colors.ink, fontSize: 16, fontWeight: '700' },
-  hero: { backgroundColor: colors.forest, borderRadius: radii.lg, padding: 20, ...shadow.soft },
+  hero: { backgroundColor: colors.brand, borderRadius: radii.lg, padding: 20, ...shadow.soft },
   heroTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  heroLabel: { color: '#bad0b4', fontSize: 12 },
-  heroIcon: { width: 40, height: 40, borderRadius: 13, backgroundColor: 'rgba(214,237,155,0.16)', alignItems: 'center', justifyContent: 'center' },
+  heroLabel: { color: '#A9BBD4', fontSize: 12 },
+  heroIcon: { width: 40, height: 40, borderRadius: 13, backgroundColor: 'rgba(255,255,255,0.14)', alignItems: 'center', justifyContent: 'center' },
   heroValue: { color: colors.white, fontSize: 38, fontWeight: '700', marginTop: 12, fontVariant: ['tabular-nums'] },
-  heroHint: { color: '#9fb89a', fontSize: 11, marginTop: 9 },
-  banner: { backgroundColor: '#fff7f5', borderColor: '#efd8d3', borderWidth: 1, borderRadius: 12, padding: 11, flexDirection: 'row', alignItems: 'center', gap: 7 },
-  bannerText: { color: colors.coral, fontSize: 11, flex: 1 },
+  heroHint: { color: '#8593A6', fontSize: 11, marginTop: 9 },
+  banner: { backgroundColor: '#FDF1F0', borderColor: '#F4D3D0', borderWidth: 1, borderRadius: 12, padding: 11, flexDirection: 'row', alignItems: 'center', gap: 7 },
+  bannerText: { color: colors.danger, fontSize: 11, flex: 1 },
   sectionTitle: { color: colors.ink, fontSize: 15, fontWeight: '700', marginTop: 2 },
-  form: { backgroundColor: colors.surface, borderRadius: radii.md, borderWidth: 1, borderColor: colors.line, padding: 16, gap: 11 },
+  form: { backgroundColor: colors.surface, borderRadius: radii.md, ...shadow.card, padding: 16, gap: 11 },
   fieldLabel: { color: colors.inkSoft, fontSize: 12, fontWeight: '600', marginTop: 2 },
   input: { minHeight: 48, borderWidth: 1, borderColor: colors.line, borderRadius: 12, paddingHorizontal: 14, color: colors.ink, fontSize: 15, backgroundColor: colors.canvas },
-  qrUploadBtn: { minHeight: 96, borderRadius: 14, borderWidth: 1.5, borderStyle: 'dashed', borderColor: colors.leaf, backgroundColor: '#f3f7ef', alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 8 },
-  qrUploadText: { color: colors.forest, fontSize: 14, fontWeight: '700' },
+  qrUploadBtn: { minHeight: 96, borderRadius: 14, borderWidth: 1.5, borderStyle: 'dashed', borderColor: colors.accent, backgroundColor: '#F0F3F7', alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 8 },
+  qrUploadText: { color: colors.brand, fontSize: 14, fontWeight: '700' },
   qrHint: { color: colors.inkFaint, fontSize: 11, lineHeight: 16 },
   qrPreview: { alignItems: 'center', gap: 10 },
   qrImage: { width: 160, height: 160, borderRadius: 12, backgroundColor: colors.canvas, borderWidth: 1, borderColor: colors.line },
-  qrChangeBtn: { minHeight: 34, paddingHorizontal: 18, borderRadius: 10, borderWidth: 1, borderColor: colors.line, backgroundColor: '#f3f7ef', alignItems: 'center', justifyContent: 'center' },
-  qrChangeText: { color: colors.forest, fontSize: 12, fontWeight: '600' },
+  qrChangeBtn: { minHeight: 34, paddingHorizontal: 18, borderRadius: 10, borderWidth: 1, borderColor: colors.line, backgroundColor: '#F0F3F7', alignItems: 'center', justifyContent: 'center' },
+  qrChangeText: { color: colors.brand, fontSize: 12, fontWeight: '600' },
   quickRow: { flexDirection: 'row', gap: 8 },
-  quickBtn: { flex: 1, minHeight: 34, borderRadius: 10, borderWidth: 1, borderColor: colors.line, backgroundColor: '#f3f7ef', alignItems: 'center', justifyContent: 'center' },
-  quickText: { color: colors.forest, fontSize: 11, fontWeight: '600' },
+  quickBtn: { flex: 1, minHeight: 34, borderRadius: 10, borderWidth: 1, borderColor: colors.line, backgroundColor: '#F0F3F7', alignItems: 'center', justifyContent: 'center' },
+  quickText: { color: colors.brand, fontSize: 11, fontWeight: '600' },
   segment: { flexDirection: 'row', gap: 8 },
   segmentItem: { flex: 1, minHeight: 44, borderRadius: 12, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.canvas, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 6 },
-  segmentItemActive: { borderColor: colors.leaf, backgroundColor: '#eef5e7' },
+  segmentItemActive: { borderColor: colors.accent, backgroundColor: '#F0F3F7' },
   segmentText: { color: colors.inkFaint, fontSize: 13, fontWeight: '600' },
-  segmentTextActive: { color: colors.forest },
+  segmentTextActive: { color: colors.brand },
   message: { fontSize: 12, lineHeight: 17 },
-  messageOk: { color: colors.leaf },
-  messageErr: { color: colors.coral },
-  submit: { minHeight: 50, borderRadius: 14, backgroundColor: colors.forest, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 8, marginTop: 3 },
+  messageOk: { color: colors.accent },
+  messageErr: { color: colors.danger },
+  submit: { minHeight: 50, borderRadius: 14, backgroundColor: colors.brand, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 8, marginTop: 3 },
   submitText: { color: colors.white, fontSize: 15, fontWeight: '700' },
   pressed: { opacity: 0.8 },
   formNote: { flexDirection: 'row', alignItems: 'center', gap: 5 },
-  list: { backgroundColor: colors.surface, borderRadius: radii.md, borderWidth: 1, borderColor: colors.line, paddingHorizontal: 14 },
-  ledgerRow: { minHeight: 66, borderBottomWidth: 1, borderBottomColor: '#edf1eb', flexDirection: 'row', alignItems: 'center' },
+  list: { backgroundColor: colors.surface, borderRadius: radii.md, ...shadow.card, paddingHorizontal: 14 },
+  ledgerRow: { minHeight: 66, borderBottomWidth: 1, borderBottomColor: '#F0F3F7', flexDirection: 'row', alignItems: 'center' },
   rowLast: { borderBottomWidth: 0 },
-  ledgerIcon: { width: 36, height: 36, borderRadius: 12, backgroundColor: '#e5efdc', alignItems: 'center', justifyContent: 'center' },
+  ledgerIcon: { width: 36, height: 36, borderRadius: 12, backgroundColor: '#E8EEF7', alignItems: 'center', justifyContent: 'center' },
   ledgerCopy: { flex: 1, marginLeft: 10 },
   ledgerTitle: { color: colors.ink, fontSize: 13, fontWeight: '600' },
   ledgerDate: { color: colors.inkFaint, fontSize: 10, marginTop: 4 },
   ledgerAmount: { fontSize: 14, fontWeight: '700', fontVariant: ['tabular-nums'] },
-  credit: { color: colors.forest },
-  debit: { color: colors.coral },
+  credit: { color: colors.brand },
+  debit: { color: colors.danger },
   ledgerAmountWrap: { alignItems: 'flex-end', gap: 5 },
-  empty: { backgroundColor: colors.surface, borderRadius: radii.md, borderWidth: 1, borderColor: colors.line, padding: 26, alignItems: 'center' },
+  empty: { backgroundColor: colors.surface, borderRadius: radii.md, ...shadow.card, padding: 26, alignItems: 'center' },
   emptyText: { color: colors.inkFaint, fontSize: 12 },
 });

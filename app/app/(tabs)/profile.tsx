@@ -4,7 +4,7 @@ import React from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { BrandMark } from '../../components/BrandMark';
 import { StatusPill } from '../../components/StatusPill';
-import { colors, radii } from '../../components/theme';
+import { colors, radii, shadow } from '../../components/theme';
 import { useAuth } from '../../context/AuthContext';
 import { useDevices } from '../../context/DeviceContext';
 import { useUpdates } from '../../context/UpdateContext';
@@ -20,7 +20,7 @@ export default function ProfileScreen() {
       <View style={styles.header}><BrandMark compact /><Text style={styles.headerTitle}>我的</Text><View style={styles.headerSpacer} /></View>
 
       <View style={styles.identity}>
-        <View style={styles.identityAvatar}><Ionicons name="person" size={29} color={colors.forest} /></View>
+        <View style={styles.identityAvatar}><Ionicons name="person" size={29} color={colors.brand} /></View>
         <View style={styles.identityCopy}><Text style={styles.identityName}>{nickname}</Text><Text style={styles.identityPhone} selectable>{session?.user.phone || '--'}</Text><StatusPill label="短信验证账户" icon="shield-checkmark-outline" /></View>
       </View>
 
@@ -45,7 +45,7 @@ export default function ProfileScreen() {
       </View>
 
       <Pressable onPress={signOut} style={({ pressed }) => [styles.logout, pressed && styles.pressed]} accessibilityRole="button" accessibilityLabel="退出登录">
-        <Ionicons name="log-out-outline" size={19} color={colors.coral} /><Text style={styles.logoutText}>退出登录</Text>
+        <Ionicons name="log-out-outline" size={19} color={colors.danger} /><Text style={styles.logoutText}>退出登录</Text>
       </Pressable>
       <Text style={styles.version}>聚芯节点 · {currentVersion}</Text>
     </ScrollView>
@@ -57,7 +57,7 @@ function Stat({ label, value }: { label: string; value: string }) {
 }
 
 function MenuRow({ icon, title, detail, href, onPress, last = false }: { icon: keyof typeof Ionicons.glyphMap; title: string; detail: string; href?: string; onPress?: () => void; last?: boolean }) {
-  const row = <View style={[styles.menuRow, last && styles.menuRowLast]}><View style={styles.menuIcon}><Ionicons name={icon} size={18} color={colors.forest} /></View><View style={styles.menuCopy}><Text style={styles.menuTitle}>{title}</Text><Text style={styles.menuDetail}>{detail}</Text></View><Ionicons name="chevron-forward" size={16} color={colors.inkFaint} /></View>;
+  const row = <View style={[styles.menuRow, last && styles.menuRowLast]}><View style={styles.menuIcon}><Ionicons name={icon} size={18} color={colors.brand} /></View><View style={styles.menuCopy}><Text style={styles.menuTitle}>{title}</Text><Text style={styles.menuDetail}>{detail}</Text></View><Ionicons name="chevron-forward" size={16} color={colors.inkFaint} /></View>;
   if (onPress) return <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel={title}>{row}</Pressable>;
   if (!href) return row;
   return <Link href={href as never} asChild><Pressable accessibilityRole="button" accessibilityLabel={title}>{row}</Pressable></Link>;
@@ -69,26 +69,26 @@ const styles = StyleSheet.create({
   header: { minHeight: 40, flexDirection: 'row', alignItems: 'center' },
   headerTitle: { color: colors.ink, fontSize: 16, fontWeight: '700', marginLeft: 12 },
   headerSpacer: { flex: 1 },
-  identity: { backgroundColor: colors.forest, borderRadius: radii.lg, padding: 20, flexDirection: 'row', alignItems: 'center' },
-  identityAvatar: { width: 64, height: 64, borderRadius: 21, backgroundColor: colors.lime, alignItems: 'center', justifyContent: 'center' },
+  identity: { backgroundColor: colors.brand, borderRadius: radii.lg, padding: 20, flexDirection: 'row', alignItems: 'center' },
+  identityAvatar: { width: 64, height: 64, borderRadius: 21, backgroundColor: colors.highlight, alignItems: 'center', justifyContent: 'center' },
   identityCopy: { flex: 1, marginLeft: 14, gap: 7 },
   identityName: { color: colors.white, fontSize: 19, fontWeight: '700' },
-  identityPhone: { color: '#c2d1bd', fontSize: 13, letterSpacing: 0.5 },
-  quickStats: { backgroundColor: colors.surface, borderRadius: radii.md, borderWidth: 1, borderColor: colors.line, paddingVertical: 16, paddingHorizontal: 10, flexDirection: 'row', alignItems: 'center' },
+  identityPhone: { color: '#A9BBD4', fontSize: 13, letterSpacing: 0.5 },
+  quickStats: { backgroundColor: colors.surface, borderRadius: radii.md, ...shadow.card, paddingVertical: 16, paddingHorizontal: 10, flexDirection: 'row', alignItems: 'center' },
   stat: { flex: 1, alignItems: 'center' },
   statLabel: { color: colors.inkFaint, fontSize: 10 },
   statValue: { color: colors.ink, fontSize: 15, fontWeight: '700', marginTop: 6 },
   statLine: { width: 1, height: 28, backgroundColor: colors.line },
   sectionTitle: { color: colors.ink, fontSize: 15, fontWeight: '700', marginTop: 3, marginBottom: -5 },
-  menuPanel: { backgroundColor: colors.surface, borderRadius: radii.md, borderWidth: 1, borderColor: colors.line, paddingHorizontal: 14 },
-  menuRow: { minHeight: 65, borderBottomWidth: 1, borderBottomColor: '#edf1eb', flexDirection: 'row', alignItems: 'center' },
+  menuPanel: { backgroundColor: colors.surface, borderRadius: radii.md, ...shadow.card, paddingHorizontal: 14 },
+  menuRow: { minHeight: 65, borderBottomWidth: 1, borderBottomColor: '#F0F3F7', flexDirection: 'row', alignItems: 'center' },
   menuRowLast: { borderBottomWidth: 0 },
-  menuIcon: { width: 36, height: 36, borderRadius: 12, backgroundColor: '#e5efdc', alignItems: 'center', justifyContent: 'center' },
+  menuIcon: { width: 36, height: 36, borderRadius: 12, backgroundColor: '#E8EEF7', alignItems: 'center', justifyContent: 'center' },
   menuCopy: { flex: 1, marginLeft: 11 },
   menuTitle: { color: colors.ink, fontSize: 13, fontWeight: '700' },
   menuDetail: { color: colors.inkFaint, fontSize: 11, marginTop: 4 },
-  logout: { minHeight: 52, borderRadius: 14, borderWidth: 1, borderColor: '#efd8d3', backgroundColor: '#fffaf9', alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 8, marginTop: 2 },
-  logoutText: { color: colors.coral, fontSize: 14, fontWeight: '700' },
+  logout: { minHeight: 52, borderRadius: 14, borderWidth: 1, borderColor: '#F4D3D0', backgroundColor: '#FDF1F0', alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 8, marginTop: 2 },
+  logoutText: { color: colors.danger, fontSize: 14, fontWeight: '700' },
   pressed: { opacity: 0.75, transform: [{ scale: 0.985 }] },
   version: { color: colors.inkFaint, fontSize: 10, textAlign: 'center', marginTop: -4 },
 });

@@ -15,7 +15,7 @@ export function SectionHeader({ title, subtitle, href, actionLabel = '查看全�
   const content = (
     <View style={styles.action}>
       <Text style={styles.actionText}>{actionLabel}</Text>
-      <Ionicons name="arrow-forward" size={14} color={colors.leaf} />
+      <Ionicons name="arrow-forward" size={14} color={colors.accent} />
     </View>
   );
 
@@ -41,5 +41,5 @@ const styles = StyleSheet.create({
   title: { color: colors.ink, fontSize: 16, fontWeight: '700' },
   subtitle: { color: colors.inkFaint, fontSize: 12, marginTop: 4 },
   action: { flexDirection: 'row', alignItems: 'center', gap: 5 },
-  actionText: { color: colors.leaf, fontSize: 12, fontWeight: '700' },
+  actionText: { color: colors.accent, fontSize: 12, fontWeight: '700' },
 });

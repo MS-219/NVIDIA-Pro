@@ -26,7 +26,7 @@ export default function HomeScreen() {
       contentContainerStyle={styles.content}
       contentInsetAdjustmentBehavior="automatic"
       showsVerticalScrollIndicator={false}
-      refreshControl={<RefreshControl refreshing={loading} onRefresh={refresh} tintColor={colors.leaf} />}
+      refreshControl={<RefreshControl refreshing={loading} onRefresh={refresh} tintColor={colors.accent} />}
     >
       <View style={styles.topBar}>
         <BrandMark compact />
@@ -61,12 +61,12 @@ export default function HomeScreen() {
           </View>
         </View>
         <View style={styles.heroFooter}>
-          <Ionicons name="lock-closed-outline" size={13} color={colors.lime} />
+          <Ionicons name="lock-closed-outline" size={13} color={colors.highlight} />
           <Text style={styles.heroFooterText}>独立 APP 账户 · 数据仅同步自新后端</Text>
         </View>
       </View>
 
-      {!!error && <View style={styles.syncBanner}><Ionicons name="cloud-offline-outline" size={17} color={colors.coral} /><Text style={styles.syncText}>数据同步暂时中断，向下拉可重试</Text></View>}
+      {!!error && <View style={styles.syncBanner}><Ionicons name="cloud-offline-outline" size={17} color={colors.danger} /><Text style={styles.syncText}>数据同步暂时中断，向下拉可重试</Text></View>}
 
       <SectionHeader title="运行概览" subtitle="节点数据会在上线后自动更新" href="/(tabs)/earnings" actionLabel="收益明细" />
       <View style={styles.metricGrid}>
@@ -119,7 +119,7 @@ export default function HomeScreen() {
 function MetricCard({ icon, label, value, hint, tone }: { icon: keyof typeof Ionicons.glyphMap; label: string; value: string; hint: string; tone: 'lime' | 'amber' }) {
   return (
     <View style={styles.metricCard}>
-      <View style={[styles.metricIcon, tone === 'amber' && styles.metricIconAmber]}><Ionicons name={icon} size={18} color={tone === 'amber' ? colors.amber : colors.forest} /></View>
+      <View style={[styles.metricIcon, tone === 'amber' && styles.metricIconAmber]}><Ionicons name={icon} size={18} color={tone === 'amber' ? colors.warning : colors.brand} /></View>
       <Text style={styles.metricLabel}>{label}</Text>
       <Text style={styles.metricValue} selectable>{value}</Text>
       <Text style={styles.metricHint}>{hint}</Text>
@@ -131,7 +131,7 @@ function QuickAction({ href, icon, title, subtitle }: { href: string; icon: keyo
   return (
     <Link href={href as never} asChild>
       <Pressable style={styles.actionCard} accessibilityRole="button" accessibilityLabel={`${title}，${subtitle}`}>
-        <View style={styles.actionIcon}><Ionicons name={icon} size={20} color={colors.forest} /></View>
+        <View style={styles.actionIcon}><Ionicons name={icon} size={20} color={colors.brand} /></View>
         <View style={styles.actionCopy}><Text style={styles.actionTitle}>{title}</Text><Text style={styles.actionSubtitle}>{subtitle}</Text></View>
         <Ionicons name="chevron-forward" size={16} color={colors.inkFaint} />
       </Pressable>
@@ -142,9 +142,9 @@ function QuickAction({ href, icon, title, subtitle }: { href: string; icon: keyo
 function ActivityRow({ icon, title, detail, last = false }: { icon: keyof typeof Ionicons.glyphMap; title: string; detail: string; last?: boolean }) {
   return (
     <View style={[styles.activityRow, last && styles.activityRowLast]}>
-      <View style={styles.activityIcon}><Ionicons name={icon} size={17} color={colors.leaf} /></View>
+      <View style={styles.activityIcon}><Ionicons name={icon} size={17} color={colors.accent} /></View>
       <View style={styles.activityCopy}><Text style={styles.activityRowTitle}>{title}</Text><Text style={styles.activityDetail}>{detail}</Text></View>
-      <Ionicons name="checkmark" size={16} color={colors.leaf} />
+      <Ionicons name="checkmark" size={16} color={colors.accent} />
     </View>
   );
 }
@@ -157,61 +157,61 @@ const styles = StyleSheet.create({
   page: { flex: 1, backgroundColor: colors.canvas },
   content: { paddingHorizontal: 20, paddingTop: 10, paddingBottom: 42, gap: 16 },
   topBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', minHeight: 40 },
-  iconButton: { width: 40, height: 40, borderRadius: 13, backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: colors.line },
-  notificationDot: { position: 'absolute', top: 9, right: 10, width: 6, height: 6, borderRadius: 3, backgroundColor: colors.coral, borderWidth: 1, borderColor: colors.surface },
-  hero: { backgroundColor: colors.forest, borderRadius: radii.lg, padding: 20, marginTop: 4, ...shadow.soft },
+  iconButton: { width: 40, height: 40, borderRadius: 13, backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center', ...shadow.card },
+  notificationDot: { position: 'absolute', top: 9, right: 10, width: 6, height: 6, borderRadius: 3, backgroundColor: colors.danger, borderWidth: 1, borderColor: colors.surface },
+  hero: { backgroundColor: colors.brand, borderRadius: radii.lg, padding: 20, marginTop: 4, ...shadow.soft },
   heroTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 },
   heroCopy: { flex: 1 },
-  heroKicker: { color: '#b6c9ae', fontSize: 10, fontWeight: '700', letterSpacing: 1.8, marginBottom: 9 },
+  heroKicker: { color: colors.highlight, fontSize: 10, fontWeight: '800', letterSpacing: 1.8, marginBottom: 9 },
   heroTitle: { color: colors.white, fontSize: 25, fontWeight: '700' },
-  heroSubtitle: { color: '#c1d1bc', fontSize: 12, marginTop: 7 },
+  heroSubtitle: { color: '#A9BBD4', fontSize: 12, marginTop: 7 },
   heroDivider: { height: 1, backgroundColor: 'rgba(255,255,255,0.14)', marginTop: 21, marginBottom: 17 },
   heroStats: { flexDirection: 'row', alignItems: 'center' },
   heroStat: { flex: 1 },
   heroStatLine: { width: 1, height: 35, backgroundColor: 'rgba(255,255,255,0.15)', marginHorizontal: 10 },
-  heroStatLabel: { color: '#abc1a4', fontSize: 11 },
+  heroStatLabel: { color: '#93A8C4', fontSize: 11 },
   heroStatValue: { color: colors.white, fontSize: 19, fontWeight: '700', marginTop: 6, fontVariant: ['tabular-nums'] },
   heroFooter: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 20 },
-  heroFooterText: { color: '#b7c9b1', fontSize: 10 },
-  syncBanner: { backgroundColor: '#fff7f5', borderColor: '#efd8d3', borderWidth: 1, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 10, flexDirection: 'row', alignItems: 'center', gap: 7 },
-  syncText: { color: colors.coral, fontSize: 11, flex: 1 },
+  heroFooterText: { color: '#8FA3BD', fontSize: 10 },
+  syncBanner: { backgroundColor: '#FDF1F0', borderColor: '#F4D3D0', borderWidth: 1, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 10, flexDirection: 'row', alignItems: 'center', gap: 7 },
+  syncText: { color: colors.danger, fontSize: 11, flex: 1 },
   metricGrid: { flexDirection: 'row', gap: 12 },
-  metricCard: { flex: 1, backgroundColor: colors.surface, borderRadius: radii.md, padding: 15, borderWidth: 1, borderColor: colors.line },
-  metricIcon: { width: 34, height: 34, borderRadius: 11, backgroundColor: '#e4f0d8', alignItems: 'center', justifyContent: 'center', marginBottom: 12 },
-  metricIconAmber: { backgroundColor: '#f5ead8' },
+  metricCard: { flex: 1, backgroundColor: colors.surface, borderRadius: radii.md, padding: 15, ...shadow.card },
+  metricIcon: { width: 34, height: 34, borderRadius: 11, backgroundColor: '#E3F1EA', alignItems: 'center', justifyContent: 'center', marginBottom: 12 },
+  metricIconAmber: { backgroundColor: '#FBF0DC' },
   metricLabel: { color: colors.inkSoft, fontSize: 12 },
   metricValue: { color: colors.ink, fontSize: 25, fontWeight: '700', marginTop: 8, fontVariant: ['tabular-nums'] },
   metricHint: { color: colors.inkFaint, fontSize: 10, marginTop: 5 },
-  chartPanel: { backgroundColor: colors.surface, borderRadius: radii.md, padding: 16, borderWidth: 1, borderColor: colors.line },
+  chartPanel: { backgroundColor: colors.surface, borderRadius: radii.md, padding: 16, ...shadow.card },
   chartHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
   chartTitle: { color: colors.ink, fontSize: 15, fontWeight: '700' },
   chartSubtitle: { color: colors.inkFaint, fontSize: 11, marginTop: 4 },
   chartLegend: { flexDirection: 'row', alignItems: 'center', gap: 5 },
-  legendMark: { width: 7, height: 7, borderRadius: 4, backgroundColor: colors.lime },
+  legendMark: { width: 7, height: 7, borderRadius: 4, backgroundColor: colors.highlight },
   legendText: { color: colors.inkFaint, fontSize: 10 },
   chartArea: { height: 144, marginTop: 17, position: 'relative', overflow: 'hidden' },
-  chartGridLine: { position: 'absolute', left: 0, right: 0, top: 8, height: 1, backgroundColor: '#edf1eb' },
+  chartGridLine: { position: 'absolute', left: 0, right: 0, top: 8, height: 1, backgroundColor: '#F0F3F7' },
   chartGridLineMiddle: { top: '50%' },
   chartGridLineBottom: { top: '88%' },
   bars: { flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-around', height: 116, paddingHorizontal: 4 },
   barColumn: { height: 128, flex: 1, alignItems: 'center', justifyContent: 'flex-end', gap: 7 },
-  bar: { width: 16, maxHeight: 90, minHeight: 20, borderRadius: 8, backgroundColor: '#cfe1b7', opacity: 0.72 },
+  bar: { width: 16, maxHeight: 90, minHeight: 20, borderRadius: 8, backgroundColor: '#9DB8E8', opacity: 0.72 },
   barLabel: { color: colors.inkFaint, fontSize: 10 },
   chartEmptyOverlay: { position: 'absolute', left: 20, right: 20, top: 45, alignItems: 'center' },
-  chartEmptyText: { color: '#829080', fontSize: 11, backgroundColor: 'rgba(255,255,255,0.86)', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 10 },
+  chartEmptyText: { color: '#8593A6', fontSize: 11, backgroundColor: 'rgba(255,255,255,0.86)', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 10 },
   actionGrid: { gap: 10 },
-  actionCard: { minHeight: 66, backgroundColor: colors.surface, borderRadius: radii.md, paddingHorizontal: 13, flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: colors.line },
-  actionIcon: { width: 37, height: 37, borderRadius: 12, backgroundColor: '#e5efdc', alignItems: 'center', justifyContent: 'center' },
+  actionCard: { minHeight: 66, backgroundColor: colors.surface, borderRadius: radii.md, paddingHorizontal: 13, flexDirection: 'row', alignItems: 'center', ...shadow.card },
+  actionIcon: { width: 37, height: 37, borderRadius: 12, backgroundColor: '#E8EEF7', alignItems: 'center', justifyContent: 'center' },
   actionCopy: { flex: 1, marginLeft: 11 },
   actionTitle: { color: colors.ink, fontSize: 13, fontWeight: '700' },
   actionSubtitle: { color: colors.inkFaint, fontSize: 11, marginTop: 3 },
   pressed: { opacity: 0.78, transform: [{ scale: 0.985 }] },
   activityHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 1 },
   activityTitle: { color: colors.ink, fontSize: 16, fontWeight: '700' },
-  activityPanel: { backgroundColor: colors.surface, borderRadius: radii.md, paddingHorizontal: 14, borderWidth: 1, borderColor: colors.line },
-  activityRow: { minHeight: 63, flexDirection: 'row', alignItems: 'center', borderBottomWidth: 1, borderBottomColor: '#edf1eb' },
+  activityPanel: { backgroundColor: colors.surface, borderRadius: radii.md, paddingHorizontal: 14, ...shadow.card },
+  activityRow: { minHeight: 63, flexDirection: 'row', alignItems: 'center', borderBottomWidth: 1, borderBottomColor: '#F0F3F7' },
   activityRowLast: { borderBottomWidth: 0 },
-  activityIcon: { width: 34, height: 34, borderRadius: 11, backgroundColor: '#eef5e9', alignItems: 'center', justifyContent: 'center' },
+  activityIcon: { width: 34, height: 34, borderRadius: 11, backgroundColor: '#E8EEF7', alignItems: 'center', justifyContent: 'center' },
   activityCopy: { flex: 1, marginLeft: 11 },
   activityRowTitle: { color: colors.ink, fontSize: 12, fontWeight: '700' },
   activityDetail: { color: colors.inkFaint, fontSize: 11, marginTop: 3 },

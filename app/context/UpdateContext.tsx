@@ -96,18 +96,18 @@ export function UpdateProvider({ children }: React.PropsWithChildren) {
 export function useUpdates() { const value = useContext(UpdateContext); if (!value) throw new Error('useUpdates must be used inside UpdateProvider'); return value; }
 
 const styles = StyleSheet.create({
-  backdrop: { flex: 1, backgroundColor: 'rgba(15, 27, 19, 0.48)', justifyContent: 'center', padding: 24 },
+  backdrop: { flex: 1, backgroundColor: 'rgba(15, 27, 45, 0.48)', justifyContent: 'center', padding: 24 },
   card: { backgroundColor: colors.surface, borderRadius: radii.lg, padding: 22, gap: 10 },
   title: { color: colors.ink, fontSize: 20, fontWeight: '800' },
-  version: { color: colors.leaf, fontSize: 14, fontWeight: '700' },
+  version: { color: colors.accent, fontSize: 14, fontWeight: '700' },
   notes: { color: colors.inkSoft, fontSize: 14, lineHeight: 21 },
   size: { color: colors.inkFaint, fontSize: 12 },
   hint: { color: colors.inkFaint, fontSize: 11, lineHeight: 17 },
-  download: { backgroundColor: colors.forest, minHeight: 48, borderRadius: 14, alignItems: 'center', justifyContent: 'center', marginTop: 4 },
+  download: { backgroundColor: colors.brand, minHeight: 48, borderRadius: 14, alignItems: 'center', justifyContent: 'center', marginTop: 4 },
   downloadDisabled: { opacity: 0.7 },
   downloadText: { color: colors.white, fontSize: 14, fontWeight: '800' },
-  progressTrack: { height: 8, borderRadius: 4, backgroundColor: '#e4e9e2', overflow: 'hidden' },
-  progressFill: { height: 8, borderRadius: 4, backgroundColor: colors.leaf },
+  progressTrack: { height: 8, borderRadius: 4, backgroundColor: '#EEF1F6', overflow: 'hidden' },
+  progressFill: { height: 8, borderRadius: 4, backgroundColor: colors.accent },
   later: { minHeight: 42, alignItems: 'center', justifyContent: 'center' },
   laterText: { color: colors.inkFaint, fontSize: 13, fontWeight: '700' },
 });

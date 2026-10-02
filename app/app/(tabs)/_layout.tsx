@@ -10,9 +10,9 @@ export default function TabsLayout() {
   return (
     <Tabs screenOptions={{
       headerShown: false,
-      tabBarActiveTintColor: colors.leaf,
-      tabBarInactiveTintColor: '#9aa59b',
-      tabBarStyle: { height: 82, paddingTop: 9, borderTopColor: '#e5ebe2', backgroundColor: '#ffffff' },
+      tabBarActiveTintColor: colors.accent,
+      tabBarInactiveTintColor: '#8593A6',
+      tabBarStyle: { height: 82, paddingTop: 9, borderTopColor: '#E6EBF1', backgroundColor: '#FFFFFF' },
       tabBarLabelStyle: { fontSize: 11, fontWeight: '600', paddingBottom: 8 },
     }}>
       <Tabs.Screen name="home" options={{ title: '首页', tabBarIcon: ({ color, size, focused }) => <Ionicons name={focused ? 'home' : 'home-outline'} color={color} size={size} /> }} />

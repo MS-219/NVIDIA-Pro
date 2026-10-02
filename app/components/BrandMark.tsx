@@ -21,9 +21,9 @@ export function BrandMark({ compact = false, dark = false }: BrandMarkProps) {
 
 const styles = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  mark: { width: 40, height: 40, borderRadius: 13, backgroundColor: colors.forest, alignItems: 'center', justifyContent: 'center' },
+  mark: { width: 40, height: 40, borderRadius: 13, backgroundColor: colors.brand, alignItems: 'center', justifyContent: 'center' },
   markCompact: { width: 34, height: 34, borderRadius: 11 },
-  markDark: { backgroundColor: colors.lime },
+  markDark: { backgroundColor: colors.highlight },
   wordmark: { color: colors.ink, fontSize: 18, fontWeight: '700', letterSpacing: 0.2 },
   wordmarkDark: { color: colors.white },
 });
