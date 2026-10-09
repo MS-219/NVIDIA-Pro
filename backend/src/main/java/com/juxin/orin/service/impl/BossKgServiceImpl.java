@@ -913,8 +913,12 @@ public class BossKgServiceImpl implements IBossKgService {
     }
 
     private void clearRejectedPaymentReservation(Withdraw withdraw) {
-        withdraw.setBossKgBatchId(null);
-        withdrawMapper.updateById(withdraw);
+        // MyBatis-Plus 的 updateById 默认跳过 null 字段，直接 set 后再 update 无法清空 batchId，
+        // 会导致付款被拒后 batchId 残留、hasBossKgSubmission 误判为"已提交"，状态永久卡在"付款中"。
+        withdrawMapper.update(null,
+                new com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper<Withdraw>()
+                        .eq(Withdraw::getId, withdraw.getId())
+                        .set(Withdraw::getBossKgBatchId, null));
     }
 
     /**
