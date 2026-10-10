@@ -9,6 +9,7 @@ import com.juxin.orin.entity.UserPaymentApply;
 import com.juxin.orin.mapper.AppUserMapper;
 import com.juxin.orin.mapper.UserContractMapper;
 import com.juxin.orin.mapper.UserPaymentApplyMapper;
+import com.juxin.orin.service.IBossKgService;
 import com.juxin.orin.util.JwtUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -35,6 +36,9 @@ public class AdminPaymentApplyController {
 
     @Autowired
     private UserContractMapper contractMapper;
+
+    @Autowired
+    private IBossKgService bossKgService;
 
     /**
      * 获取申请列表
@@ -107,7 +111,9 @@ public class AdminPaymentApplyController {
         appUserMapper.updateById(user);
 
         // 2. 如果之前签约了佣金保，同步更新契约表中的卡号
-        UserContract contract = contractMapper.selectOne(new LambdaQueryWrapper<UserContract>().eq(UserContract::getUserId, userId));
+        // 注意：按 userId 直接 selectOne 会因同一用户存在多个 provider 的签约记录而抛 TooManyResultsException，
+        // 必须按当前服务商(providerId)查询，与签约/付款逻辑保持一致。
+        UserContract contract = bossKgService.getUserContract(userId);
         if (contract != null) {
             if (apply.getPaymentType() == 0) {
                 contract.setBankCardNo(apply.getNewCardNo());
