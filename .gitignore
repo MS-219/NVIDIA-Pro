@@ -16,6 +16,8 @@
 # Local browser validation artifacts
 .playwright-cli/
 output/playwright/
+# macOS 解压临时目录(浏览器下载自动解压产物)
+output/*.emuSMp/
 
 backend/uploads/
 backend/logs/
