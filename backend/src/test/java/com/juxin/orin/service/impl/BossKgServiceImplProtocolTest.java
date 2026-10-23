@@ -34,6 +34,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -41,6 +42,8 @@ import static org.mockito.Mockito.when;
 class BossKgServiceImplProtocolTest {
 
     private static final String DES_KEY = "12345678";
+    // 批次号末 10 位与回调 merOrderId 后缀 1234567890 对应
+    private static final String CURRENT_BATCH_ID = "202610231800001234567890";
 
     @Mock
     private UserContractMapper userContractMapper;
@@ -160,6 +163,7 @@ class BossKgServiceImplProtocolTest {
     void verifiesPaymentCallbackAgainstResDataOnly() throws Exception {
         Withdraw withdraw = new Withdraw();
         withdraw.setId(42L);
+        withdraw.setBossKgBatchId(CURRENT_BATCH_ID);
         withdraw.setPaymentFailCount(0);
         when(withdrawMapper.selectById(42L)).thenReturn(withdraw);
 
@@ -186,6 +190,8 @@ class BossKgServiceImplProtocolTest {
         withdraw.setStatus(4);
         withdraw.setBossKgState(4);
         withdraw.setBossKgOrderNo("PLATFORM-42");
+        // 早于 batchId 清空修复的失败记录，库里仍保留原批次
+        withdraw.setBossKgBatchId(CURRENT_BATCH_ID);
         withdraw.setPaymentFailCount(1);
         when(withdrawMapper.selectById(42L)).thenReturn(withdraw);
 
@@ -210,7 +216,7 @@ class BossKgServiceImplProtocolTest {
         withdraw.setId(42L);
         withdraw.setStatus(1);
         withdraw.setBossKgState(1);
-        withdraw.setBossKgBatchId("BATCH-42");
+        withdraw.setBossKgBatchId(CURRENT_BATCH_ID);
         withdraw.setPaymentFailCount(0);
         when(withdrawMapper.selectById(42L)).thenReturn(withdraw);
 
@@ -227,6 +233,51 @@ class BossKgServiceImplProtocolTest {
         verify(withdrawMapper).updateById(captor.capture());
         assertEquals(4, captor.getValue().getStatus());
         WithdrawServiceImplBossKgTest.assertBatchIdClearedExplicitly(withdrawMapper);
+    }
+
+    @Test
+    void staleCallbackFromPreviousBatchIsIgnored() throws Exception {
+        Withdraw withdraw = new Withdraw();
+        withdraw.setId(42L);
+        withdraw.setStatus(1);
+        withdraw.setBossKgState(1);
+        withdraw.setBossKgBatchId("202610231900009876543210");
+        withdraw.setPaymentFailCount(1);
+        when(withdrawMapper.selectById(42L)).thenReturn(withdraw);
+
+        JSONObject staleFailure = new JSONObject()
+                .set("merOrderId", "W42_1234567890")
+                .set("orderNo", "PLATFORM-OLD")
+                .set("state", 4)
+                .set("amt", 1000L)
+                .set("resMsg", "旧批次失败");
+
+        assertEquals("SUCCESS", service.handlePaymentNotify(callback(staleFailure).toString()));
+
+        verify(withdrawMapper, never()).updateById(any(Withdraw.class));
+        verify(withdrawMapper, never()).update(any(), any());
+    }
+
+    @Test
+    void callbackIsIgnoredAfterBatchWasCleared() throws Exception {
+        Withdraw withdraw = new Withdraw();
+        withdraw.setId(42L);
+        withdraw.setStatus(4);
+        withdraw.setBossKgState(4);
+        withdraw.setBossKgOrderNo("PLATFORM-42");
+        withdraw.setPaymentFailCount(1);
+        when(withdrawMapper.selectById(42L)).thenReturn(withdraw);
+
+        JSONObject repeatedFailure = new JSONObject()
+                .set("merOrderId", "W42_1234567890")
+                .set("orderNo", "PLATFORM-42")
+                .set("state", 4)
+                .set("amt", 1000L)
+                .set("resMsg", "测试失败");
+
+        assertEquals("SUCCESS", service.handlePaymentNotify(callback(repeatedFailure).toString()));
+
+        verify(withdrawMapper, never()).updateById(any(Withdraw.class));
     }
 
     private JSONObject callback(JSONObject data) throws Exception {

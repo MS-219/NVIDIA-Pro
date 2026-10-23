@@ -700,6 +700,18 @@ public class BossKgServiceImpl implements IBossKgService {
 
             // 更新提现记录
             Withdraw withdraw = withdrawMapper.selectById(withdrawId);
+            if (withdraw != null && !isCurrentBatchOrder(withdraw, merOrderId)) {
+                // 重试后旧批次的回调（含平台重推）不能覆盖当前付款，否则新付款会被误标失败并可能被重复打款。
+                // 返回 SUCCESS 让平台停止重推。
+                if (state != null && state == 3) {
+                    log.error("忽略非当前批次的付款成功回调，请人工核对是否重复打款 - withdrawId:{}, merOrderId:{}, currentBatchId:{}",
+                            withdrawId, merOrderId, withdraw.getBossKgBatchId());
+                } else {
+                    log.warn("忽略非当前批次的付款回调 - withdrawId:{}, merOrderId:{}, state:{}, currentBatchId:{}",
+                            withdrawId, merOrderId, state, withdraw.getBossKgBatchId());
+                }
+                return "SUCCESS";
+            }
             if (withdraw != null) {
                 boolean repeatedTerminalCallback = state != null
                         && state.equals(withdraw.getBossKgState())
@@ -912,6 +924,12 @@ public class BossKgServiceImpl implements IBossKgService {
         String suffix = batchId.length() > 10 ? batchId.substring(batchId.length() - 10) : batchId;
         String orderId = "W" + withdrawId + "_" + suffix;
         return orderId.length() > 32 ? orderId.substring(0, 32) : orderId;
+    }
+
+    private boolean isCurrentBatchOrder(Withdraw withdraw, String merOrderId) {
+        String batchId = withdraw.getBossKgBatchId();
+        return StrUtil.isNotBlank(batchId)
+                && generateMerchantOrderId(withdraw.getId(), batchId).equals(merOrderId);
     }
 
     private void clearRejectedPaymentReservation(Withdraw withdraw) {
