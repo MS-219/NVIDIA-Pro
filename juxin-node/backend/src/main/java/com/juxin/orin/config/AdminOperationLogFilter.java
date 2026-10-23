@@ -84,14 +84,29 @@ public class AdminOperationLogFilter extends OncePerRequestFilter {
 
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
-        String uri = request.getRequestURI();
-        return uri == null || EXCLUDED_PATHS.contains(uri) || (!isAdminManagedPath(uri) && !hasAdminToken(request));
+        try {
+            String path = authorizationPath(request);
+            return EXCLUDED_PATHS.contains(path) || (!isAdminManagedPath(path) && !hasAdminToken(request));
+        } catch (IllegalArgumentException exception) {
+            // Ambiguous paths must reach doFilterInternal so they fail closed.
+            return false;
+        }
     }
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
-        String authError = validateAdminRequest(request);
+        final String path;
+        try {
+            path = authorizationPath(request);
+        } catch (IllegalArgumentException exception) {
+            response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+            response.setCharacterEncoding(StandardCharsets.UTF_8.name());
+            response.setContentType(MediaType.APPLICATION_JSON_VALUE + ";charset=UTF-8");
+            response.getWriter().write("{\"code\":400,\"msg\":\"请求路径格式不正确\",\"data\":null}");
+            return;
+        }
+        String authError = validateAdminRequest(request, path);
         if (authError != null) {
             writeAuthError(response, authError);
             log.warn("管理后台鉴权失败: ip={}, method={}, path={}, reason={}",
@@ -112,7 +127,7 @@ public class AdminOperationLogFilter extends OncePerRequestFilter {
             // Multipart requests must reach Spring's multipart resolver unchanged.
             filterChain.doFilter(requestForChain, response);
         } finally {
-            String path = request.getRequestURI();
+            String loggedPath = request.getRequestURI();
             if (!EXCLUDED_PATHS.contains(path)) {
                 long duration = System.currentTimeMillis() - startTime;
                 String ip = getClientIp(request);
@@ -124,7 +139,7 @@ public class AdminOperationLogFilter extends OncePerRequestFilter {
                 int status = response.getStatus();
 
                 if (query != null && !query.isEmpty()) {
-                    path = path + "?" + redactQueryString(query);
+                    loggedPath = loggedPath + "?" + redactQueryString(query);
                 }
 
                 log.info("管理后台操作: operator={}, userId={}, ip={}, method={}, path={}, status={}, durationMs={}, body={}",
@@ -132,12 +147,33 @@ public class AdminOperationLogFilter extends OncePerRequestFilter {
                         operatorId,
                         ip,
                         method,
-                        path,
+                        loggedPath,
                         status,
                         duration,
                         body);
             }
         }
+    }
+
+    private static String authorizationPath(HttpServletRequest request) {
+        String uri = request.getRequestURI();
+        String contextPath = request.getContextPath();
+        if (uri == null || !uri.startsWith(contextPath + "/")) {
+            throw new IllegalArgumentException("Invalid request path");
+        }
+        // getRequestURI is raw; Spring MVC matches decoded path segments.
+        // Decode once, without URLDecoder's form-specific '+' conversion.
+        String path = UriUtils.decode(uri.substring(contextPath.length()), StandardCharsets.UTF_8);
+        if (path.contains("%") || path.contains(";") || path.contains("\\") || path.contains("//")
+                || path.chars().anyMatch(value -> value <= 0x20 || value == 0x7f)) {
+            throw new IllegalArgumentException("Ambiguous request path");
+        }
+        for (String segment : path.split("/")) {
+            if (".".equals(segment) || "..".equals(segment)) {
+                throw new IllegalArgumentException("Path traversal is not allowed");
+            }
+        }
+        return path;
     }
 
     static boolean shouldCacheRequestBody(HttpServletRequest request) {
@@ -182,11 +218,10 @@ public class AdminOperationLogFilter extends OncePerRequestFilter {
         return JwtUtil.parseToken(adminAuthValidator.normalizeToken(token));
     }
 
-    private String validateAdminRequest(HttpServletRequest request) {
+    private String validateAdminRequest(HttpServletRequest request, String path) {
         if ("OPTIONS".equalsIgnoreCase(request.getMethod())) {
             return null;
         }
-        String path = request.getRequestURI();
         if (EXCLUDED_PATHS.contains(path)) {
             return null;
         }

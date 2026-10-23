@@ -43,6 +43,8 @@ class SettingsControllerDeviceSettingsTest {
     @Test
     void deviceSettingsExposeMaxnSuperByDefault() {
         when(configService.getConfig(any(), any())).thenAnswer(invocation -> invocation.getArgument(1));
+        when(configService.getConfig("earnings.hourlyMinRate")).thenReturn(null);
+        when(configService.getConfig("earnings.hourlyMaxRate")).thenReturn(null);
 
         Map<?, ?> settings = (Map<?, ?>) controller.getAllSettings(adminToken()).getData();
         Map<?, ?> device = (Map<?, ?>) settings.get("device");
