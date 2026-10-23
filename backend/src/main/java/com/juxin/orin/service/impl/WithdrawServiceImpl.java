@@ -311,6 +311,12 @@ public class WithdrawServiceImpl extends ServiceImpl<WithdrawMapper, Withdraw> i
         if (!reserved) {
             return "该提现正在付款或已发起付款，请刷新后再操作";
         }
+        // 预占已在库里清空上一轮的 batchId/orderNo，必须重新读库；
+        // 否则内存里的旧值会被 payment() 的 updateById 写回，导致复用旧批次并把失败误判为已提交。
+        withdraw = this.getById(id);
+        if (withdraw == null) {
+            return "提现记录不存在";
+        }
         withdraw.setStatus(1);
         withdraw.setBossKgState(1);
         withdraw.setAuditorId(auditorId);
@@ -502,11 +508,18 @@ public class WithdrawServiceImpl extends ServiceImpl<WithdrawMapper, Withdraw> i
             withdraw.setPaymentFailCount(
                     (withdraw.getPaymentFailCount() != null ? withdraw.getPaymentFailCount() : 0) + 1);
             withdraw.setRejectReason((String) result.get("resMsg"));
-            // 保留佣金保信息作为记录，但清空 batchId 以便可以重新打款
-            withdraw.setBossKgBatchId(null);
         }
 
         withdraw.setUpdateTime(LocalDateTime.now());
-        return this.updateById(withdraw);
+        boolean updated = this.updateById(withdraw);
+        if (updated && state == 4) {
+            // 保留佣金保信息作为记录，但清空 batchId 以便可以重新打款。
+            // updateById 会跳过 null 字段，必须用 UpdateWrapper 显式置空。
+            this.lambdaUpdate()
+                    .eq(Withdraw::getId, id)
+                    .set(Withdraw::getBossKgBatchId, null)
+                    .update();
+        }
+        return updated;
     }
 }

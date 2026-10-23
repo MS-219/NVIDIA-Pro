@@ -736,11 +736,13 @@ public class BossKgServiceImpl implements IBossKgService {
                                 (withdraw.getPaymentFailCount() != null ? withdraw.getPaymentFailCount() : 0) + 1);
                     }
                     withdraw.setRejectReason(resMsg);
-                    // 保留佣金保信息作为记录，但清空 batchId 以便可以重新打款
-                    withdraw.setBossKgBatchId(null);
                 }
 
                 withdrawMapper.updateById(withdraw);
+                if (state == 4) {
+                    // 保留佣金保信息作为记录，但清空 batchId 以便可以重新打款
+                    clearRejectedPaymentReservation(withdraw);
+                }
             }
 
             return "SUCCESS";

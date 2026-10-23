@@ -2,6 +2,8 @@ package com.juxin.orin.service.impl;
 
 import cn.hutool.json.JSONObject;
 import cn.hutool.json.JSONUtil;
+import com.baomidou.mybatisplus.core.MybatisConfiguration;
+import com.baomidou.mybatisplus.core.metadata.TableInfoHelper;
 import com.juxin.orin.config.BossKgConfig;
 import com.juxin.orin.entity.Withdraw;
 import com.juxin.orin.mapper.AppUserMapper;
@@ -10,6 +12,7 @@ import com.juxin.orin.mapper.WithdrawMapper;
 import com.juxin.orin.util.DESUtil;
 import com.juxin.orin.util.RSAUtil;
 import com.sun.net.httpserver.HttpExchange;
+import org.apache.ibatis.builder.MapperBuilderAssistant;
 import com.sun.net.httpserver.HttpServer;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -198,6 +201,32 @@ class BossKgServiceImplProtocolTest {
         ArgumentCaptor<Withdraw> captor = ArgumentCaptor.forClass(Withdraw.class);
         verify(withdrawMapper).updateById(captor.capture());
         assertEquals(1, captor.getValue().getPaymentFailCount());
+    }
+
+    @Test
+    void failureCallbackClearsBatchIdInDatabase() throws Exception {
+        TableInfoHelper.initTableInfo(new MapperBuilderAssistant(new MybatisConfiguration(), ""), Withdraw.class);
+        Withdraw withdraw = new Withdraw();
+        withdraw.setId(42L);
+        withdraw.setStatus(1);
+        withdraw.setBossKgState(1);
+        withdraw.setBossKgBatchId("BATCH-42");
+        withdraw.setPaymentFailCount(0);
+        when(withdrawMapper.selectById(42L)).thenReturn(withdraw);
+
+        JSONObject callbackData = new JSONObject()
+                .set("merOrderId", "W42_1234567890")
+                .set("orderNo", "PLATFORM-42")
+                .set("state", 4)
+                .set("amt", 1000L)
+                .set("resMsg", "收款账户异常");
+
+        assertEquals("SUCCESS", service.handlePaymentNotify(callback(callbackData).toString()));
+
+        ArgumentCaptor<Withdraw> captor = ArgumentCaptor.forClass(Withdraw.class);
+        verify(withdrawMapper).updateById(captor.capture());
+        assertEquals(4, captor.getValue().getStatus());
+        WithdrawServiceImplBossKgTest.assertBatchIdClearedExplicitly(withdrawMapper);
     }
 
     private JSONObject callback(JSONObject data) throws Exception {
