@@ -222,19 +222,7 @@ public class WithdrawController {
             wrapper.eq(Withdraw::getUserId, userId);
         }
         if (status != null) {
-            if (status == 4) {
-                wrapper.eq(Withdraw::getStatus, 4);
-                if (userId == null) {
-                    // 全局列表仅显示24小时内的失败订单。
-                    wrapper.gt(Withdraw::getUpdateTime, java.time.LocalDateTime.now().minusHours(24));
-                }
-            } else {
-                wrapper.eq(Withdraw::getStatus, status);
-            }
-        } else if (userId == null) {
-            // "全部"列表时，排除掉24小时之前的失败订单，保持列表整洁
-            wrapper.apply("(status != 4 OR update_time > {0})",
-                    java.time.LocalDateTime.now().minusHours(24));
+            wrapper.eq(Withdraw::getStatus, status);
         }
         // 按提现方式筛选：1=微信, 2=支付宝, 3=银行卡
         if (type != null) {
