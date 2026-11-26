@@ -43,9 +43,6 @@ public class AppUserController {
     private InviteRewardMapper inviteRewardMapper;
 
     @Autowired
-    private com.juxin.orin.service.IInviteService inviteService;
-
-    @Autowired
     private com.juxin.orin.service.ISystemConfigService configService;
 
     @Autowired
@@ -69,7 +66,7 @@ public class AppUserController {
      * - code: 小程序 wx.login() 获取的 code (必填)
      * - nickname: 用户昵称 (可选)
      * - avatarUrl: 用户头像 (可选)
-     * - inviteCode: 邀请码 (可选，新用户注册时使用)
+     * - inviteCode: 邀请码 (新用户必填)
      */
     @PostMapping("/wxLogin")
     public Result<Object> wxLogin(@RequestBody Map<String, String> params) {
@@ -93,25 +90,13 @@ public class AppUserController {
         // 登录或注册用户
         IAppUserService.WxLoginResult loginResult;
         try {
-            loginResult = appUserService.wxLoginWithUser(openid);
+            loginResult = appUserService.wxLoginWithUser(openid, inviteCode);
         } catch (IllegalStateException e) {
             return Result.error(e.getMessage());
         }
         String token = loginResult.token();
         AppUser user = loginResult.user();
         boolean isNewUser = loginResult.isNewUser();
-
-        // 如果是新用户且有邀请码，处理邀请关系
-        if (isNewUser && inviteCode != null && !inviteCode.isEmpty()) {
-            try {
-                inviteService.handleNewUserInvite(user.getId(), inviteCode);
-            } catch (Exception e) {
-                // 邀请关系绑定失败不影响登录
-                org.slf4j.LoggerFactory.getLogger(AppUserController.class)
-                        .warn("邀请关系绑定失败: userId={}, inviteCode={}, error={}",
-                                user.getId(), inviteCode, e.getMessage());
-            }
-        }
 
         // 如果传了头像和昵称，更新用户信息
         if ((nickname != null && !nickname.isEmpty()) ||

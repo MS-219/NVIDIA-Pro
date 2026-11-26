@@ -4,7 +4,10 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.juxin.orin.common.Result;
 import com.juxin.orin.entity.Notice;
+import com.juxin.orin.util.JwtUtil;
 import com.juxin.orin.service.INoticeService;
+import jakarta.servlet.http.HttpServletResponse;
+import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
@@ -26,7 +29,13 @@ public class NoticeController {
      * 获取公告列表（小程序首页用）
      */
     @GetMapping("/list")
-    public Result<Object> list(@RequestParam(defaultValue = "5") Integer limit) {
+    public Result<Object> list(@RequestParam(defaultValue = "5") Integer limit,
+            @RequestHeader(value = "Authorization", required = false) String token,
+            HttpServletResponse response) {
+        response.setHeader("Cache-Control", "private, no-store");
+        // 旧首页会把 401 当作登录过期，并在请求失败时展示内置公告。
+        if (token == null || token.isBlank()) return Result.success(List.of());
+        if (!isAppSession(token)) return Result.error(401, "请登录后查看公告");
         return Result.success(noticeService.getPublishedList(limit));
     }
 
@@ -34,12 +43,23 @@ public class NoticeController {
      * 获取公告详情
      */
     @GetMapping("/detail/{id}")
-    public Result<Notice> detail(@PathVariable Long id) {
+    public Result<Notice> detail(@PathVariable Long id,
+            @RequestHeader(value = "Authorization", required = false) String token,
+            HttpServletResponse response) {
+        response.setHeader("Cache-Control", "private, no-store");
+        // 旧详情页不发送登录凭证；不能因此清除用户其他页面的登录态。
+        if (token == null || token.isBlank()) return Result.error(403, "请在登录后的首页查看公告");
+        if (!isAppSession(token)) return Result.error(401, "请登录后查看公告");
         Notice notice = noticeService.getById(id);
         if (notice == null || notice.getStatus() != 1) {
             return Result.error("公告不存在");
         }
         return Result.success(notice);
+    }
+
+    private boolean isAppSession(String authorization) {
+        return authorization.startsWith("Bearer ")
+                && "app".equals(JwtUtil.getUserType(authorization.substring(7)));
     }
 
     // ========== 管理后台 API ==========

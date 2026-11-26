@@ -303,6 +303,18 @@ public class BossKgContractController {
                 idCard,
                 mobile);
 
+        if (Boolean.TRUE.equals(queryResult.get("success"))
+                && Integer.valueOf(UserContract.STATUS_SUCCESS).equals(queryResult.get("state"))) {
+            // 佣金保按实名查询；提现按当前账号和服务商的签约记录放行。
+            UserContract synced = bossKgService.getUserContract(userId);
+            int state = synced != null && synced.getStatus() != null
+                    ? synced.getStatus() : UserContract.STATUS_PENDING;
+            if (state != UserContract.STATUS_SUCCESS) {
+                String message = state == UserContract.STATUS_FAILED && StrUtil.isNotBlank(synced.getFailReason())
+                        ? synced.getFailReason() : "当前账号签约状态：" + getStatusText(state);
+                return Result.success(Map.of("success", false, "state", state, "message", message));
+            }
+        }
         return Result.success(queryResult);
     }
 

@@ -42,7 +42,7 @@ class AppUserServiceImplTest {
         AppUser user = existingUser();
         when(appUserMapper.selectByOpenidIncludingDeleted(user.getOpenid())).thenReturn(user);
 
-        IAppUserService.WxLoginResult result = service.wxLoginWithUser(user.getOpenid());
+        IAppUserService.WxLoginResult result = service.wxLoginWithUser(user.getOpenid(), null);
 
         assertSame(user, result.user());
         assertFalse(result.isNewUser());
@@ -58,7 +58,9 @@ class AppUserServiceImplTest {
         when(appUserMapper.countByIdIncludingDeleted(anyLong())).thenReturn(0);
         when(appUserMapper.insert(any(AppUser.class))).thenReturn(1);
 
-        IAppUserService.WxLoginResult result = service.wxLoginWithUser("openid-new");
+        when(appUserMapper.selectById(123456L)).thenReturn(existingUser());
+        IAppUserService.WxLoginResult result = service.wxLoginWithUser("openid-new", "JX123456");
+        assertEquals(123456L, result.user().getInviterId());
 
         assertTrue(result.isNewUser());
         assertEquals("openid-new", result.user().getOpenid());
@@ -78,10 +80,19 @@ class AppUserServiceImplTest {
 
         IllegalStateException error = org.junit.jupiter.api.Assertions.assertThrows(
                 IllegalStateException.class,
-                () -> service.wxLoginWithUser(user.getOpenid()));
+                () -> service.wxLoginWithUser(user.getOpenid(), null));
 
         assertEquals("账号已删除，请联系管理员从回收站恢复", error.getMessage());
         verify(appUserMapper, times(1)).selectByOpenidIncludingDeleted(user.getOpenid());
+        verify(appUserMapper, never()).insert(any(AppUser.class));
+    }
+
+    @Test
+    void newUserCannotRegisterWithMissingMalformedOrUnknownInvite() {
+        for (String invitation : new String[]{null, "", "123456", "JX+123456", "JX000000", "JX123456"}) {
+            org.junit.jupiter.api.Assertions.assertThrows(IllegalStateException.class,
+                    () -> service.wxLoginWithUser("new", invitation));
+        }
         verify(appUserMapper, never()).insert(any(AppUser.class));
     }
 

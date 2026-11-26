@@ -80,7 +80,7 @@ class BossKgContractControllerTest {
         user.setIdCard("110101199001011234");
         user.setPhone("13800138000");
         when(bossKgService.isEnabled()).thenReturn(true);
-        when(bossKgService.getUserContract(42L)).thenReturn(null);
+        when(bossKgService.getUserContract(42L)).thenReturn(null, contract(UserContract.STATUS_SUCCESS));
         when(appUserMapper.selectById(42L)).thenReturn(user);
         when(bossKgService.queryContractStatus("张三", "110101199001011234", "13800138000"))
                 .thenReturn(Map.of("success", true, "state", 1));
@@ -90,6 +90,49 @@ class BossKgContractControllerTest {
         assertEquals(200, response.getCode());
         assertEquals(true, response.getData().get("success"));
         assertEquals(1, response.getData().get("state"));
+    }
+
+    @Test
+    void refreshDoesNotReportAnotherAccountsSignatureAsThisAccounts() {
+        UserContract failed = contract(UserContract.STATUS_FAILED);
+        failed.setFailReason("该实名已绑定其他账号，请联系客服迁移实名提现账号");
+        when(bossKgService.isEnabled()).thenReturn(true);
+        when(bossKgService.getUserContract(42L)).thenReturn(failed);
+        when(bossKgService.queryContractStatus(failed.getRealName(), failed.getIdCard(), failed.getMobile()))
+                .thenReturn(Map.of("success", true, "state", 1));
+
+        Map<String, Object> result = controller.refreshContractStatus(authenticatedRequest(42L)).getData();
+
+        assertEquals(false, result.get("success"));
+        assertEquals(UserContract.STATUS_FAILED, result.get("state"));
+        assertEquals(failed.getFailReason(), result.get("message"));
+        assertEquals(false, controller.getContractStatus(authenticatedRequest(42L)).getData().get("contracted"));
+    }
+
+    @Test
+    void refreshDoesNotReportSuccessWhenNoAccountRecordRemainsAfterSync() {
+        UserContract pending = contract(UserContract.STATUS_PENDING);
+        when(bossKgService.isEnabled()).thenReturn(true);
+        when(bossKgService.getUserContract(42L)).thenReturn(pending, null);
+        when(bossKgService.queryContractStatus(pending.getRealName(), pending.getIdCard(), pending.getMobile()))
+                .thenReturn(Map.of("success", true, "state", 1));
+
+        Map<String, Object> result = controller.refreshContractStatus(authenticatedRequest(42L)).getData();
+
+        assertEquals(false, result.get("success"));
+        assertEquals(UserContract.STATUS_PENDING, result.get("state"));
+    }
+
+    @Test
+    void refreshPreservesProviderFailureEvenIfAccountWasPreviouslySigned() {
+        UserContract signed = contract(UserContract.STATUS_SUCCESS);
+        when(bossKgService.isEnabled()).thenReturn(true);
+        when(bossKgService.getUserContract(42L)).thenReturn(signed);
+        Map<String, Object> failure = Map.of("success", false, "message", "查询失败");
+        when(bossKgService.queryContractStatus(signed.getRealName(), signed.getIdCard(), signed.getMobile()))
+                .thenReturn(failure);
+
+        assertEquals(failure, controller.refreshContractStatus(authenticatedRequest(42L)).getData());
     }
 
     private UserContract contract(int status) {

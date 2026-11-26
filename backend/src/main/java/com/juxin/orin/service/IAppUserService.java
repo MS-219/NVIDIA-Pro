@@ -17,7 +17,7 @@ public interface IAppUserService extends IService<AppUser> {
     /**
      * 微信登录/注册，并返回本次登录使用的用户快照。
      */
-    WxLoginResult wxLoginWithUser(String openid);
+    WxLoginResult wxLoginWithUser(String openid, String inviteCode);
 
     /**
      * 根据 OpenID 获取用户

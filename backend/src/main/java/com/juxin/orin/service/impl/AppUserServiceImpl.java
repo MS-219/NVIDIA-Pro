@@ -8,6 +8,7 @@ import com.juxin.orin.entity.AppUser;
 import com.juxin.orin.mapper.AppUserMapper;
 import com.juxin.orin.service.IAppUserService;
 import com.juxin.orin.util.JwtUtil;
+import com.juxin.orin.util.InviteCode;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -38,11 +39,11 @@ public class AppUserServiceImpl extends ServiceImpl<AppUserMapper, AppUser> impl
 
     @Override
     public String wxLogin(String openid) {
-        return wxLoginWithUser(openid).token();
+        return wxLoginWithUser(openid, null).token();
     }
 
     @Override
-    public IAppUserService.WxLoginResult wxLoginWithUser(String openid) {
+    public IAppUserService.WxLoginResult wxLoginWithUser(String openid, String inviteCode) {
         AppUser user = baseMapper.selectByOpenidIncludingDeleted(openid);
         if (user != null && Integer.valueOf(1).equals(user.getDeleted())) {
             throw new IllegalStateException("账号已删除，请联系管理员从回收站恢复");
@@ -50,15 +51,22 @@ public class AppUserServiceImpl extends ServiceImpl<AppUserMapper, AppUser> impl
         boolean isNewUser = user == null;
 
         if (isNewUser) {
-            // 新用户自动注册
+            if (inviteCode == null || inviteCode.isBlank()) {
+                throw new IllegalStateException("新用户须通过好友邀请注册");
+            }
+            Long inviterId = InviteCode.userId(inviteCode);
+            if (inviterId == null || getById(inviterId) == null) {
+                throw new IllegalStateException("邀请码无效，请好友重新分享");
+            }
             user = new AppUser();
             user.setId(generateUniqueId()); // 生成 6 位唯一随机 ID
             user.setOpenid(openid);
+            user.setInviterId(inviterId);
             user.setNickname("微信用户");
             user.setBalance(BigDecimal.ZERO);
             user.setQuota(0);
             user.setCreateTime(LocalDateTime.now());
-            this.save(user);
+            if (!save(user)) throw new IllegalStateException("注册失败，请重试");
         }
 
         // 生成 JWT Token
